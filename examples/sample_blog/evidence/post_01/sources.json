@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "post_id": "post_01",
+  "sandbox": true,
+  "note": "Evidenze simulate per la sandbox didattica. Misure e digest sono fittizi.",
+  "sources": [
+    {
+      "key": "python-docs-cmdline",
+      "type": "documentation",
+      "title": "Python documentation - Command line and environment (-X importtime)",
+      "url": "https://docs.python.org/3/using/cmdline.html#cmdoption-X",
+      "accessed": "2026-11-10",
+      "primary": true,
+      "local_copy": null,
+      "tags": ["official_docs"]
+    },
+    {
+      "key": "sandbox-benchmark-log",
+      "type": "measurement",
+      "title": "Log di misura simulato: cinque avvii dello script di prova",
+      "url": null,
+      "accessed": "2026-11-10",
+      "primary": true,
+      "local_copy": "evidence/post_01/benchmark.md",
+      "tags": ["author_measurement", "simulated"]
+    }
+  ]
+}

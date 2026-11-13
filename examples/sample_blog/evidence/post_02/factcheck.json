@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "post_id": "post_02",
+  "sandbox": true,
+  "verifier": "Verificatore locale dimostrativo",
+  "claims": [
+    {
+      "id": "C1",
+      "text": "I team che usano un linter consegnano prima.",
+      "outcome": "unsupported",
+      "source_key": null,
+      "locator": null,
+      "promotable": false
+    },
+    {
+      "id": "C2",
+      "text": "Il nuovo linter è incredibilmente veloce.",
+      "outcome": "unsupported",
+      "source_key": null,
+      "locator": null,
+      "promotable": false
+    }
+  ],
+  "summary": {"total": 2, "blocking": 2, "promotable": 0}
+}

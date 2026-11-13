@@ -1,10 +1,6 @@
-"""Minimal command-line entry point."""
+"""Run the editorial pipeline command line."""
 
-
-def main() -> None:
-    """Describe the current scaffold status."""
-    print("Editorial Pipeline: editorial functionality is not yet implemented.")
-
+from editorial_pipeline.cli.commands import main
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

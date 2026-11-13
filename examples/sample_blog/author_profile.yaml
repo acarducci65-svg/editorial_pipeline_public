@@ -1,0 +1,105 @@
+# =============================================================================
+# author_profile.yaml — Profilo dell'autore della sandbox (FITTIZIO)
+# =============================================================================
+#
+# DISCLOSURE: persona, credenziali e istituzioni di questo file sono inventate
+# a scopo didattico. Non descrivono nessuna persona reale e non vanno citate
+# come dati veri. Struttura identica a templates/author_profile.yaml.
+# =============================================================================
+
+schema_version: 1
+
+author:
+  display_name: "Ada Esempio"
+  short_name: "Esempio"
+  role_label: "Direttore"
+  pronouns: ""
+  public_contact: "redazione@blog.example.org"
+  bio_short: >-
+    Ada Esempio (persona fittizia) cura Appunti di Bottega Digitale, un blog
+    immaginario su strumenti da riga di comando e manutenzione del software.
+  bio_long: >-
+    Ada Esempio è la persona inventata che firma la sandbox di Editorial
+    Pipeline. Il profilo serve a mostrare come si compila il file: ogni
+    credenziale qui sotto è fittizia e porta come evidenza un riferimento
+    dichiaratamente immaginario.
+
+credentials:
+  display: "Attestato di Manutenzione del Software, Accademia Immaginaria di Esempio (2020) — credenziale fittizia"
+  items:
+    - kind: "certification"
+      title: "Attestato di Manutenzione del Software"
+      institution: "Accademia Immaginaria di Esempio"
+      unit: ""
+      year: "2020"
+      evidence: "evidence/sources/attestato-fittizio.txt (documento inventato per la demo)"
+  current_affiliations: []
+  forbidden_claims:
+    - "dottorato in informatica"
+    - "professoressa ordinaria"
+
+personal_source:
+  enabled: false
+  type: ""
+  title: ""
+  year: ""
+  institution: ""
+  supervisors: []
+  peer_reviewed: false
+  source_key: ""
+  disclaimer: >-
+    Lavoro non sottoposto a revisione tra pari: si cita come fonte personale
+    dell'autore, mai come prova di un risultato scientifico.
+
+citation:
+  full_format: "Esempio ({year}). *{title}*, {type}, {institution}, {locator}"
+  short_format: "Esempio ({year}), {locator}"
+  locator_required: true
+  rendering_rules:
+    sources_section: "full_format"
+    article_body: "nota dell'autrice"
+    social_copy: "nota dell'autrice"
+    audio_overview: "nota dell'autrice"
+  forbidden_meta_comments:
+    - "in questo lavoro dimostrerò"
+    - "come ho dimostrato"
+
+anti_flattery_policy:
+  enabled: true
+  forbidden_descriptors:
+    - "visionario"
+    - "pionieristico"
+    - "anticipava i tempi"
+    - "profetico"
+    - "brillante"
+    - "geniale"
+  forbidden_descriptors_en:
+    - "visionary"
+    - "groundbreaking"
+    - "brilliant"
+  guidelines: >-
+    Nessun elogio dell'autrice o del suo lavoro. I fatti si riportano con data
+    e fonte, senza commento.
+
+first_person:
+  allowed_sources:
+    - "author_profile.yaml"
+    - "author_dictated"
+  thought_experiment_forms:
+    - "seconda persona plurale (immaginate, vi trovate)"
+    - "forma impersonale (si consideri, in questo scenario)"
+  verified_facts: []
+
+verification_rules:
+  - id: "AP-01"
+    rule: "Le credenziali nei testi pubblici coincidono con credentials.display."
+    severity: "error"
+  - id: "AP-02"
+    rule: "Nessuna voce di credentials.forbidden_claims compare nei testi."
+    severity: "error"
+  - id: "AP-04"
+    rule: "Nessun descrittore di anti_flattery_policy riferito all'autrice o al suo lavoro."
+    severity: "error"
+  - id: "AP-06"
+    rule: "Nessun ricordo in prima persona singolare privo di fonte in first_person.allowed_sources."
+    severity: "error"

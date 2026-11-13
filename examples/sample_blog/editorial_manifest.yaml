@@ -1,0 +1,144 @@
+# =============================================================================
+# editorial_manifest.yaml — Manifesto della sandbox (FITTIZIO)
+# =============================================================================
+#
+# Progetto, persone e strumenti sono inventati a scopo didattico. I principi
+# TP1-TP6 sono quelli del template, riportati senza indebolimenti.
+# =============================================================================
+
+schema_version: 1
+
+project_identity:
+  name: "Appunti di Bottega Digitale"
+  tagline: "redazione aumentata, in miniatura"
+  mission: >-
+    Blog tecnico immaginario che mostra il ciclo completo di Editorial
+    Pipeline: bozza, revisione di stile, verifica delle fonti, due gate umani.
+  publication_type: "blog tecnico"
+  frequency: "quindicinale, martedì ore 09:00"
+  content_unit: "post"
+  content_unit_plural: "post"
+
+definition: >-
+  Una redazione aumentata è una direzione umana che si avvale di modelli di
+  intelligenza artificiale e tiene per sé le decisioni. I modelli scrivono
+  prime stesure, propongono revisioni e verificano affermazioni sulle fonti;
+  la persona che dirige sceglie temi e fonti, riscrive, approva e risponde di
+  ogni riga pubblicata.
+
+transparency_principles:
+  - id: "TP1"
+    core: true
+    title: "Le decisioni restano umane"
+    statement: >-
+      Tema, domanda, selezione delle fonti, riscrittura e approvazione finale
+      sono di competenza esclusiva del Direttore. I modelli assistono nella
+      stesura e nella verifica, non nella direzione editoriale.
+  - id: "TP2"
+    core: true
+    title: "Attribuzione onesta della prima stesura"
+    statement: >-
+      La prima stesura di ogni post è prodotta dal modello di stesura
+      dimostrativo sulle fonti verificate e sulle indicazioni del Direttore,
+      che rilegge, riscrive e risponde del testo pubblicato.
+  - id: "TP3"
+    core: true
+    title: "Nessuna auto-approvazione (No Ghost Approval)"
+    statement: >-
+      Nessun agente AI approva il proprio lavoro né attraversa un gate. Gate 1
+      e Gate 2 richiedono un messaggio esplicito del Direttore nel canale di
+      chat.
+  - id: "TP4"
+    core: true
+    title: "La revisione di stile non è mascheramento"
+    statement: >-
+      L'Umanizzatore rende il testo leggibile, preciso e coerente con il
+      registro editoriale. Non serve a renderlo "non rilevabile" come testo
+      generato.
+  - id: "TP5"
+    core: true
+    title: "Ogni fatto ha una fonte, ogni errore ha una data"
+    statement: >-
+      Ogni affermazione fattuale esce con una fonte controllabile e un
+      locator. Se un errore sfugge, si corregge in chiaro e con data sulla
+      pagina /correzioni/.
+  - id: "TP6"
+    core: true
+    title: "Promozione solo su fonti primarie"
+    statement: >-
+      Numeri e dati usati in materiali promozionali devono essere verificati
+      sulla fonte primaria o su una fonte esterna con URL e data di verifica.
+
+project_principles: []
+
+guardrail:
+  id: "G1"
+  statement: "Nessuna allucinazione lasciata passare: ogni fatto ha una fonte, ogni errore ha una data."
+  nature: "regola di processo"
+
+roles:
+  - role_id: "director"
+    role_name: "Direttore"
+    agent_name: "Ada Esempio (persona fittizia)"
+    human: true
+    responsibilities:
+      - "Sceglie tema, domanda e fonti"
+      - "Riscrive e approva in esclusiva Gate 1 e Gate 2"
+      - "Risponde di ogni riga pubblicata"
+    phases: ["F2a", "Gate 1", "Gate 2"]
+  - role_id: "llm_drafter"
+    role_name: "Redattore AI"
+    agent_name: "Modello di stesura dimostrativo (fornitore non specificato)"
+    human: false
+    responsibilities:
+      - "Prima stesura sulle fonti selezionate"
+      - "Elenco dei claim da verificare"
+    phases: ["F2a", "F4"]
+  - role_id: "humanizer"
+    role_name: "Umanizzatore"
+    agent_name: "Modello di stesura dimostrativo, passaggio separato"
+    human: false
+    responsibilities:
+      - "Revisione di stile con checklist pubblica anti-cliché"
+    phases: ["F2b", "F4"]
+  - role_id: "rag_fact_checker"
+    role_name: "Verificatore RAG"
+    agent_name: "Verificatore locale dimostrativo"
+    human: false
+    responsibilities:
+      - "Verifica dei claim sulle fonti del corpus, con citazione e locator"
+    phases: ["F3"]
+
+independence_disclosures:
+  - context: "Redattore AI e Umanizzatore sono lo stesso modello dimostrativo."
+    implication: "La revisione di stile non è indipendente dalla stesura."
+    mitigation: "Passaggio separato dichiarato e Gate 1 umano vincolante."
+
+declared_limits:
+  - "Il verificatore controlla i claim solo sulle fonti presenti nel corpus."
+  - "La checklist di stile non intercetta tutte le generalizzazioni improprie."
+  - "Una ricevuta di gate rende verificabile cosa è stato approvato, non autentica chi l'ha approvato."
+
+deprecated_phrases:
+  - phrase: "zero allucinazioni"
+    reason: "Promessa di risultato assoluto, non verificabile."
+    replacement: "Ogni fatto ha una fonte, ogni errore ha una data."
+  - phrase: "verificato al 100%"
+    reason: "Assoluto non verificabile."
+    replacement: "Indicare l'esito della verifica e la fonte."
+  - phrase: "scritto da una persona"
+    reason: "Falso se la prima stesura è di un modello."
+    replacement: "prima stesura del modello dimostrativo, rivista e approvata da Ada Esempio"
+  - phrase: "non rilevabile"
+    reason: "Travisa lo scopo dell'Umanizzatore."
+    replacement: "revisione di stile con checklist pubblica"
+
+deprecated_phrases_en:
+  - "zero hallucinations"
+  - "100% verified"
+  - "written by a human"
+  - "undetectable"
+
+conflicts_of_interest:
+  statement: "Progetto dimostrativo: nessun finanziamento, nessun legame con fornitori."
+  funding: "Nessuno."

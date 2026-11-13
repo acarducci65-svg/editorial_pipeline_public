@@ -9,7 +9,11 @@ description = "A human-governed editorial pipeline"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
-dependencies = ["pydantic>=2,<3", "tomli>=2; python_version < '3.11'"]
+dependencies = [
+    "pydantic>=2,<3",
+    "pyyaml>=6",
+    "tomli>=2; python_version < '3.11'",
+]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Programming Language :: Python :: 3",
@@ -23,16 +27,26 @@ classifiers = [
 social = ["jinja2>=3.1", "playwright>=1.40"]
 audio = ["mutagen>=1.47"]
 all = ["jinja2>=3.1", "playwright>=1.40", "mutagen>=1.47"]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.8", "mypy>=1.13"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "types-pyyaml>=6",
+]
 
 [project.scripts]
 editorial-pipeline = "editorial_pipeline.__main__:main"
 
 [tool.hatch.build.targets.sdist]
-include = ["/src/editorial_pipeline", "/tests", "/README.md", "/LICENSE", "/pyproject.toml"]
+include = ["/src/editorial_pipeline", "/tests", "/README.md", "/LICENSE", "/pyproject.toml", "/templates", "/editorial.example.toml"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/editorial_pipeline"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"templates" = "editorial_pipeline/_scaffold/templates"
+"editorial.example.toml" = "editorial_pipeline/_scaffold/editorial.example.toml"
 
 [tool.ruff]
 target-version = "py310"

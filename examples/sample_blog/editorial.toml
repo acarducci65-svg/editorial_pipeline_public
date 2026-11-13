@@ -1,0 +1,157 @@
+# =============================================================================
+# examples/sample_blog/editorial.toml — Sandbox editoriale fittizia
+# =============================================================================
+#
+# Configurazione operativa completa di un blog tecnico immaginario, usata da
+# test, tutorial e demo della CLI. Tutti i dati sono inventati.
+#
+# Differenze rispetto a editorial.example.toml:
+#   - nessun placeholder {{...}}: il file supera `validate_operative()`;
+#   - i segnaposto risolti a runtime (id dell'unità, digest, data) usano la
+#     sintassi a graffa singola `{unit_id}`, `{digest_short}`, `{publish_at}`,
+#     `{seq}`, che il validatore dei placeholder non intercetta;
+#   - profilo autore e manifesto stanno nella radice della sandbox.
+#
+# Percorsi relativi alla cartella che contiene questo file.
+# =============================================================================
+
+schema_version = 1
+
+[project]
+name = "Appunti di Bottega Digitale"
+slug = "appunti-bottega-digitale"
+language = "it"
+timezone = "Europe/Rome"
+content_unit = "post"
+content_unit_plural = "post"
+base_url = "https://blog.example.org"
+
+[paths]
+content = "content/posts"
+evidence = "evidence"
+dist = "dist"
+templates = "templates"
+pages = "content/pages"
+corrections = "content/corrections.json"
+sources = "evidence/sources"
+reports = "dist/reports"
+
+[author]
+profile = "author_profile.yaml"
+
+[manifesto]
+file = "editorial_manifest.yaml"
+
+[register]
+active = "tech_blog"
+directory = "templates/registers"
+# Formule vietate in aggiunta al registro, specifiche di questa redazione.
+extra_forbidden = [
+  "nel panorama in continua evoluzione",
+  "è fondamentale sottolineare",
+  "non è la tecnologia, ma le persone",
+]
+
+[phases]
+core = ["F2a", "F2b", "F3", "F4", "F6"]
+
+[phases.optional]
+F0 = false
+F1 = true
+F4_visual = false
+F4_video = false
+F5 = false
+
+[phases.disabled_behavior]
+status = "skipped"
+report_in_summary = true
+
+[gates]
+approver_role = "Direttore"
+receipts_dir = "approvals"
+forbidden_excerpts = [
+  "automatically approved",
+  "auto-approved",
+  "auto-review",
+  "stop hook",
+  "synthetic",
+  "approvato automaticamente",
+]
+
+[gates.gate1]
+name = "Gate 1 — Approvazione bozza"
+required = true
+after = "F3"
+approval_phrase = "Approvo Gate 1 #{unit_id}"
+question = "Approvi questa bozza (digest {digest_short}) per passare alla promozione? Rispondi \"Approvo Gate 1 #{unit_id}\" oppure indica le correzioni."
+
+[gates.gate2]
+name = "Gate 2 — Approvazione pubblicazione"
+required = true
+after = "F6"
+approval_phrase = "Approvo Gate 2 #{unit_id}"
+question = "Approvi la pubblicazione di #{unit_id} il {publish_at} con le azioni elencate? Rispondi \"Approvo Gate 2 #{unit_id}\"."
+allowed_actions = ["publish", "schedule"]
+
+[providers.drafting]
+adapter = "manual"
+model_label = "Modello di stesura dimostrativo (fornitore non specificato)"
+
+[providers.humanizer]
+adapter = "manual"
+separate_pass_required = true
+
+[providers.rag]
+adapter = "local"
+corpus_id_env = "EDITORIAL_RAG_ID"
+max_claims_per_turn = 8
+
+[providers.audio]
+adapter = "none"
+
+[providers.visual]
+adapter = "none"
+
+[factcheck]
+allowed_outcomes = ["grounded_primary", "verified_external", "grounded_secondary"]
+blocking_outcomes = ["unsupported", "contradicted"]
+promotion_outcomes = ["grounded_primary", "verified_external"]
+require_locator_for_promotion = true
+circular_source_tags = ["self_draft"]
+
+[humanizer]
+required_items = [
+  "empty_emphasis",
+  "negative_parallelism",
+  "isolated_lines",
+  "vague_attribution",
+  "decorative_bold",
+  "invented_autobiography",
+]
+reviewer_must_differ_from_author = false
+
+[transparency]
+method_page = "/metodo/"
+corrections_page = "/correzioni/"
+press_page = "/per-chi-scrive/"
+trailing_slash = true
+require_separate_approval = true
+
+[transparency.templates]
+method = "templates/pages/metodo.template.md"
+corrections = "templates/pages/correzioni.template.md"
+press = "templates/pages/per-chi-scrive.template.md"
+
+[corrections]
+pre_publication_id = "ERR-{unit_id}-{seq}"
+post_publication_id = "COR-{unit_id}-{seq}"
+categories_pre = ["missing_source", "source_provenance", "overgeneralization", "number", "attribution", "audio"]
+categories_post = ["factual_error", "calculation_error", "misattribution", "clarification"]
+statuses = ["corrected", "clarified", "retracted"]
+show_reporter_name = false
+contact_email = "correzioni@blog.example.org"
+
+[privacy]
+report_paths = "relative"
+reject_absolute_paths = true
+deny_patterns = []
