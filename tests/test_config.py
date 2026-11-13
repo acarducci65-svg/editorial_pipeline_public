@@ -85,3 +85,19 @@ def test_operative_rejects_nested_placeholders() -> None:
         return value
 
     EditorialConfig.model_validate(replace(data)).validate_operative()
+
+
+def test_operative_allows_runtime_macros_and_rejects_unknown(tmp_path: Path) -> None:
+    text = Path("editorial.example.toml").read_text(encoding="utf-8")
+    text = text.replace("{{PROJECT_NAME}}", "Sample").replace("{{PROJECT_SLUG}}", "sample")
+    text = text.replace("{{LLM_DRAFTING_AGENT}}", "Sample model")
+    path = tmp_path / "editorial.toml"
+    path.write_text(text, encoding="utf-8")
+    config = load_config(path)
+    config.validate_operative()
+    data = config.model_dump()
+    data["paths"]["dist"] = "dist/{{UNIT_ID}}/{{DIGEST_SHORT}}/{{PUBLISH_AT_LOCAL}}/{{SEQ}}"
+    EditorialConfig.model_validate(data).validate_operative()
+    data["paths"]["dist"] += "/{{UNKNOWN}}"
+    with pytest.raises(ValueError, match="placeholder"):
+        EditorialConfig.model_validate(data).validate_operative()

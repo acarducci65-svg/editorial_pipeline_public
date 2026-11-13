@@ -2,6 +2,8 @@
 
 Reference per **F1** (acquisizione fonti) e **F3** (verifica dei claim). Definisce cosa conta come fonte primaria, come si scrive un locator, gli esiti ammessi e la struttura di `sources.json` e `factcheck.json` letti dalla CLI.
 
+Posizione nel ciclo: `F0 → F1 → F2a → F2b → F3 → Gate 1 → F4 ‖ F5 → Gate 2 → F6`. **F3 precede il Gate 1**: il Direttore riceve la bozza insieme a `draft-review.json` e `factcheck.json` e approva un testo già verificato (vedi `gates_and_evidence.md` §2).
+
 Principio (TP5): **ogni affermazione fattuale esce con una fonte controllabile e un locator. Se la fonte non si trova, la frase si toglie.**
 
 Tutti gli esempi sono inventati a scopo didattico.
@@ -35,7 +37,16 @@ Regole:
 | `unsupported` | Nessun riscontro | `BLOCK` | No: si toglie o si riformula | No |
 | `contradicted` | La fonte dice il contrario | `BLOCK` | No: si corregge | No |
 
-Per la CLI un claim è `OK` solo se: esito tra `grounded_primary`, `verified_external` (o il legacy `verified`), `source_key` presente in `sources.json`, `locator` non vuoto. Qualsiasi altra combinazione, compresi claim duplicati o assenti da `factcheck.json`, è `BLOCK`.
+Per la CLI attuale un claim è `OK` se: esito tra `grounded_primary`, `verified_external` (o il legacy `verified`), `source_key` presente in `sources.json`, `locator` non vuoto, e il suo `text` compare una sola volta in `factcheck.json`. `grounded_secondary` è `WARN`; ogni altra combinazione, compresi i duplicati, è `BLOCK`.
+
+> **Limite importante.** `verify-facts` controlla `factcheck.json` contro `sources.json`, **non contro la bozza**. Non rileva claim parafrasati, frasi della bozza senza claim, né un `factcheck.json` scritto su una versione precedente (`draft_digest` non è letto). La CLI valida la coerenza interna delle evidenze; **l'agente redattore garantisce che tutti i claim della bozza siano mappati in `factcheck.json`** (§6, passo 7) e il Direttore lo controlla al Gate 1.
+
+Casi particolari:
+
+- **Supporto parziale** (il numero c'è, il periodo è diverso): l'esito è `contradicted` se un elemento è diverso, `unsupported` se manca; si riformula la frase per dire solo ciò che la fonte sostiene.
+- **Fonte superata:** prima di assegnare l'esito controllate che la fonte sia l'edizione più recente disponibile alla data di `accessed`.
+- **Fonti primarie in contraddizione tra loro:** il testo dichiara la divergenza citando entrambe le fonti (due claim); altrimenti l'esito è `contradicted`.
+- **Come si dichiara un `grounded_secondary`:** «secondo quanto riporta <testata> (<data>), che non indica la fonte originale».
 
 ## 3. Locator
 
@@ -158,6 +169,9 @@ Percorso: `[paths].evidence/<post_id>/factcheck.json`.
       "explanation": "La bozza arrotondava il dato della tabella 2."
     }
   ],
+  "excluded": [
+    {"text": "La pista cambierà il modo di vivere il centro.", "reason": "forecast"}
+  ],
   "summary": {"total": 3, "blocking": 0, "promotable": 2}
 }
 ```
@@ -166,23 +180,31 @@ Percorso: `[paths].evidence/<post_id>/factcheck.json`.
 |---|---|---|
 | `post_id` | Sì | Deve coincidere con `sources.json` e con l'unità, altrimenti la CLI rifiuta |
 | `claims` | Sì | Lista non vuota |
-| `claims[].text` | Sì | Frase della bozza **alla lettera**: la CLI confronta per uguaglianza esatta |
+| `claims[].text` | Sì | Frase della bozza **alla lettera**, sul testo visibile (senza marcatori Markdown). La CLI non la confronta con la bozza: il confronto è a carico dell'agente (§6, passo 7). Un `text` deve essere unico: una frase con più fatti si riscrive in frasi distinte |
 | `claims[].outcome` | Sì | Uno degli esiti del §2 |
 | `claims[].source_key` | Per esiti `OK` | Deve esistere in `sources.json` |
 | `claims[].locator` | Per esiti `OK` | Non vuoto, specifico (§3) |
 | `claims[].verified_at` | Per `verified_external` | Data e ora con offset di fuso |
 | `claims[].promotable` | Consigliato | `true` solo per `grounded_primary` / `verified_external` con locator |
-| `draft_digest` | Consigliato | Digest dell'unità al momento della verifica: se cambia, il fact-check è `stale` |
+| `draft_digest` | Sì (procedura) | Digest dell'unità verificata; deve coincidere con il digest presentato al Gate 1. La CLI non lo legge: se il file cambia, il fact-check è `stale` anche se `verify-facts` resta `OK` |
+| `excluded` | Se presenti | Frasi escluse per natura, con `text` e `reason` (`opinion`, `forecast`, `author_judgment`). Mostrate al Gate 1 |
 | `pre_publication_errors` | Se presenti | Diventano voci della sezione A di `/correzioni/` dopo l'uscita |
 
 ## 6. Procedura di F3
 
-1. **Estrazione dei claim.** Copiate dalla bozza ogni frase che contiene un fatto verificabile: numeri, date, nomi, attribuzioni, relazioni causali, citazioni. Le opinioni dichiarate come tali non sono claim.
-2. **Una domanda per claim.** Interrogate il corpus con una domanda precisa per ciascun claim, al massimo `[providers.rag].max_claims_per_turn` per turno. Chiedete il passaggio testuale, non un giudizio.
-3. **Lettura del passaggio.** Confrontate voi il passaggio con il claim: numero, unità di misura, periodo, popolazione, luogo. Un modello RAG può fraintendere la fonte.
-4. **Esito e locator.** Assegnate l'esito del §2 e scrivete il locator del §3.
-5. **Correzione della bozza.** `unsupported` → togliete o riformulate la frase; `contradicted` → correggetela; registrate l'errore in `pre_publication_errors`. Aggiornate `text` nel claim con la frase nuova.
-6. **Verifica CLI.**
+F3 parte dalla bozza **dopo** F2b e termina prima del Gate 1.
+
+1. **Estrazione dei claim dalla bozza corrente.** Rileggete il testo ed estraete ogni frase che contiene un fatto verificabile (numeri, date, nomi propri, attribuzioni, relazioni causali, citazioni), copiandola alla lettera con il suo contesto (paragrafo, sezione) prima di invocare il provider RAG e `verify-facts`. Le opinioni dichiarate, le previsioni e i giudizi dell'autore non sono claim: vanno in `excluded` con il motivo, perché il Direttore veda cosa è stato escluso.
+2. **Un fatto per claim.** Una frase con due fatti verificabili si riscrive in due frasi: due voci con lo stesso `text` sono `BLOCK`.
+3. **Una domanda per claim.** Interrogate il corpus con una domanda precisa per ciascun claim, includendo il contesto estratto; al massimo `[providers.rag].max_claims_per_turn` interrogazioni per messaggio dell'agente, le restanti nel messaggio successivo. Chiedete il passaggio testuale, non un giudizio.
+4. **Lettura del passaggio.** Confrontate voi il passaggio con il claim: numero, unità di misura, periodo, popolazione, luogo, edizione della fonte. Un modello RAG può fraintendere la fonte.
+5. **Esito e locator.** Assegnate l'esito del §2 e scrivete il locator del §3.
+6. **Correzione della bozza.** `unsupported` → togliete o riformulate la frase; `contradicted` → correggetela; registrate l'errore in `pre_publication_errors`. Aggiornate `text` nel claim con la frase nuova. Le frasi riscritte ripassano dalle voci 1–7 e 10 di `humanizer_checklist.md` (aggiornate `draft-review.json`).
+7. **Confronto con la bozza (obbligatorio, manuale).** Con il digest finale:
+   - per ogni claim cercate `text` nella bozza corrente (ricerca testuale esatta sul testo visibile);
+   - per ogni frase della bozza con numeri, date, nomi propri o virgolette verificate che esista un claim o una voce in `excluded`;
+   - scrivete in `draft_digest` il digest corrente letto da `validate-draft --json`.
+8. **Verifica CLI.**
    ```bash
    editorial-pipeline verify-facts content/posts/post_07_titolo.md --json
    ```
@@ -197,17 +219,21 @@ Percorso: `[paths].evidence/<post_id>/factcheck.json`.
    }
    ```
    I finding sono nell'ordine dei claim. Exit `1` se c'è almeno un `BLOCK`.
-7. **Gate 1 stale.** Se la bozza è cambiata, il Gate 1 va richiesto di nuovo mostrando il diff delle frasi modificate (vedi `gates_and_evidence.md` §6).
+9. **Consegna al Gate 1.** Con `validate-draft` e `verify-facts` senza `BLOCK` sullo stesso digest, `draft-review.json` e `factcheck.json` riallineati, si compone il pacchetto Gate 1 (`gates_and_evidence.md` §2). Le correzioni fatte in F3 avvengono **prima** del gate: non c'è alcuna approvazione da rifare, ma le frasi cambiate si mostrano al Direttore con il prima/dopo.
+
+Se dopo il Gate 1 la bozza o `factcheck.json` cambiano, Gate 1 e Gate 2 diventano `stale` (`gates_and_evidence.md` §6): si rifà F3 sulle parti toccate e si chiede un nuovo Gate 1.
 
 ## 7. Errori e limiti di verifica
 
-- Un errore intercettato in F3 si registra in `pre_publication_errors` **prima** di chiedere il gate successivo.
+- Un errore intercettato in F3 si registra in `pre_publication_errors` **prima** di chiedere il Gate 1.
 - Un dato trovato solo su fonte secondaria è un **limite di verifica**, non un errore fattuale: si registra con categoria `source_provenance` e non si descrive come allucinazione.
-- Un errore scoperto dopo la pubblicazione diventa una voce `COR-<unità>-<n>` della sezione B di `/correzioni/` (F5), con data, prima/dopo, fonte e locator.
+- Un errore scoperto dopo la pubblicazione diventa una voce `COR-<unità>-<n>` della sezione B di `/correzioni/` (F6), con data, prima/dopo, fonte e locator.
 
 ## 8. Errori comuni
 
-- Parafrasare il claim in `text`: la CLI non lo trova e restituisce `BLOCK`.
+- Parafrasare il claim in `text`: la CLI **non** se ne accorge e restituisce `OK`; il confronto con la bozza è a carico dell'agente.
+- Scrivere `factcheck.json` su una versione precedente della bozza: `verify-facts` resta `OK`, ma il fact-check è `stale`.
+- Presentare il Gate 1 prima di F3.
 - Usare come `source_key` una fonte assente da `sources.json`.
 - Locator generici («nel rapporto», «cap. 3»).
 - Promuovere un dato `grounded_secondary` perché «tanto è nel testo».

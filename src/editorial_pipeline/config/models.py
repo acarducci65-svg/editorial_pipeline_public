@@ -15,6 +15,8 @@ def relative_path(value: str) -> str:
 
 RelativePath = Annotated[str, AfterValidator(relative_path)]
 
+MACRO_RUNTIME_AMMESSE = {"{{UNIT_ID}}", "{{DIGEST_SHORT}}", "{{PUBLISH_AT_LOCAL}}", "{{SEQ}}"}
+
 
 class Schema(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
@@ -214,8 +216,10 @@ class EditorialConfig(Schema):
         """Reject unexpanded placeholders in configuration values."""
 
         def check(value: object) -> None:
-            if isinstance(value, str) and re.search(r"\{\{.*?\}\}", value, re.DOTALL):
-                raise ValueError("unresolved placeholder in operative configuration")
+            if isinstance(value, str):
+                placeholders = re.findall(r"\{\{.*?\}\}", value, re.DOTALL)
+                if any(item not in MACRO_RUNTIME_AMMESSE for item in placeholders):
+                    raise ValueError("unresolved placeholder in operative configuration")
             if isinstance(value, dict):
                 for item in value.values():
                     check(item)
