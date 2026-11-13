@@ -99,8 +99,9 @@ def test_report_redacts_host_paths() -> None:
 def test_cli_verify_facts_success(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["verify-facts", "post_01_valid", "--config", CONFIG, "--json"]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert len(report["findings"]) == 3
-    assert all(item["state"] == "OK" for item in report["findings"])
+    provider_findings = [item for item in report["findings"] if item["code"] == "rag.claim"]
+    assert len(provider_findings) == 3
+    assert all(item["state"] == "OK" for item in provider_findings)
 
 
 def test_cli_verify_facts_failure(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -155,3 +156,48 @@ def test_cli_help_lists_commands(capsys: pytest.CaptureFixture[str]) -> None:
         "build-visual",
     ):
         assert name in output
+
+
+def test_recursive_discovery_excludes_underscore_files(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import shutil
+
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project)
+    config = project / "editorial.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8").replace(
+            'content = "content/posts"', 'content = "content"'
+        ),
+        encoding="utf-8",
+    )
+    (project / "content/posts/_template.md").write_text("template", encoding="utf-8")
+    for command in ("status", "validate-all"):
+        assert main([command, "--config", str(config)]) == 1
+        paths = [item["rel_path"] for item in json.loads(capsys.readouterr().out)["posts"]]
+        assert paths == ["content/posts/post_01_valid.md", "content/posts/post_02_with_cliches.md"]
+
+
+def test_verify_facts_warns_for_claim_absent_from_draft(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import shutil
+
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project)
+    draft = project / "content/posts/post_01_valid.md"
+    evidence = project / "evidence/post_01/factcheck.json"
+    data = json.loads(evidence.read_text(encoding="utf-8"))
+    data["claims"][0]["text"] = "A literal statement in the draft."
+    data["claims"][1]["text"] = "A statement absent from the draft."
+    draft.write_text(
+        draft.read_text(encoding="utf-8") + "\nA literal statement in the draft.\n",
+        encoding="utf-8",
+    )
+    evidence.write_text(json.dumps(data), encoding="utf-8")
+    assert main(["verify-facts", draft.name, "--config", str(project / "editorial.toml")]) == 0
+    findings = json.loads(capsys.readouterr().out)["findings"]
+    warnings = [item for item in findings if item["code"] == "rag.claim_not_in_draft"]
+    assert len(warnings) == 2
+    assert all(item["state"] == "WARN" for item in warnings)

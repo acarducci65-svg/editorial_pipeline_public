@@ -209,6 +209,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 findings = get_rag_provider("local", config, root).verify(
                     [item["text"] for item in records], evidence
                 )
+                draft_text = post.read_text(encoding="utf-8")
+                for index, item in enumerate(records, 1):
+                    if item["text"] not in draft_text:
+                        findings.append(
+                            Finding(
+                                "rag.claim_not_in_draft",
+                                f"Claim {index} has no literal match in the draft",
+                                VerificationState.WARN,
+                            )
+                        )
                 print(
                     serialize(
                         {
@@ -237,7 +247,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         selected = (
             [_post(args.post_target, root, posts)]
             if args.command == "validate-draft"
-            else sorted(posts.glob("*.md"))
+            else sorted(post for post in posts.rglob("*.md") if not post.name.startswith("_"))
         )
         reports = [_validate(post, root, paths["paths.evidence"], checker) for post in selected]
         result: dict[str, Any] = {"posts": reports}

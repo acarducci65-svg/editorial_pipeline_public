@@ -65,7 +65,8 @@ extra_forbidden = []
 # Fasi della pipeline
 # -----------------------------------------------------------------------------
 # Le fasi core sono inderogabili; l'elenco serve solo da dichiarazione esplicita.
-# Ordine obbligato: F2a -> F2b -> F3 -> Gate 1 -> [F4 || F5] -> F6 -> Gate 2.
+# Ordine obbligato: F2a -> F2b -> F3 (fact-checking) -> Gate 1 Bozza.
+# Dopo il Gate 1: [F4 || F5] -> F6 -> Gate 2 Pubblicazione.
 [phases]
 core = ["F2a", "F2b", "F3", "F4", "F6"]
 

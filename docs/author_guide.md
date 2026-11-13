@@ -166,7 +166,7 @@ Sì, in passaggi separati e dichiarati. Potete imporre un revisore diverso con `
 Sì. Il verificatore controlla solo le fonti del corpus e può fraintenderle. Per questo leggete la tabella dei claim al Gate 1 ed esiste il registro correzioni.
 
 **Gli agenti possono pubblicare da soli?**
-No. Pubblicazione, programmazione, commit e push richiedono il Gate 2 o una vostra istruzione esplicita.
+No. Pubblicazione, programmazione, commit e push richiedono il Gate 2.
 
 **Cosa succede se un agente esaurisce la quota a metà?**
 Deve chiudere i controlli in corso, scrivere un handover parziale con il punto di ripresa e fermarsi. Nessun lavoro nuovo, nessuna approvazione presunta.
