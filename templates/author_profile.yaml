@@ -1,0 +1,167 @@
+# =============================================================================
+# author_profile.yaml — Profilo dell'autore (template)
+# =============================================================================
+#
+# Questo file è la sola fonte ammessa per i dati biografici e le credenziali
+# dell'autore in testi pubblici, bio, sezioni Fonti, copy social e pagine di
+# trasparenza. Gli agenti lo copiano ALLA LETTERA: non riassumono, non
+# arrotondano, non completano a memoria.
+#
+# Compilazione:
+#   1. Sostituire ogni {{PLACEHOLDER}}. Un placeholder rimasto è un errore di
+#      validazione (`profile.placeholder`).
+#   2. Lasciare vuoti ("" o []) i campi facoltativi non pertinenti: un campo
+#      vuoto non viene mai riempito da un agente.
+#   3. Ogni credenziale deve avere una fonte verificabile (`evidence`).
+#
+# Privacy: questo file contiene dati personali. Nel repository del framework
+# esiste solo come template; la versione compilata vive nel progetto
+# editoriale dell'utente e va valutata prima di renderla pubblica.
+# =============================================================================
+
+schema_version: 1
+
+# -----------------------------------------------------------------------------
+# Identità pubblica
+# -----------------------------------------------------------------------------
+author:
+  display_name: "{{AUTHOR_NAME}}"          # Come appare in firma e pagine pubbliche
+  short_name: "{{AUTHOR_SHORT_NAME}}"      # Forma breve in citazioni (es. cognome)
+  role_label: "Direttore"                  # Ruolo nel manifesto: Direttore, Editor, Lead Researcher...
+  pronouns: ""                             # Facoltativo, es. "lei", "lui", "they/them"
+  public_contact: "contact@example.com"    # Indirizzo redazionale, MAI un indirizzo personale non pubblico
+  bio_short: "{{AUTHOR_BIO_SHORT}}"        # Max 280 caratteri (social, firma)
+  bio_long: "{{AUTHOR_BIO_LONG}}"          # 1-3 paragrafi (pagina /per-chi-scrive/)
+
+# -----------------------------------------------------------------------------
+# Credenziali verificate
+# -----------------------------------------------------------------------------
+# `display` è la formula unica da usare nei testi. Le voci strutturate servono
+# alla validazione e alle regole anti-allucinazione.
+credentials:
+  display: "{{CREDENTIALS}}"               # Es. "Laurea in <disciplina>, <istituzione> (<anno>)"
+  items:
+    - kind: "degree"                       # degree | certification | position | publication | other
+      title: "{{CREDENTIAL_TITLE}}"
+      institution: "{{CREDENTIAL_INSTITUTION}}"
+      unit: ""                             # Dipartimento, facoltà o equivalente (facoltativo)
+      year: "{{CREDENTIAL_YEAR}}"
+      evidence: "{{CREDENTIAL_EVIDENCE}}"  # Dove si verifica: documento, pagina, registro pubblico
+  current_affiliations: []                 # Solo incarichi attuali documentati
+  # Formule che NON devono mai comparire (titoli errati, incarichi inesistenti).
+  # Il linter le tratta come espressioni vietate per questo progetto.
+  forbidden_claims:
+    - "{{FORBIDDEN_CREDENTIAL_EXAMPLE}}"   # Es. una disciplina o un titolo che l'autore non ha
+
+# -----------------------------------------------------------------------------
+# Fonte personale primaria (facoltativa)
+# -----------------------------------------------------------------------------
+# Un lavoro dell'autore usato come fonte (tesi, rapporto, libro, articolo).
+# Lasciare `enabled: false` se non esiste.
+personal_source:
+  enabled: false
+  type: "{{PERSONAL_SOURCE_TYPE}}"         # Es. "tesi di laurea", "rapporto tecnico", "monografia"
+  title: "{{PERSONAL_SOURCE_TITLE}}"
+  year: "{{PERSONAL_SOURCE_YEAR}}"
+  institution: "{{PERSONAL_SOURCE_INSTITUTION}}"
+  supervisors: []                          # Nomi solo se l'autore acconsente a pubblicarli
+  peer_reviewed: false                     # Se false, vale il disclaimer sotto
+  source_key: "{{PERSONAL_SOURCE_KEY}}"    # Chiave usata in sources.json e nel fact-check
+  disclaimer: >-
+    Lavoro non sottoposto a revisione tra pari: si cita come fonte personale
+    dell'autore, mai come prova di un risultato scientifico.
+
+# -----------------------------------------------------------------------------
+# Regole di citazione
+# -----------------------------------------------------------------------------
+citation:
+  # Formula bibliografica completa, per la sezione Fonti.
+  full_format: >-
+    {{AUTHOR_SHORT_NAME}} ({{PERSONAL_SOURCE_YEAR}}). *{{PERSONAL_SOURCE_TITLE}}*,
+    {{PERSONAL_SOURCE_TYPE}}, {{PERSONAL_SOURCE_INSTITUTION}}, {{LOCATOR}}
+  # Forma breve, per rimandi interni.
+  short_format: "{{AUTHOR_SHORT_NAME}} ({{PERSONAL_SOURCE_YEAR}}), {{LOCATOR}}"
+  # Una citazione senza locator (pagina, capitolo, sezione) non è valida.
+  locator_required: true
+  # Come nominare la fonte personale nei diversi contesti.
+  rendering_rules:
+    sources_section: "full_format"
+    article_body: "{{PERSONAL_SOURCE_TYPE}} del {{PERSONAL_SOURCE_YEAR}}"
+    social_copy: "{{PERSONAL_SOURCE_TYPE}} del {{PERSONAL_SOURCE_YEAR}}"
+    audio_overview: "{{PERSONAL_SOURCE_TYPE}} del {{PERSONAL_SOURCE_YEAR}}"  # Mai il nome dell'autore
+  # Meta-commenti vietati nel corpo ("in questo lavoro dimostreremo...").
+  forbidden_meta_comments:
+    - "in questa tesi"
+    - "questa tesi dimostra"
+    - "come ho dimostrato"
+
+# -----------------------------------------------------------------------------
+# Policy anti-adulazione
+# -----------------------------------------------------------------------------
+# Il lavoro dell'autore si tratta come qualsiasi altra fonte dell'epoca: con
+# sobrietà, riconoscendone i limiti rispetto alla ricerca successiva.
+anti_flattery_policy:
+  enabled: true
+  forbidden_descriptors:
+    - "visionario"
+    - "pionieristico"
+    - "anticipava i tempi"
+    - "aveva già capito"
+    - "profetico"
+    - "brillante"
+    - "seminale"
+    - "geniale"
+    - "punto di riferimento fondamentale"
+    - "ante litteram"
+  forbidden_descriptors_en:
+    - "visionary"
+    - "ahead of its time"
+    - "groundbreaking"
+    - "seminal"
+    - "brilliant"
+    - "prescient"
+  guidelines: >-
+    Nessun elogio dell'autore o del suo lavoro, nessuna preveggenza attribuita.
+    Quando la fonte personale concorda con ricerca successiva, si riportano le
+    date e i fatti senza commento. Quando ne diverge, lo si dice. Negli audio
+    overview e nei copy social l'autore non viene nominato come autorità.
+
+# -----------------------------------------------------------------------------
+# Prima persona e autobiografia
+# -----------------------------------------------------------------------------
+first_person:
+  # La prima persona singolare è dell'autore umano: esperienze, ricordi e
+  # opinioni sono suoi. Gli agenti non inventano ricordi, dialoghi o aneddoti.
+  allowed_sources:
+    - "author_profile.yaml"                # Fatti biografici dichiarati qui
+    - "personal_source"                    # Con locator verificato nel fact-check
+    - "author_dictated"                    # Testo dettato o scritto dall'autore, registrato nelle evidenze
+  thought_experiment_forms:
+    - "seconda persona plurale (immaginate, vi trovate)"
+    - "forma impersonale (si consideri, in questo scenario)"
+  verified_facts: []                       # Elenco di fatti biografici citabili, ciascuno con fonte
+  #  - fact: "{{BIO_FACT}}"
+  #    evidence: "{{BIO_FACT_EVIDENCE}}"
+
+# -----------------------------------------------------------------------------
+# Verifiche automatiche
+# -----------------------------------------------------------------------------
+verification_rules:
+  - id: "AP-01"
+    rule: "Le credenziali nei testi pubblici coincidono con credentials.display."
+    severity: "error"
+  - id: "AP-02"
+    rule: "Nessuna voce di credentials.forbidden_claims compare nei testi."
+    severity: "error"
+  - id: "AP-03"
+    rule: "Nessun incarico attuale oltre a credentials.current_affiliations."
+    severity: "error"
+  - id: "AP-04"
+    rule: "Nessun descrittore di anti_flattery_policy riferito all'autore o al suo lavoro."
+    severity: "error"
+  - id: "AP-05"
+    rule: "Ogni citazione della fonte personale ha un locator."
+    severity: "error"
+  - id: "AP-06"
+    rule: "Nessun ricordo in prima persona singolare privo di fonte in first_person.allowed_sources."
+    severity: "error"

@@ -1,0 +1,230 @@
+# =============================================================================
+# editorial_manifest.yaml — Manifesto della Redazione Aumentata (template)
+# =============================================================================
+#
+# Il manifesto descrive chi fa cosa tra persone e modelli AI, quali regole
+# valgono sempre e quali formule non si usano. È la fonte dei testi pubblici
+# delle pagine /metodo/ e /per-chi-scrive/ e alimenta il linter dei testi.
+#
+# I principi TP1-TP6 sono il nucleo metodologico del framework: si possono
+# riformulare per tono e lingua, non indebolire. Il validatore segnala la
+# rimozione di un principio core (`manifesto.core_principle_missing`).
+# =============================================================================
+
+schema_version: 1
+
+# -----------------------------------------------------------------------------
+# Identità del progetto
+# -----------------------------------------------------------------------------
+project_identity:
+  name: "{{PROJECT_NAME}}"
+  tagline: "{{PROJECT_TAGLINE}}"                 # Es. "redazione aumentata"
+  mission: "{{PROJECT_MISSION}}"                 # 2-3 frasi
+  publication_type: "{{PUBLICATION_TYPE}}"       # Es. "blog saggistico", "newsletter settimanale"
+  frequency: "{{PUBLICATION_FREQUENCY}}"         # Es. "settimanale, domenica ore 08:00"
+  content_unit: "{{CONTENT_UNIT}}"               # Es. "articolo", "puntata", "numero"
+  content_unit_plural: "{{CONTENT_UNIT_PLURAL}}"
+
+# -----------------------------------------------------------------------------
+# Definizione
+# -----------------------------------------------------------------------------
+definition: >-
+  Una redazione aumentata è una direzione umana che si avvale di modelli di
+  intelligenza artificiale e tiene per sé le decisioni. I modelli scrivono
+  prime stesure, propongono revisioni e verificano affermazioni sulle fonti;
+  la persona che dirige sceglie temi e fonti, riscrive, approva e risponde di
+  ogni riga pubblicata.
+
+# -----------------------------------------------------------------------------
+# Principi di trasparenza (core)
+# -----------------------------------------------------------------------------
+transparency_principles:
+  - id: "TP1"
+    core: true
+    title: "Le decisioni restano umane"
+    statement: >-
+      Tema, domanda, selezione delle fonti, riscrittura e approvazione finale
+      sono di competenza esclusiva del {{DIRECTOR_ROLE}}. I modelli assistono
+      nella stesura e nella verifica, non nella direzione editoriale.
+
+  - id: "TP2"
+    core: true
+    title: "Attribuzione onesta della prima stesura"
+    statement: >-
+      La prima stesura di ogni {{CONTENT_UNIT}} è prodotta da
+      {{LLM_DRAFTING_AGENT}} sulle fonti verificate e sulle indicazioni del
+      {{DIRECTOR_ROLE}}, che rilegge, riscrive e risponde del testo pubblicato.
+      Non si scrive che un testo è "scritto da una persona" senza dichiarare
+      l'origine della prima stesura.
+
+  - id: "TP3"
+    core: true
+    title: "Nessuna auto-approvazione (No Ghost Approval)"
+    statement: >-
+      Nessun agente AI approva il proprio lavoro né attraversa un gate. I due
+      gate ({{GATE_1_NAME}} e {{GATE_2_NAME}}) richiedono un messaggio esplicito
+      del {{DIRECTOR_ROLE}} nel canale di chat. Notifiche, hook, revisioni di
+      altri agenti e approvazioni su versioni precedenti non valgono.
+
+  - id: "TP4"
+    core: true
+    title: "La revisione di stile non è mascheramento"
+    statement: >-
+      L'Umanizzatore rende il testo leggibile, preciso e coerente con il
+      registro editoriale. Non serve a renderlo "non rilevabile" come testo
+      generato. La sua checklist è pubblica sulla pagina /metodo/.
+
+  - id: "TP5"
+    core: true
+    title: "Ogni fatto ha una fonte, ogni errore ha una data"
+    statement: >-
+      Ogni affermazione fattuale esce con una fonte controllabile e un locator
+      (pagina, sezione, tabella). Se la fonte non si trova, la frase si toglie.
+      Se un errore sfugge, si corregge in chiaro e con data sulla pagina
+      /correzioni/. È una regola di processo, non una promessa di risultato.
+
+  - id: "TP6"
+    core: true
+    title: "Promozione solo su fonti primarie"
+    statement: >-
+      Numeri e dati usati in materiali promozionali (card, copy social,
+      anteprime) devono essere verificati sulla fonte primaria o su una fonte
+      esterna con URL e data di verifica. Un riscontro su sintesi interne o
+      schede preparate dagli agenti non basta.
+
+# Principi aggiuntivi specifici del progetto (facoltativi).
+project_principles: []
+#  - id: "PP1"
+#    title: "{{PRINCIPLE_TITLE}}"
+#    statement: "{{PRINCIPLE_STATEMENT}}"
+
+# -----------------------------------------------------------------------------
+# Guardrail pubblico
+# -----------------------------------------------------------------------------
+guardrail:
+  id: "G1"
+  statement: "Nessuna allucinazione lasciata passare: ogni fatto ha una fonte, ogni errore ha una data."
+  nature: "regola di processo"                   # Non "garanzia", non "promessa"
+
+# -----------------------------------------------------------------------------
+# Chi fa cosa
+# -----------------------------------------------------------------------------
+# Tabella pubblicata su /metodo/ e /per-chi-scrive/. Si dichiarano gli
+# strumenti realmente usati, con il fornitore. Rimuovere i ruoli non usati.
+roles:
+  - role_id: "director"
+    role_name: "{{DIRECTOR_ROLE}}"               # Es. "Direttore", "Editor"
+    agent_name: "{{AUTHOR_NAME}}"
+    human: true
+    responsibilities:
+      - "Sceglie tema, domanda e fonti"
+      - "Dà le indicazioni di stesura e riscrive"
+      - "Approva in esclusiva {{GATE_1_NAME}} e {{GATE_2_NAME}}"
+      - "Risponde di ogni riga pubblicata"
+    phases: ["F0", "F2a", "Gate 1", "Gate 2"]
+
+  - role_id: "llm_drafter"
+    role_name: "Redattore AI"
+    agent_name: "{{LLM_DRAFTING_AGENT}}"         # Es. "<modello> (<fornitore>)"
+    human: false
+    responsibilities:
+      - "Prima stesura sulle fonti selezionate"
+      - "Elenco dei claim da verificare"
+      - "Bozze dei copy promozionali"
+    phases: ["F2a", "F4"]
+
+  - role_id: "humanizer"
+    role_name: "Umanizzatore"
+    agent_name: "{{HUMANIZER_AGENT}}"            # Può coincidere con il redattore, in passaggio separato
+    human: false
+    responsibilities:
+      - "Revisione di stile con checklist pubblica anti-cliché"
+      - "Passaggio separato e dichiarato rispetto alla stesura"
+    phases: ["F2b", "F4"]
+
+  - role_id: "rag_fact_checker"
+    role_name: "Verificatore RAG"
+    agent_name: "{{RAG_SYSTEM_NAME}}"
+    human: false
+    responsibilities:
+      - "Verifica dei claim sulle fonti del corpus, con citazione e pagina"
+      - "Segnalazione di claim non supportati o contraddetti"
+    phases: ["F3"]
+
+  - role_id: "integrator"
+    role_name: "Coordinatore"
+    agent_name: "{{INTEGRATOR_AGENT}}"
+    human: false
+    responsibilities:
+      - "Coordinamento dei task tra agenti"
+      - "Verifica formale di evidenze e consegne"
+    phases: ["trasversale"]
+
+# -----------------------------------------------------------------------------
+# Dichiarazioni di indipendenza
+# -----------------------------------------------------------------------------
+# Quando chi produce e chi verifica dipendono dallo stesso fornitore, o quando
+# lo stesso modello svolge più ruoli, va detto.
+independence_disclosures: []
+#  - context: "{{RAG_SYSTEM_NAME}} e {{INTEGRATOR_AGENT}} sono dello stesso fornitore."
+#    implication: "L'indipendenza tra chi coordina e chi verifica è parziale."
+#    mitigation: "Gate umani vincolanti come controllo finale."
+
+# -----------------------------------------------------------------------------
+# Limiti dichiarati
+# -----------------------------------------------------------------------------
+declared_limits:
+  - "Il verificatore RAG controlla i claim solo sulle fonti presenti nel corpus."
+  - "La checklist di stile non intercetta tutte le generalizzazioni improprie."
+  - "Una ricevuta di gate rende verificabile cosa è stato approvato, non autentica chi l'ha approvato."
+  - "I modelli possono sbagliare anche su fonti corrette: per questo esiste il registro correzioni."
+
+# -----------------------------------------------------------------------------
+# Formule da non usare
+# -----------------------------------------------------------------------------
+# Il linter le cerca in bozze, copy e pagine pubbliche.
+deprecated_phrases:
+  - phrase: "zero allucinazioni"
+    reason: "Promessa di risultato assoluto, non verificabile."
+    replacement: "Ogni fatto ha una fonte, ogni errore ha una data."
+  - phrase: "100% trasparenza"
+    reason: "Assoluto non verificabile."
+    replacement: "Descrivere il controllo fatto e rimandare a /metodo/ e /correzioni/."
+  - phrase: "verificato al 100%"
+    reason: "Assoluto non verificabile."
+    replacement: "Indicare l'esito della verifica e la fonte."
+  - phrase: "nessun errore"
+    reason: "Assoluto non verificabile."
+    replacement: "Rimandare al registro /correzioni/."
+  - phrase: "scritto da una persona"
+    reason: "Falso se la prima stesura è di un modello."
+    replacement: "prima stesura di {{LLM_DRAFTING_AGENT}}, rivista e approvata da {{AUTHOR_NAME}}"
+  - phrase: "testo umano"
+    reason: "Falso se la prima stesura è di un modello."
+    replacement: "prima stesura di {{LLM_DRAFTING_AGENT}}, rivista e approvata da {{AUTHOR_NAME}}"
+  - phrase: "non rilevabile"
+    reason: "Travisa lo scopo dell'Umanizzatore."
+    replacement: "revisione di stile con checklist pubblica"
+  - phrase: "sembra umano"
+    reason: "Travisa lo scopo dell'Umanizzatore."
+    replacement: "revisione di stile con checklist pubblica"
+  - phrase: "approvato dall'AI"
+    reason: "Nessun agente approva: viola TP3."
+    replacement: "verificato da {{RAG_SYSTEM_NAME}}, approvato da {{AUTHOR_NAME}}"
+
+# Equivalenti inglesi, per progetti in lingua inglese o bilingui.
+deprecated_phrases_en:
+  - "zero hallucinations"
+  - "100% transparent"
+  - "100% verified"
+  - "written by a human"
+  - "undetectable"
+  - "sounds human"
+  - "AI-approved"
+
+# -----------------------------------------------------------------------------
+# Indipendenza e conflitti di interesse del progetto
+# -----------------------------------------------------------------------------
+conflicts_of_interest:
+  statement: "{{CONFLICTS_STATEMENT}}"            # Es. "Nessun finanziamento esterno; nessun legame con i fornitori citati."
+  funding: "{{FUNDING_STATEMENT}}"

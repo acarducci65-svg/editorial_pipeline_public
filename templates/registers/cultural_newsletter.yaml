@@ -1,0 +1,129 @@
+# =============================================================================
+# Registro: cultural_newsletter — Newsletter culturale
+# =============================================================================
+#
+# Per newsletter di cultura, libri, arte, musica, idee: tono personale e
+# conversazionale, consigli e letture commentate.
+# Formato comune dei campi: vedi intestazione di academic_essay.yaml.
+#
+# È il registro più permissivo sulla voce, non sulle fonti: un consiglio è
+# un'opinione, una data o una citazione è un fatto e va verificata.
+# =============================================================================
+
+schema_version: 1
+
+register:
+  id: "cultural_newsletter"
+  name: "Newsletter culturale"
+  language: "it"
+  description: >-
+    Registro colloquiale e curato. Prima persona dell'autore ammessa per
+    opinioni e gusti dichiarati; prima persona plurale inclusiva con misura.
+    Citazioni esatte con fonte, titoli e date corretti, niente entusiasmo
+    di maniera.
+
+content_specs:
+  typical_length_words: [600, 1500]
+  reading_speed_wpm: 240
+  max_heading_depth: 2
+  allowed_markdown: ["bold", "italic", "links", "lists", "blockquote"]
+  forbidden_markdown: ["code_fence", "tables"]
+  forbidden_placeholders: ["TODO", "TBD", "FIXME", "XXX"]
+  email_safe: true                              # Niente HTML complesso, immagini con alt text
+
+humanizer_rules:
+
+  empty_emphasis:
+    forbidden_expressions:
+      - { text: "un capolavoro assoluto", suggestion: "Dire cosa colpisce e perché." }
+      - { text: "imperdibile", suggestion: "Dire a chi può interessare e perché." }
+      - { text: "da non perdere", suggestion: "Dire a chi può interessare e perché." }
+      - { text: "un viaggio emozionante", suggestion: "Nominare l'esperienza concreta." }
+      - { text: "una perla rara", suggestion: "Descrivere l'opera." }
+      - { text: "ti cambierà la vita", suggestion: "Raccontare cosa ha cambiato per l'autore, se vero." }
+      - { text: "un must", suggestion: "Il motivo del consiglio." }
+      - { text: "magistrale", suggestion: "Indicare il passaggio o la scelta formale." }
+    forbidden_patterns:
+      - { pattern: '\b(semplicemente|assolutamente) (straordinari[oa]|meraviglios[oa]|perfett[oa])\b', suggestion: "Un dettaglio concreto al posto del superlativo." }
+
+  chatbot_tics:
+    forbidden_expressions:
+      - { text: "scopriamo insieme", suggestion: "Entrare nel tema." }
+      - { text: "lasciatevi trasportare", suggestion: "Togliere." }
+      - { text: "immergiamoci", suggestion: "Partire dall'opera o dall'evento." }
+      - { text: "in un mondo sempre più frenetico", suggestion: "Partire da un fatto o da un'esperienza dichiarata." }
+      - { text: "ma non finisce qui", suggestion: "Passare alla voce successiva." }
+      - { text: "in conclusione", suggestion: "Chiudere con un consiglio o un rimando." }
+      - { text: "alla prossima settimana con nuove scoperte", suggestion: "Chiusura breve e specifica, o nessuna." }
+      - { text: "un arazzo di", suggestion: "Nominare gli elementi." }
+      - { text: "un caleidoscopio di", suggestion: "Nominare gli elementi." }
+      - { text: "una sinfonia di", suggestion: "Nominare gli elementi." }
+
+  negative_parallelism:
+    patterns_described: ["non è solo un libro, è…", "non X, ma Y"]
+    detection_patterns:
+      - '\bnon è solo un[oa]? [^.;:]{1,40}[,;:] è '
+    max_per_1000_words: 1.0
+    justification_required: true
+    rule: "Il formato «non è solo un libro, è un'esperienza» è il cliché più frequente del genere."
+
+  isolated_lines:
+    max_words_standalone: 6
+    forbidden_closers: ["Leggetelo.", "Fidatevi.", "Punto."]
+    exceptions:
+      - context: "saluto o firma"
+        max_consecutive: 2
+      - context: "titolo dell'opera consigliata su riga propria"
+        max_consecutive: 1
+
+  invented_autobiography:
+    spy_verbs_first_person_present: ["ricordo quando", "da bambino", "l'altra sera", "ieri ho"]
+    allowed_contexts:
+      - "esperienze e opinioni dettate o confermate dall'autore, registrate nelle evidenze"
+      - "author_profile.first_person.verified_facts"
+    preferred_forms: ["opinione dichiarata (\"mi è piaciuto perché\")", "seconda persona per scenari"]
+    rule: >-
+      La prima persona è ammessa e frequente, ma ogni esperienza (una visita,
+      una lettura, un incontro) deve essere dell'autore. Un modello non
+      inventa la sera in cui l'autore ha scoperto un disco.
+
+  decorative_bold:
+    max_per_80_words: 1.0
+    allowed_uses: ["titolo dell'opera alla prima menzione (in alternativa al corsivo)", "data e luogo di un evento"]
+    forbidden_uses: ["frasi intere", "aggettivi"]
+
+  vague_attribution:
+    forbidden_expressions:
+      - { text: "la critica è unanime", suggestion: "Quali recensioni, di chi." }
+      - { text: "tutti ne parlano", suggestion: "Dove, chi." }
+      - { text: "acclamato dalla critica", suggestion: "Citare una o due recensioni con testata." }
+      - { text: "secondo molti", suggestion: "Secondo chi." }
+    required_specificity: ["titolo, autore, editore o etichetta, anno", "citazioni testuali con pagina o minutaggio", "testata e data per le recensioni citate"]
+
+  register_specific:
+    - id: "CN-01"
+      rule: "Le citazioni testuali sono verificate sull'edizione dichiarata (pagina o minutaggio)."
+      evidence: "prova testuale"
+    - id: "CN-02"
+      rule: "Link di affiliazione o omaggi ricevuti sono dichiarati nel numero."
+      evidence: "prova testuale"
+    - id: "CN-03"
+      rule: "Date e luoghi di eventi verificati sulla fonte dell'organizzatore."
+      evidence: "prova testuale"
+
+review_metrics:
+  - { metric: "forbidden_expression_count", threshold: 0, severity: "error" }
+  - { metric: "vague_attribution_count", threshold: 0, severity: "error" }
+  - { metric: "negative_parallelism_per_1000_words", threshold: 1.0, severity: "warning" }
+  - { metric: "bold_per_80_words", threshold: 1.0, severity: "warning" }
+
+checklist_mapping:
+  "1. Superlativi ed entusiasmo di maniera": "empty_emphasis"
+  "2. Tic da newsletter": "empty_emphasis"
+  "3. Strutture binarie forzate": "negative_parallelism"
+  "4. Righe isolate a effetto": "isolated_lines"
+  "5. Esperienze inventate": "invented_autobiography"
+  "6. Grassetto sobrio": "decorative_bold"
+  "7. Attribuzioni puntuali": "vague_attribution"
+  "8. Citazioni e dichiarazioni (CN-01..CN-03)": "evidence_path"
+  "9. Voce dell'autore": "evidence_path"

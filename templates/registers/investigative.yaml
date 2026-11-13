@@ -1,0 +1,145 @@
+# =============================================================================
+# Registro: investigative — Giornalismo d'inchiesta e fact-based reporting
+# =============================================================================
+#
+# Per inchieste, ricostruzioni documentali, analisi di atti pubblici e dati.
+# Precisione di date, luoghi e attribuzioni; tutela delle fonti.
+# Formato comune dei campi: vedi intestazione di academic_essay.yaml.
+#
+# Nota: questo registro aggiunge requisiti; non sostituisce la consulenza
+# legale sulla diffamazione né i codici deontologici applicabili.
+# =============================================================================
+
+schema_version: 1
+
+register:
+  id: "investigative"
+  name: "Inchiesta"
+  language: "it"
+  description: >-
+    Registro fattuale e asciutto. Chi, cosa, quando, dove, secondo quale
+    documento. Le valutazioni sono separate dai fatti e attribuite. Nessun
+    aggettivo che anticipi un giudizio non provato.
+
+content_specs:
+  typical_length_words: [1200, 4000]
+  reading_speed_wpm: 230
+  max_heading_depth: 3
+  allowed_markdown: ["bold", "italic", "links", "lists", "blockquote", "tables", "footnotes"]
+  forbidden_markdown: ["code_fence"]
+  forbidden_placeholders: ["TODO", "TBD", "FIXME", "XXX", "[verificare]", "[fonte]"]
+
+humanizer_rules:
+
+  empty_emphasis:
+    forbidden_expressions:
+      - { text: "scandalo senza precedenti", suggestion: "Fatti e date; il giudizio al lettore." }
+      - { text: "clamoroso", suggestion: "Descrivere il fatto." }
+      - { text: "sconcertante", suggestion: "Descrivere il fatto." }
+      - { text: "inquietante", suggestion: "Descrivere il fatto e le conseguenze documentate." }
+      - { text: "esplosivo", suggestion: "Descrivere il contenuto del documento." }
+      - { text: "bomba", suggestion: "Descrivere il contenuto del documento." }
+      - { text: "lo abbiamo scoperto in esclusiva", suggestion: "Dire quando e come si è ottenuto il documento." }
+      - { text: "la verità che nessuno vuole dirvi", suggestion: "Togliere." }
+    forbidden_patterns:
+      - { pattern: '\b(presunt[oaie]|cosiddett[oaie]) (truffa|frode|scandalo)\b', suggestion: "Riportare l'ipotesi di reato con la fonte (atto, procura, data)." }
+
+  chatbot_tics:
+    forbidden_expressions:
+      - { text: "ma andiamo con ordine", suggestion: "Andare con ordine senza annunciarlo." }
+      - { text: "ma c'è di più", suggestion: "Riferire il fatto successivo." }
+      - { text: "e qui arriva il bello", suggestion: "Riferire il fatto." }
+      - { text: "facciamo un passo indietro", suggestion: "Usare la data." }
+      - { text: "in conclusione", suggestion: "Chiudere con lo stato attuale e le domande aperte." }
+      - { text: "resta da capire", suggestion: "Formulare la domanda e a chi è stata posta." }
+      - { text: "tutto lascia pensare", suggestion: "Quali elementi, attribuiti a chi." }
+
+  negative_parallelism:
+    patterns_described: ["non X, ma Y", "non è un caso che"]
+    detection_patterns:
+      - '\bnon è un caso\b'
+      - '\bnon (è|si tratta di) [^.;:]{1,60}[,;:] (ma|bensì|si tratta di|è) '
+    max_per_1000_words: 0.5
+    justification_required: true
+    rule: >-
+      «Non è un caso che» suggerisce un nesso causale: ammesso solo se il
+      nesso è documentato. In inchiesta il contrasto retorico pesa come
+      un'accusa implicita.
+
+  isolated_lines:
+    max_words_standalone: 6
+    forbidden_closers: ["Coincidenze?", "Chissà.", "A voi le conclusioni."]
+    exceptions:
+      - context: "data e luogo di apertura"
+        example: "Roma, 12 marzo. Ore 9."
+        max_consecutive: 2
+
+  invented_autobiography:
+    spy_verbs_first_person_present: ["ho visto", "ho incontrato", "mi hanno detto", "sono entrato"]
+    allowed_contexts:
+      - "resoconto diretto dell'autore, con data, luogo e note o registrazione nelle evidenze"
+      - "colonna d'opinione dichiarata come tale"
+    preferred_forms: ["terza persona con attribuzione", "citazione diretta con fonte"]
+
+  decorative_bold:
+    max_per_80_words: 0.5
+    allowed_uses: ["dato centrale dell'inchiesta (max 1 per sezione)"]
+    forbidden_uses: ["nomi di persone indagate o citate", "frasi intere", "aggettivi"]
+
+  vague_attribution:
+    forbidden_expressions:
+      - { text: "secondo indiscrezioni", suggestion: "Fonte qualificata per ruolo, o togliere." }
+      - { text: "si dice che", suggestion: "Chi lo dice." }
+      - { text: "voci di corridoio", suggestion: "Togliere o qualificare la fonte." }
+      - { text: "fonti autorevoli", suggestion: "Ruolo della fonte, numero di fonti indipendenti." }
+      - { text: "è noto che", suggestion: "Documento pubblico con riferimento." }
+      - { text: "molti sostengono", suggestion: "Chi, dove, quando." }
+    required_specificity:
+      - "documento: tipo, autorità emittente, data, numero o protocollo"
+      - "citazione diretta: chi, quando, in che contesto (intervista, atto, dichiarazione pubblica)"
+      - "fonte riservata: ruolo generico, motivo della riservatezza, conferme indipendenti"
+
+  source_protection:
+    confidential_source_formula: "una fonte <ruolo generico> che ha chiesto di non essere nominata per <motivo>"
+    forbidden: ["dettagli che rendono identificabile una fonte riservata senza consenso"]
+    min_independent_confirmations: 2
+    evidence_handling: "Le note sulle fonti riservate non entrano nel repository né nei report JSON."
+
+  right_of_reply:
+    required: true
+    rule: "Ogni persona o ente a cui si attribuiscono condotte rilevanti riceve una richiesta di commento prima di Gate 2; data e esito si dichiarano nel testo."
+
+  register_specific:
+    - id: "IN-01"
+      rule: "Fatti e valutazioni sono in frasi distinte; le valutazioni sono attribuite."
+      evidence: "prova testuale"
+    - id: "IN-02"
+      rule: "Ogni data ha giorno, mese e anno; ogni luogo è specifico."
+      evidence: "prova testuale"
+    - id: "IN-03"
+      rule: "Ipotesi di reato: si riporta lo stato del procedimento e la presunzione di innocenza."
+      evidence: "prova testuale"
+    - id: "IN-04"
+      rule: "Richiesta di replica documentata (data, canale, risposta o assenza di risposta)."
+      evidence: "prova testuale"
+    - id: "IN-05"
+      rule: "Dati personali di terzi ridotti al minimo necessario all'interesse pubblico."
+      evidence: "prova testuale"
+
+review_metrics:
+  - { metric: "forbidden_expression_count", threshold: 0, severity: "error" }
+  - { metric: "vague_attribution_count", threshold: 0, severity: "error" }
+  - { metric: "direct_quote_without_source_count", threshold: 0, severity: "error" }
+  - { metric: "negative_parallelism_per_1000_words", threshold: 0.5, severity: "warning" }
+  - { metric: "date_without_year_count", threshold: 0, severity: "warning" }
+
+checklist_mapping:
+  "1. Enfasi e sensazionalismo": "empty_emphasis"
+  "2. Tic narrativi": "empty_emphasis"
+  "3. Contrasti e nessi impliciti": "negative_parallelism"
+  "4. Righe isolate a effetto": "isolated_lines"
+  "5. Testimonianze non documentate": "invented_autobiography"
+  "6. Grassetto sobrio": "decorative_bold"
+  "7. Attribuzioni e tutela delle fonti": "vague_attribution"
+  "8. Diritto di replica e precisione (IN-01..IN-05)": "evidence_path"
+  "9. Voce dell'autore": "evidence_path"

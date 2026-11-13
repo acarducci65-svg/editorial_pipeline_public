@@ -1,0 +1,213 @@
+# =============================================================================
+# editorial.example.toml — Configurazione di esempio di Editorial Pipeline
+# =============================================================================
+#
+# Copiare questo file in `editorial.toml` nella radice del progetto editoriale
+# e sostituire i valori tra doppie graffe ({{...}}).
+#
+# Regole generali:
+#   - Tutti i percorsi sono RELATIVI alla directory che contiene questo file.
+#     Percorsi assoluti (es. "C:\..." o "/home/...") sono rifiutati dal
+#     validatore: finirebbero nei report JSON e rivelerebbero l'host.
+#   - Nessun segreto in questo file. Identificatori di servizi cloud, token e
+#     chiavi API si leggono da variabili d'ambiente (vedi [providers.*].*_env).
+#   - I due gate umani ([gates.gate1] e [gates.gate2]) sono obbligatori e non
+#     disattivabili: `required = false` è un errore di validazione.
+#
+# Schema: editorial-pipeline config v1 (validato con Pydantic v2).
+# =============================================================================
+
+schema_version = 1
+
+# -----------------------------------------------------------------------------
+# Identità del progetto
+# -----------------------------------------------------------------------------
+[project]
+name = "{{PROJECT_NAME}}"                 # Nome pubblico della pubblicazione
+slug = "{{PROJECT_SLUG}}"                 # Solo [a-z0-9-], usato nei nomi file
+language = "it"                           # Codice BCP 47 (es. "it", "en", "en-GB")
+timezone = "Europe/Rome"                  # Fuso IANA per date di pubblicazione
+content_unit = "articolo"                 # Come si chiama un'unità: "puntata", "post", "numero"...
+content_unit_plural = "articoli"
+base_url = "https://example.com"          # URL pubblico del sito (senza barra finale)
+
+# -----------------------------------------------------------------------------
+# Percorsi (relativi alla radice del progetto)
+# -----------------------------------------------------------------------------
+[paths]
+content = "content"                       # Bozze e testi pubblicabili
+evidence = "evidence"                     # Evidenze per unità: evidence/<id>/...
+dist = "dist"                             # Artefatti generati (social, audio, report)
+templates = "templates"                   # Profilo autore, manifesto, registri, pagine
+pages = "content/pages"                   # Sorgenti delle pagine di trasparenza
+corrections = "content/corrections.json"  # Registro pubblico delle correzioni
+sources = "evidence/sources"              # Copie locali delle fonti primarie (PDF, HTML)
+reports = "dist/reports"                  # Report JSON della CLI (solo percorsi relativi)
+
+# -----------------------------------------------------------------------------
+# Profilo autore, manifesto e registro di stile
+# -----------------------------------------------------------------------------
+[author]
+profile = "templates/author_profile.yaml"
+
+[manifesto]
+file = "templates/editorial_manifest.yaml"
+
+[register]
+# Registri forniti: academic_essay | tech_blog | investigative | cultural_newsletter
+# È possibile aggiungerne altri copiando uno dei file in templates/registers/.
+active = "academic_essay"
+directory = "templates/registers"
+# Espressioni vietate aggiuntive, specifiche del progetto (si sommano al registro).
+extra_forbidden = []
+
+# -----------------------------------------------------------------------------
+# Fasi della pipeline
+# -----------------------------------------------------------------------------
+# Le fasi core sono inderogabili; l'elenco serve solo da dichiarazione esplicita.
+# Ordine obbligato: F2a -> F2b -> F3 -> Gate 1 -> [F4 || F5] -> F6 -> Gate 2.
+[phases]
+core = ["F2a", "F2b", "F3", "F4", "F6"]
+
+[phases.optional]
+F0 = false          # Ricerca bibliografica (es. OpenAlex, Crossref)
+F1 = true           # Inventario fonti con hash e locator (consigliato)
+F4_visual = false   # Caroselli e immagini social (richiede extra "social")
+F4_video = false    # Short verticale 9:16 con sottotitoli
+F5 = false          # Podcast / audio overview (richiede extra "audio")
+
+# Comportamento della CLI quando una fase opzionale è disattivata:
+# "skipped" (non verificata, riportata nel sommario) | "warning" | "blocked"
+[phases.disabled_behavior]
+status = "skipped"
+report_in_summary = true
+
+# -----------------------------------------------------------------------------
+# Gate umani — OBBLIGATORI
+# -----------------------------------------------------------------------------
+# Un gate si attraversa solo con un messaggio esplicito del Direttore umano nel
+# canale di chat. Notifiche dell'IDE, hook, revisioni di altri agenti o
+# approvazioni su un digest diverso non valgono (regola "No Ghost Approval").
+[gates]
+approver_role = "Direttore"               # Etichetta del ruolo, non un nome proprio
+receipts_dir = "approvals"                # Relativo a evidence/<id>/
+# Estratti di chat che invalidano una ricevuta (confronto case-insensitive).
+forbidden_excerpts = [
+  "automatically approved",
+  "auto-approved",
+  "auto-review",
+  "stop hook",
+  "synthetic",
+  "approvato automaticamente",
+]
+
+[gates.gate1]
+name = "Gate 1 — Approvazione bozza"
+required = true                           # Non modificabile
+after = "F3"
+approval_phrase = "Approvo Gate 1 #{{UNIT_ID}}"
+question = "Approvi questa bozza (digest {{DIGEST_SHORT}}) per passare alla promozione? Rispondi \"Approvo Gate 1 #{{UNIT_ID}}\" oppure indica le correzioni."
+
+[gates.gate2]
+name = "Gate 2 — Approvazione pubblicazione"
+required = true                           # Non modificabile
+after = "F6"
+approval_phrase = "Approvo Gate 2 #{{UNIT_ID}}"
+question = "Approvi la pubblicazione di #{{UNIT_ID}} il {{PUBLISH_AT_LOCAL}} con le azioni elencate? Rispondi \"Approvo Gate 2 #{{UNIT_ID}}\"."
+# Azioni che una ricevuta Gate 2 può autorizzare. Nessuna è implicita.
+allowed_actions = ["publish", "schedule", "sync"]
+
+# -----------------------------------------------------------------------------
+# Provider (adapter pluggabili)
+# -----------------------------------------------------------------------------
+# Ogni provider dichiara un nome di adapter. "manual" significa che il passo lo
+# esegue una persona o un agente fuori dalla CLI, che verifica solo le evidenze.
+
+[providers.drafting]
+adapter = "manual"                        # manual | anthropic | openai | gemini | local
+model_label = "{{LLM_DRAFTING_AGENT}}"    # Nome dichiarato nelle pagine pubbliche
+
+[providers.humanizer]
+adapter = "manual"
+separate_pass_required = true             # Passaggio distinto dalla stesura
+
+[providers.rag]
+# "local" = indice offline sul contenuto di [paths].sources (nessuna rete).
+adapter = "local"                         # local | notebooklm | openai | custom
+corpus_id_env = "EDITORIAL_RAG_ID"        # ID del corpus remoto, mai scritto qui
+max_claims_per_turn = 8
+
+[providers.audio]
+adapter = "none"                          # none | notebooklm | elevenlabs | openai_tts | local
+
+[providers.visual]
+adapter = "none"                          # none | playwright | canva
+
+# -----------------------------------------------------------------------------
+# Fact-checking (F3)
+# -----------------------------------------------------------------------------
+[factcheck]
+# Esiti accettati nel corpo del testo.
+allowed_outcomes = ["grounded_primary", "verified_external", "grounded_secondary"]
+# Un solo claim con questi esiti blocca Gate 1.
+blocking_outcomes = ["unsupported", "contradicted"]
+# Solo questi esiti possono alimentare dati promozionali (card, numeri nei copy).
+promotion_outcomes = ["grounded_primary", "verified_external"]
+# Un dato promozionale richiede un locator specifico (pagina, sezione, tabella).
+require_locator_for_promotion = true
+# Fonti che non contano mai come prova (es. il testo stesso in revisione).
+circular_source_tags = ["self_draft"]
+
+# -----------------------------------------------------------------------------
+# Revisione di stile (F2b, F4)
+# -----------------------------------------------------------------------------
+[humanizer]
+# Chiavi della checklist richieste in draft-review.json / social-review.json.
+required_items = [
+  "empty_emphasis",
+  "negative_parallelism",
+  "isolated_lines",
+  "vague_attribution",
+  "decorative_bold",
+  "invented_autobiography",
+]
+# Esiti ammessi per voce: ok | corretto | giustificato: <motivo> | failed
+reviewer_must_differ_from_author = false  # true = obbligo di agente diverso
+
+# -----------------------------------------------------------------------------
+# Pagine di trasparenza
+# -----------------------------------------------------------------------------
+[transparency]
+method_page = "/metodo/"
+corrections_page = "/correzioni/"
+press_page = "/per-chi-scrive/"
+trailing_slash = true
+# Le modifiche a queste pagine richiedono un'approvazione esplicita del
+# Direttore distinta dai gate delle singole unità.
+require_separate_approval = true
+
+[transparency.templates]
+method = "templates/pages/metodo.template.md"
+corrections = "templates/pages/correzioni.template.md"
+press = "templates/pages/per-chi-scrive.template.md"
+
+# -----------------------------------------------------------------------------
+# Registro correzioni
+# -----------------------------------------------------------------------------
+[corrections]
+pre_publication_id = "ERR-{{UNIT_ID}}-{{SEQ}}"   # Sezione A
+post_publication_id = "COR-{{UNIT_ID}}-{{SEQ}}"  # Sezione B
+categories_pre = ["missing_source", "source_provenance", "overgeneralization", "number", "attribution", "audio"]
+categories_post = ["factual_error", "calculation_error", "misattribution", "clarification"]
+statuses = ["corrected", "clarified", "retracted"]
+show_reporter_name = false                # Solo con consenso esplicito del segnalante
+contact_email = "corrections@example.com"
+
+# -----------------------------------------------------------------------------
+# Privacy (Zero-Leak)
+# -----------------------------------------------------------------------------
+[privacy]
+report_paths = "relative"                 # Unico valore ammesso
+reject_absolute_paths = true
+# Pattern aggiuntivi da bloccare in evidenze e report (regex, case-insensitive).
+deny_patterns = []
