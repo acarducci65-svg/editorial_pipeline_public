@@ -32,3 +32,10 @@ playwright/.cache/
 .idea/
 .DS_Store
 Thumbs.db
+# Local temporary and legacy work files
+*.tmp
+*.bak
+*.swp
+*~
+/scripts/*_legacy.py
+/scripts/*_local.py

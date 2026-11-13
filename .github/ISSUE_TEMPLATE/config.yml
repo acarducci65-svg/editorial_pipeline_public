@@ -1,0 +1,16 @@
+# GitHub requires absolute URLs in contact_links.
+# Replace OWNER with the GitHub organisation or account that hosts the repository.
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation / Documentazione
+    url: https://github.com/OWNER/editorial_pipeline_public/tree/main/docs
+    about: Architecture, configuration, fact-checking, humanizer and transparency guides.
+  - name: Agent skill / Skill per agenti
+    url: https://github.com/OWNER/editorial_pipeline_public/tree/main/skills/editorial-pipeline
+    about: Operating guide for Antigravity IDE, Claude Code and Codex CLI.
+  - name: Questions and ideas / Domande e idee
+    url: https://github.com/OWNER/editorial_pipeline_public/discussions
+    about: Usage questions and early-stage ideas belong in GitHub Discussions.
+  - name: Security vulnerability / Vulnerabilità di sicurezza
+    url: https://github.com/OWNER/editorial_pipeline_public/security/advisories/new
+    about: Report vulnerabilities privately. Never open a public issue for them.

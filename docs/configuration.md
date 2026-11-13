@@ -1,13 +1,13 @@
 # Configurazione di editorial.toml
 
-`editorial.example.toml` ? il modello completo; `examples/sample_blog/editorial.toml` ? una configurazione didattica compilata. `editorial-pipeline init progetto` copia modello e template nel nuovo progetto. Tutti i campi elencati sono obbligatori salvo `gates.gate1.allowed_actions` e `gates.gate2.allowed_actions` (default lista vuota). Le liste possono essere vuote; lo schema non impone in generale vincoli semantici ulteriori ai tipi indicati.
+`editorial.example.toml` è il modello completo; `examples/sample_blog/editorial.toml` è una configurazione didattica compilata. `editorial-pipeline init progetto` copia modello e template nel nuovo progetto. Tutti i campi elencati sono obbligatori salvo `gates.gate1.allowed_actions` e `gates.gate2.allowed_actions` (default lista vuota). Le liste possono essere vuote; lo schema non impone in generale vincoli semantici ulteriori ai tipi indicati.
 
 ## Riferimento dei campi
 
 | Sezione | Campi e significato |
 | --- | --- |
 | Radice | `schema_version`: intero, deve essere `1`. |
-| `project` | Stringhe `name`, `slug`, `language`, `timezone`, `content_unit`, `content_unit_plural`, `base_url`: identit? e convenzioni del progetto. |
+| `project` | Stringhe `name`, `slug`, `language`, `timezone`, `content_unit`, `content_unit_plural`, `base_url`: identità e convenzioni del progetto. |
 | `paths` | Percorsi relativi `content`, `evidence`, `dist`, `templates`, `pages`, `corrections`, `sources`, `reports`. `content` contiene i post; `evidence` le directory per post; `dist` gli output. |
 | `author` | `profile`: percorso relativo del profilo YAML. |
 | `manifesto` | `file`: percorso relativo del manifesto YAML. |
@@ -26,17 +26,17 @@
 | `transparency` | Stringhe `method_page`, `corrections_page`, `press_page`; booleani `trailing_slash`, `require_separate_approval`. Sono rotte web, non percorsi filesystem. |
 | `transparency.templates` | Percorsi relativi `method`, `corrections`, `press`. |
 | `corrections` | Stringhe `pre_publication_id`, `post_publication_id`, `contact_email`; liste `categories_pre`, `categories_post`, `statuses`; booleano `show_reporter_name`. |
-| `privacy` | `report_paths` deve essere `relative`; `reject_absolute_paths` deve essere `true`; `deny_patterns` ? una lista di stringhe. |
+| `privacy` | `report_paths` deve essere `relative`; `reject_absolute_paths` deve essere `true`; `deny_patterns` è una lista di stringhe. |
 
-Le sezioni `[editorial]`, `[de_aizing]`, `[rag]`, `[visual]` e `[channels]` non sono accettate dallo schema attuale: usare rispettivamente le sezioni esistenti per progetto, registro e humanizer, `providers.rag` e `providers.visual`. Non esiste una sezione canali. Le impostazioni dichiarative non implicano che ogni fase o regola sia gi? eseguita dalla CLI: per esempio `verify-facts` usa il provider locale e `build-visual` usa Playwright indipendentemente dai valori `adapter`.
+Le sezioni `[editorial]`, `[de_aizing]`, `[rag]`, `[visual]` e `[channels]` non sono accettate dallo schema attuale: usare rispettivamente le sezioni esistenti per progetto, registro e humanizer, `providers.rag` e `providers.visual`. Non esiste una sezione canali. Le impostazioni dichiarative non implicano che ogni fase o regola sia già eseguita dalla CLI: per esempio `verify-facts` usa il provider locale e `build-visual` usa Playwright indipendentemente dai valori `adapter`.
 
 ## Percorsi e validazione
 
 `load_config` legge TOML e costruisce `EditorialConfig`: Pydantic v2 rifiuta campi extra e modelli modificabili. I campi percorso non possono essere vuoti, assoluti, dotati di drive o contenere `..`. La CLI usa la cartella del file di configurazione come radice e chiama `resolve_paths`: i percorsi sono normalizzati e i collegamenti simbolici che escono dalla radice sono rifiutati. Il metodo restituisce anche il valore risolto di `register.active`, ma lo style checker usa `register.active` come identificativo e costruisce `directory/<active>.yaml`; usare quindi un nome semplice come `tech_blog`.
 
-La CLI chiama anche `validate_operative`, che cerca ricorsivamente stringhe `{{...}}` nella configurazione e le rifiuta. Non verifica l'esistenza o il contenuto dei file YAML di autore e manifesto, n? garantisce che un valore privo di segnaposto sia realmente pronto alla pubblicazione. I segnaposto a graffa singola usati nelle frasi operative non sono intercettati.
+La CLI chiama anche `validate_operative`, che cerca ricorsivamente stringhe `{{...}}` nella configurazione e le rifiuta. Non verifica l'esistenza o il contenuto dei file YAML di autore e manifesto, né garantisce che un valore privo di segnaposto sia realmente pronto alla pubblicazione. I segnaposto a graffa singola usati nelle frasi operative non sono intercettati.
 
-Il modello iniziale contiene segnaposto da compilare prima dell'uso operativo. La sandbox di esempio usa dati fittizi gi? compilati: non esiste un interruttore Pydantic separato per una modalit? sandbox. Le sue evidenze simulate non dimostrano fatti reali.
+Il modello iniziale contiene segnaposto da compilare prima dell'uso operativo. La sandbox di esempio usa dati fittizi già compilati: non esiste un interruttore Pydantic separato per una modalità sandbox. Le sue evidenze simulate non dimostrano fatti reali.
 
 ## Registri e template
 
