@@ -1,0 +1,78 @@
+name: Feature request
+description: Propose a new capability or an architectural change / Proponi una nuova funzionalità
+title: "[feat] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a large proposal, please read `docs/architecture.md` in the
+        repository: the framework follows a
+        Ports & Adapters layout and keeps every editorial decision in human hands.
+
+        **Non-negotiable:** proposals that let an agent or an automation approve Gate 1
+        (draft) or Gate 2 (publication) on its own will be declined. / Le proposte che
+        permettono a un agente di approvare da solo un gate non saranno accettate.
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation / Motivazione
+      description: The problem you are trying to solve and who runs into it.
+      placeholder: "As an editor I need to verify claims against a remote corpus, but verify-facts only uses the local provider."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Architectural proposal / Proposta architetturale
+      description: |
+        How it fits the existing layers (domain, config, application, adapters, cli).
+        Mention new ports or adapters, configuration keys in `editorial.toml`, CLI
+        commands or flags, and the effect on JSON reports.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / Alternative valutate
+      description: Other approaches, including doing nothing, and why you discarded them.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Pipeline phase / Fase della pipeline
+      multiple: true
+      options:
+        - F0 Research / Ricerca
+        - F1 Sources inventory / Inventario fonti
+        - F2 Drafting and humanizing / Stesura e umanizzazione
+        - F3 Fact-checking / Verifica dei fatti
+        - F4 Promotional kit and visuals / Kit promozionale e visual
+        - F5 Audio
+        - F6 Final checks and snapshot / Controlli finali e snapshot
+        - Human gates / Gate umani
+        - Tooling, packaging, CI
+        - Documentation / Documentazione
+
+  - type: textarea
+    id: gates-impact
+    attributes:
+      label: Impact on human gates and privacy / Impatto su gate umani e privacy
+      description: |
+        Explain how the change preserves the two binding human gates and the Zero-Leak
+        rule (no personal data, credentials, cloud identifiers or absolute paths in code,
+        templates, tests or reports).
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution / Contributo
+      options:
+        - label: I am willing to open a pull request for this feature. / Sono disponibile ad aprire una pull request.

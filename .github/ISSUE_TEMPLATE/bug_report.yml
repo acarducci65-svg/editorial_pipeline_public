@@ -1,0 +1,120 @@
+name: Bug report
+description: Report a defect in the library, the CLI or the agent skill / Segnala un difetto
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. / Grazie per la segnalazione.
+
+        **Zero-Leak:** do not paste personal data, credentials, private editorial content,
+        cloud identifiers or absolute paths of your machine. Replace them with fictional
+        values (e.g. `post_01`, `<project-root>`). Security issues go through the private
+        **Security → Report a vulnerability** form, never in a public issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description / Descrizione
+      description: What happened, in one or two sentences.
+      placeholder: "`verify-facts` exits 0 although a claim has no locator."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce / Passi per riprodurre
+      description: |
+        Minimal, self-contained steps. The fictional sandbox in `examples/sample_blog`
+        is the preferred starting point.
+      placeholder: |
+        1. uv sync --extra dev
+        2. uv run editorial-pipeline verify-facts post_01_valid --config examples/sample_blog/editorial.toml --json
+        3. ...
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour / Comportamento atteso
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour / Comportamento effettivo
+    validations:
+      required: true
+
+  - type: textarea
+    id: cli-output
+    attributes:
+      label: CLI output / Output della CLI
+      description: |
+        Full output of the failing command, preferably with `--json` where supported,
+        plus the exit code (`echo $?` or `$LASTEXITCODE`). Redact any sensitive value.
+      render: shell
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / Sistema operativo
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other / Altro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: python
+    attributes:
+      label: Python version / Versione di Python
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+        - Other / Altro
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Editorial Pipeline version or commit / Versione o commit
+      placeholder: "0.1.0.dev0 or a commit SHA"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area / Area interessata
+      multiple: true
+      options:
+        - CLI
+        - Configuration (editorial.toml)
+        - Style checker / registers
+        - Fact-checking (RAG adapters)
+        - Visual builder (carousels)
+        - Human gates (check-gate)
+        - Agent skill (skills/editorial-pipeline)
+        - Documentation
+        - Packaging / CI
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate. / Ho verificato che non sia un duplicato.
+          required: true
+        - label: The report contains no personal data, credentials, cloud identifiers or host paths. / La segnalazione non contiene dati personali, credenziali, identificativi cloud o percorsi dell'host.
+          required: true
