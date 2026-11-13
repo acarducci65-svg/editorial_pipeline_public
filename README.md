@@ -1,7 +1,6 @@
 # Editorial Pipeline
 
-<!-- Replace OWNER in the CI badge with the GitHub organisation or account hosting the repository. -->
-[![CI](https://github.com/OWNER/editorial_pipeline_public/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/editorial_pipeline_public/actions/workflows/ci.yml)
+[![CI](https://github.com/acarducci65-svg/editorial_pipeline_public/actions/workflows/ci.yml/badge.svg)](https://github.com/acarducci65-svg/editorial_pipeline_public/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10–3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](pyproject.toml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
