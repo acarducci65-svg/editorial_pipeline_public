@@ -380,6 +380,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "tomli" },
     { name = "types-pyyaml" },
 ]
 social = [
@@ -403,6 +404,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
+    { name = "tomli", marker = "extra == 'dev'", specifier = ">=2.0.0" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6" },
 ]
 provides-extras = ["social", "audio", "all", "dev"]
