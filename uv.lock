@@ -375,6 +375,7 @@ audio = [
     { name = "mutagen" },
 ]
 dev = [
+    { name = "jinja2" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -389,6 +390,7 @@ social = [
 [package.metadata]
 requires-dist = [
     { name = "jinja2", marker = "extra == 'all'", specifier = ">=3.1" },
+    { name = "jinja2", marker = "extra == 'dev'", specifier = ">=3.1" },
     { name = "jinja2", marker = "extra == 'social'", specifier = ">=3.1" },
     { name = "mutagen", marker = "extra == 'all'", specifier = ">=1.47" },
     { name = "mutagen", marker = "extra == 'audio'", specifier = ">=1.47" },

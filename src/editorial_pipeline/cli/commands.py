@@ -10,6 +10,20 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+import yaml
+
+from editorial_pipeline.adapters.rag import (
+    EvidenceMissingError,
+    RagUnavailableError,
+    get_rag_provider,
+)
+from editorial_pipeline.adapters.visual import (
+    CarouselSpec,
+    PlaywrightVisualBuilder,
+    Slide,
+    VisualBuildError,
+    get_visual_builder,
+)
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
 from editorial_pipeline.cli.reports import digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
@@ -36,13 +50,43 @@ def _post(target: str, root: Path, posts: Path) -> Path:
     return candidate
 
 
+def _post_id(post: Path) -> str:
+    parts = post.stem.split("_")
+    return "_".join(parts[:2]) if len(parts) > 2 and parts[1].isdigit() else post.stem
+
+
+def _carousel(post: Path, post_id: str, author: str, aspect_ratio: str) -> CarouselSpec:
+    text = post.read_text(encoding="utf-8")
+    metadata: dict[str, Any] = {}
+    if text.startswith("---\n") and "\n---\n" in text:
+        header, text = text[4:].split("\n---\n", 1)
+        parsed = yaml.safe_load(header)
+        if isinstance(parsed, dict):
+            metadata = parsed
+    title = str(metadata.get("title") or post_id)
+    subtitle = str(metadata.get("subtitle") or "")
+    sections: list[tuple[str, list[str]]] = []
+    for line in text.splitlines():
+        if line.startswith("# "):
+            title = line[2:].strip() or title
+        elif line.startswith("## "):
+            sections.append((line[3:].strip(), []))
+        elif sections:
+            sections[-1][1].append(line)
+        elif line.strip():
+            sections.append((title, [line]))
+    slides = [
+        Slide(i, heading or title, "\n".join(lines).strip())
+        for i, (heading, lines) in enumerate(sections, 1)
+    ]
+    return CarouselSpec(
+        post_id, title, subtitle, author, slides or [Slide(1, title, "")], aspect_ratio
+    )
+
+
 def _validate(post: Path, root: Path, evidence: Path, checker: StyleChecker) -> dict[str, Any]:
     findings = list(checker.scan_file(post))
-    post_id = post.stem
-    # Sample and common editorial naming: post_01_title -> post_01.
-    parts = post_id.split("_")
-    if len(parts) > 2 and parts[1].isdigit():
-        post_id = "_".join(parts[:2])
+    post_id = _post_id(post)
     ev = evidence / post_id
     for name in ("sources.json", "factcheck.json"):
         if not (ev / name).is_file():
@@ -75,16 +119,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init")
     init.add_argument("target_dir")
-    for name in ("status", "validate-draft", "validate-all", "check-gate"):
+    for name in (
+        "status",
+        "validate-draft",
+        "validate-all",
+        "check-gate",
+        "verify-facts",
+        "build-visual",
+    ):
         p = sub.add_parser(name)
         if name == "check-gate":
             p.add_argument("gate_num", type=int, choices=(1, 2))
-        if name in ("validate-draft", "check-gate"):
+        if name in ("validate-draft", "check-gate", "verify-facts", "build-visual"):
             p.add_argument("post_target")
         if name == "check-gate":
             p.add_argument("--token")
-        if name in ("validate-draft", "validate-all"):
+        if name in ("validate-draft", "validate-all", "verify-facts"):
             p.add_argument("--json", action="store_true")
+        if name == "build-visual":
+            p.add_argument("--dry-run", action="store_true")
+            p.add_argument("--aspect-ratio", choices=("4:5", "1:1"), default="4:5")
         p.add_argument("--config", default="editorial.toml")
     args = parser.parse_args(argv)
     try:
@@ -129,6 +183,56 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             )
             return 0
+        if args.command in ("verify-facts", "build-visual"):
+            post = _post(args.post_target, root, posts)
+            post_id = _post_id(post)
+            if args.command == "verify-facts":
+                evidence = paths["paths.evidence"] / post_id
+                try:
+                    data = json.loads((evidence / "factcheck.json").read_text(encoding="utf-8"))
+                except FileNotFoundError as exc:
+                    raise EvidenceMissingError("Required evidence file is missing") from exc
+                if not isinstance(data, dict) or data.get("post_id") != post_id:
+                    raise ValueError("Invalid evidence post identifier")
+                records = data.get("claims")
+                if (
+                    not isinstance(records, list)
+                    or not records
+                    or any(
+                        not isinstance(item, dict)
+                        or not isinstance(item.get("text"), str)
+                        or not item["text"].strip()
+                        for item in records
+                    )
+                ):
+                    raise ValueError("Invalid or empty claims")
+                findings = get_rag_provider("local", config, root).verify(
+                    [item["text"] for item in records], evidence
+                )
+                print(
+                    serialize(
+                        {
+                            "post": relative_path(post, root),
+                            "findings": [
+                                {"code": f.code, "message": f.message, "state": f.state.value}
+                                for f in findings
+                            ],
+                        }
+                    )
+                )
+                return int(any(f.state == VerificationState.BLOCK for f in findings))
+            spec = _carousel(post, post_id, config.project.name, args.aspect_ratio)
+            builder = get_visual_builder("playwright", config, root)
+            if isinstance(builder, PlaywrightVisualBuilder):
+                if not (
+                    paths["paths.templates"] / "social" / "carousel_slide.html.jinja2"
+                ).is_file():
+                    builder.template_dir = None
+                if args.dry_run:
+                    builder.rasterize = False
+            manifest = builder.build_carousel(spec, paths["paths.dist"] / "social")
+            print(serialize(manifest.to_dict()))
+            return 0
         checker = StyleChecker.from_config(config, root)
         selected = (
             [_post(args.post_target, root, posts)]
@@ -148,6 +252,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     except GhostApprovalForbiddenError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RagUnavailableError, VisualBuildError, yaml.YAMLError) as exc:
         print(f"Error: {type(exc).__name__}", file=sys.stderr)
         return 1

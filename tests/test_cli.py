@@ -94,3 +94,64 @@ def test_report_redacts_host_paths() -> None:
     assert windows not in output
     assert posix not in output
     assert json.loads(output)["finding"] == "[redacted] and [redacted]"
+
+
+def test_cli_verify_facts_success(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["verify-facts", "post_01_valid", "--config", CONFIG, "--json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert len(report["findings"]) == 3
+    assert all(item["state"] == "OK" for item in report["findings"])
+
+
+def test_cli_verify_facts_failure(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import shutil
+
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project)
+    shutil.rmtree(project / "evidence" / "post_01")
+    assert main(["verify-facts", "post_01_valid", "--config", str(project / "editorial.toml")]) == 1
+    assert str(tmp_path) not in capsys.readouterr().err
+
+
+def test_cli_build_visual(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import shutil
+
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project)
+    assert (
+        main(
+            [
+                "build-visual",
+                "post_01_valid",
+                "--config",
+                str(project / "editorial.toml"),
+                "--dry-run",
+                "--aspect-ratio",
+                "1:1",
+            ]
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    manifest = json.loads(output)
+    assert str(tmp_path) not in output
+    assert manifest["digest"]
+    assert (project / "dist/social/post_01/manifest.json").is_file()
+    assert (project / "dist/social/post_01/slide_01.html").is_file()
+
+
+def test_cli_help_lists_commands(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
+    output = capsys.readouterr().out
+    for name in (
+        "init",
+        "status",
+        "validate-draft",
+        "validate-all",
+        "check-gate",
+        "verify-facts",
+        "build-visual",
+    ):
+        assert name in output
