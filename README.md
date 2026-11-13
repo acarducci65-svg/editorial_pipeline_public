@@ -134,6 +134,7 @@ Exit codes: `0` ok · `1` at least one `BLOCK` or an input error · `2` approval
 
 | Document | Content |
 | --- | --- |
+| [**`docs/manuale_configurazione_e_uso.md`**](docs/manuale_configurazione_e_uso.md) · [**PDF (A4)**](docs/manuale_configurazione_e_uso.pdf) | **Official complete user & configuration manual** (61-page A4 PDF and Markdown, Italian) |
 | [`docs/architecture.md`](docs/architecture.md) | Ports & Adapters layout, components, gates and human sovereignty |
 | [`docs/configuration.md`](docs/configuration.md) | Full reference of `editorial.toml`, path validation, registers and templates |
 | [`docs/rag_factcheck.md`](docs/rag_factcheck.md) | `RagProvider` port, local and NotebookLM adapters, evidence format |
@@ -252,11 +253,8 @@ rifiutata.
 
 ### Documentazione
 
-Le guide in [`docs/`](docs/) sono in italiano: architettura, configurazione, verifica dei
-fatti, guida per il Direttore, umanizzazione e pagine di trasparenza (`/metodo/`,
-`/correzioni/`, `/per-chi-scrive/`). La skill operativa per agenti è in
-[`skills/editorial-pipeline/`](skills/editorial-pipeline/SKILL.md). La tabella completa è
-nella [sezione inglese](#documentation).
+- [**Manuale Ufficiale di Configurazione e Uso**](docs/manuale_configurazione_e_uso.md) · [**Edizione PDF A4 (61 pagine)**](docs/manuale_configurazione_e_uso.pdf): guida completa e dettagliata, capitolo per capitolo, con comandi, configurazione, checklist de-aizing e tutorial pratico.
+- Le guide tematiche in [`docs/`](docs/) approfondiscono singoli aspetti: architettura, configurazione, verifica dei fatti, guida per il Direttore, umanizzazione e pagine di trasparenza (`/metodo/`, `/correzioni/`, `/per-chi-scrive/`). La skill operativa per agenti è in [`skills/editorial-pipeline/`](skills/editorial-pipeline/SKILL.md). La tabella completa è nella [sezione inglese](#documentation).
 
 ### Agenti supportati
 
