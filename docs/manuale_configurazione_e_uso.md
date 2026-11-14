@@ -36,10 +36,12 @@ Tutti i comandi di esempio si lanciano dalla radice del progetto editoriale o da
 - [Capitolo 5 — I due gate umani e la dottrina del No Ghost Approval](#capitolo-5--i-due-gate-umani-e-la-dottrina-del-no-ghost-approval)
   - [5.5 Il pacchetto Gate 2 — Pubblicazione (kit promozionale e audio)](#55-il-pacchetto-gate-2--pubblicazione)
   - [5.9 Dopo il Gate 2: pubblicazione ed esportazione con `publish`](#59-dopo-il-gate-2-pubblicazione-ed-esportazione-con-publish)
+  - [5.10 Console webredazionale dopo il Gate 2](#510-console-webredazionale-dopo-il-gate-2)
 - [Capitolo 6 — Guida di riferimento ai comandi CLI](#capitolo-6--guida-di-riferimento-ai-comandi-cli)
   - [6.2 Quadro sinottico](#62-quadro-sinottico)
   - [6.10 `build-audio` (F5)](#610-build-audio-f5)
   - [6.11 `publish` (dopo il Gate 2)](#611-publish-dopo-il-gate-2)
+  - [6.14 `view` — Console Webredazionale (Editorial Hub)](#614-view--console-webredazionale-editorial-hub)
 - [Capitolo 7 — Vademecum di de-aizing e umanizzazione](#capitolo-7--vademecum-di-de-aizing-e-umanizzazione)
 - [Capitolo 8 — Grounding delle fonti e fact-checking RAG](#capitolo-8--grounding-delle-fonti-e-fact-checking-rag)
 - [Capitolo 9 — Tutorial pratico end-to-end con la sandbox](#capitolo-9--tutorial-pratico-end-to-end-con-la-sandbox)
@@ -104,7 +106,7 @@ flowchart LR
 | **config** | `EditorialConfig` (schema Pydantic v2, campi extra rifiutati), `load_config`, `resolve_paths`, `validate_operative` |
 | **application** | `StyleChecker` (finding deterministici su espressioni e pattern del registro), `EvidenceVerifier` (coerenza di `sources.json`, `factcheck.json` e `draft-review.json` con la bozza), `aggregate_state` (precedenza `BLOCK` > `WARN` > `OK`) |
 | **adapters** | `RagProvider` con `LocalRagProvider` (offline, operativo) e `NotebookLMAdapter` (opzionale, interroga Google NotebookLM tramite la CLI `nlm`); `VisualBuilder` con `PlaywrightVisualBuilder`; `AudioProvider` con `ScriptOnlyAdapter` (copione offline) e `NotebookLMAdapter` (audio via `nlm`); `PublishAdapter` con `DistArchivePublisher` (`tar.gz`) e `StaticSitePublisher` (Markdown e asset per SSG) |
-| **cli** | `init`, `install-skill`, `status`, `validate-draft`, `validate-all`, `verify-facts`, `build-visual`, `build-audio`, `check-gate`, `publish` |
+| **cli** | `init`, `install-skill`, `status`, `validate-draft`, `validate-all`, `verify-facts`, `build-visual`, `build-audio`, `check-gate`, `publish`, `view` |
 
 ### 1.3 I 6 principi di trasparenza (TP1–TP6)
 
@@ -1147,6 +1149,12 @@ Se il Direttore scrive «Approvo Gate 2 #post_07 azioni: export_markdown», `pub
 
 Dopo la pubblicazione si passa a F6. Un `PUBLISHED` attesta che i file derivano dal bundle approvato; non prova che il Direttore abbia approvato. Guida completa: [`publishing.md`](publishing.md).
 
+### 5.10 Console webredazionale dopo il Gate 2
+
+L'Editorial Hub è lo strumento di visualizzazione a fine flusso e post-Gate 2: il Direttore o il redattore vi copia i testi per LinkedIn, Twitter/X, Newsletter e Instagram, ascolta il podcast NotebookLM, sfoglia il carosello e scarica i file disponibili. `editorial view <post_id>` genera e apre la console (§6.14); non approva né pubblica contenuti e mostra gli stati dei gate registrati senza rivalidarli.
+
+Preparate la console **prima** di calcolare il bundle del Gate 2. Dopo il gate o la pubblicazione, aprite direttamente nel browser `[paths].dist/web/<post_id>.html` già generato: questa consultazione non modifica i file. Rieseguire `editorial view`, anche con `--serve` o `--no-browser`, riscrive l'HTML in `dist/` e può rendere la ricevuta `stale`. Se occorre rigenerarlo per includere nuovi asset, presentate un nuovo pacchetto Gate 2 prima di successive azioni soggette al gate; la console non sostituisce mai l'approvazione umana.
+
 ---
 
 ## Capitolo 6 — Guida di riferimento ai comandi CLI
@@ -1194,6 +1202,7 @@ Un `Error: ...` senza JSON indica un problema di configurazione o di percorso, n
 | `build-audio <post> [--provider script_only\|notebooklm] [--dry-run] [--json]` | F5 | Copione `podcast_script.md` (offline) o audio `podcast.m4a` (via `nlm`) in `dist/audio/<post_id>/`, solo dai claim verificati; si rifiuta se `F5 = false` o se le evidenze hanno `BLOCK` | Non revisiona il copione, non approva l'audio |
 | `check-gate <1\|2> <post>` | Gate | Verifica la ricevuta umana, ricalcola e confronta il bundle; esito `RECEIPT_VALID` | Non legge la chat, non autentica persone, non esegue azioni |
 | `publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Rifà `check-gate 2` (exit `2` se fallisce), poi esegue solo le azioni autorizzate: archivio `tar.gz` o esportazione per sito statico | Non carica nulla in rete, non esegue `publish`/`schedule`/`sync` generici, non sovrascrive |
+| `editorial view <post_id> [--serve] [--port PORT] [--no-browser]` | Preparazione pre-Gate 2; consultazione finale | Genera e apre la console webredazionale: copia social, player audio, carosello e download. Server HTTP locale facoltativo | Non genera asset mancanti, non verifica o approva gate, non pubblica. Riscrive l'HTML in `dist/`, con possibile invalidazione del Gate 2 |
 
 ### 6.3 `init`
 
@@ -1542,6 +1551,49 @@ Contare i finding per stato:
 ```bash
 editorial-pipeline verify-facts post_07_titolo | jq '[.findings[].state] | group_by(.) | map({(.[0]): length}) | add'
 ```
+
+---
+
+### 6.14 `view` — Console Webredazionale (Editorial Hub)
+
+```text
+editorial view <post_id> [--serve] [--port PORT] [--no-browser] [--config editorial.toml]
+```
+
+| Argomento / opzione | Descrizione |
+|---|---|
+| `<post_id>` | Identificatore dell'articolo, per esempio `post_07`; non un URL |
+| `--serve` | Genera la console e avvia un server HTTP su `127.0.0.1` fino a `Ctrl+C`; senza questa opzione apre l'HTML come file locale |
+| `--port PORT` | Porta del server: default `8000`, intervallo `0`–`65535`; `0` sceglie una porta libera. Ha effetto solo con `--serve`; una porta esplicita occupata produce errore |
+| `--no-browser` | Genera l'HTML senza aprire automaticamente il browser. Con `--serve`, il server resta attivo e stampa l'URL |
+| `--config` | File di configurazione, default `editorial.toml`; la sua cartella è la radice del progetto |
+
+Il file prodotto è `[paths].dist/web/<post_id>.html` (default `dist/web/<post_id>.html`). Serve Jinja2, fornito dall'extra `editorial-pipeline[social]`. La pagina incorpora CSS e JavaScript; audio e download mantengono collegamenti relativi ai file del progetto. Spostandola, conservate anche le cartelle degli asset nella stessa struttura.
+
+La console offre One-Click Copy per LinkedIn, Twitter/X, Newsletter e Instagram, con conteggio caratteri e feedback «Copiato!». Se gli appunti non sono accessibili, seleziona il testo e invita a usare `Ctrl+C` o `Cmd+C`. Il player HTML5 riproduce il podcast NotebookLM locale (`.m4a`/`.mp3`) con controlli e download; la galleria consente di sfogliare le slide e scaricare immagini, HTML e PDF già presenti. L'elenco download permette di esportare gli asset disponibili. Se manca un materiale compare «Non disponibile»: `view` non crea podcast, caroselli o archivi e non invia nulla ai canali social.
+
+Esempi dalla radice del progetto, **prima** del pacchetto Gate 2:
+
+```bash
+# Genera e apre il file locale
+editorial view post_07
+
+# Genera senza aprire il browser: utile per l'agente non interattivo
+editorial view post_07 --no-browser
+
+# Serve via HTTP sullo stesso computer, porta predefinita 8000
+editorial view post_07 --serve
+
+# Porta personalizzata, apertura manuale dell'URL stampato
+editorial view post_07 --serve --port 8080 --no-browser
+
+# Porta libera assegnata dal sistema
+editorial view post_07 --serve --port 0
+```
+
+**Rete locale e cellulare.** `--serve` ascolta solo su `127.0.0.1`: è disponibile dal computer che lo esegue, non direttamente da altri dispositivi della redazione o dal cellulare. Per prove mobile sul computer usate l'emulazione dispositivi del browser. L'accesso da un dispositivo reale richiede un inoltro o un servizio separato configurato dalla redazione; `--port` non cambia l'indirizzo di ascolto. Il server espone la console e i file collegati, senza elenchi di directory né configurazione.
+
+**Gate 2 e consultazione finale.** Ogni invocazione rigenera l'HTML e può invalidare una ricevuta già vincolata a `dist/`. Dopo il Gate 2/pubblicazione consultate direttamente il file preparato prima del gate (§5.10). Se serve rigenerarlo, occorre un nuovo pacchetto e un nuovo gate umano prima di ulteriori azioni soggette al gate. Gli stati visualizzati sono quelli registrati: `view` non esegue `check-gate`.
 
 ---
 

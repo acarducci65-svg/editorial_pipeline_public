@@ -25,7 +25,7 @@ Leggete la reference indicata **prima** di eseguire la fase corrispondente:
 | `references/factchecking_protocol.md` | F1 e F3: fonti primarie, locator, `sources.json`, `factcheck.json`, confronto con la bozza |
 | `references/verification-and-rag.md` | F1 e F3 con Google NotebookLM: strumenti MCP `notebooklm-mcp`, `verify-facts` con `provider = "notebooklm"`, lettura dei finding remoti, zero-leak |
 | `references/gates_and_evidence.md` | Gate 1 e Gate 2: pacchetti, digest `v1:`, ricevute schema v1 con bundle, `check-gate`, invalidazione |
-| `references/publishing-and-audio.md` | F5 con `build-audio`: policy audio (solo NotebookLM Studio, alternativa `script_only`), procedura `nlm` passo per passo; pubblicazione con `publish` dopo il Gate 2: azioni, adapter `dist_archive` e `static_site`, `--dry-run`, esiti |
+| `references/publishing-and-audio.md` | F5 con `build-audio`: policy audio (solo NotebookLM Studio, alternativa `script_only`), procedura `nlm` passo per passo; pubblicazione con `publish` dopo il Gate 2: azioni, adapter `dist_archive` e `static_site`, `--dry-run`, esiti; console `view`: preparazione pre-gate, consultazione finale, copia social, ascolto e download, server locale |
 
 Documentazione del progetto ospite (se presente): `docs/author_guide.md`, `docs/humanizer_guide.md`, `docs/transparency_pages.md`, `editorial.toml`, `templates/author_profile.yaml`, `templates/editorial_manifest.yaml`.
 
@@ -107,6 +107,7 @@ Convenzioni:
 | `editorial build-audio <post_id> [--provider notebooklm] [--format {m4a,mp3}] [--language it] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il podcast conversazionale a due voci di **Google NotebookLM Studio** (`podcast.m4a` o `podcast.mp3`, via `nlm`) in `[paths].dist/audio/<post_id>/`. Con `--provider script_only` scrive invece il solo copione `podcast_script.md` (offline). `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm` | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non ascolta né revisiona l'audio, non approva nulla. Il provider `tts` è deprecato e **vietato** per la pubblicazione (§4, F5) |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
 | `editorial-pipeline publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown e asset in `dist/published/<post_id>/`. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive |
+| `editorial view <post_id> [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 2; consultazione a fine flusso | Genera `[paths].dist/web/<post_id>.html` e apre la console webredazionale: copy social, player podcast, carosello e download degli asset presenti. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`: dopo il Gate 2 può invalidare la ricevuta |
 
 Stati dei controlli: `OK`, `WARN` (va motivato nel pacchetto), `BLOCK` (impedisce il gate).
 
@@ -134,8 +135,10 @@ F2b  De-aizing e revisione di stile, draft-review.json
 F3   Fact-checking con RAG, factcheck.json, verify-facts senza BLOCK
      ══ GATE 1 — Bozza verificata (Direttore) ══
 F4   Visual & Social   ‖   F5   Podcast / Audio, build-audio   (in parallelo; F5 facoltativa)
+     editorial view <post_id>: preparazione console prima del bundle Gate 2
      ══ GATE 2 — Pubblicazione (Direttore) ══
      publish: solo le azioni autorizzate (archive, export_markdown)
+     Console webredazionale: copia social, ascolto podcast, download asset
 F6   Monitoraggio, trasparenza e correzioni
 ```
 
@@ -259,6 +262,10 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
 
 **Uscita:** kit completo, manifest del carosello, prova di revisione, tabella dati promozionali → claim; podcast NotebookLM ascoltato e confrontato con i claim (o copione `script_only`) se F5 è attiva.
 
+### Console webredazionale — preparazione prima del Gate 2
+
+A kit ultimato, generate la console con `editorial view <post_id>` (oppure `--no-browser` in una sessione non interattiva) **prima** di calcolare il bundle del Gate 2. Verificate che mostri i copy social e gli asset attesi. Dettagli e modalità server: `references/publishing-and-audio.md` §5.
+
 ### ══ GATE 2 — Pubblicazione ══
 
 1. **Controlli finali.** Rieseguite `validate-draft --json` e `verify-facts --json`: senza `BLOCK` e con lo stesso digest approvato al Gate 1. Per `investigative`: richieste di replica documentate nel testo.
@@ -287,6 +294,10 @@ Procedura completa ed esiti: `references/publishing-and-audio.md` §3.
 4. Exit 2 (`Gate 2: invalid or unreadable bundle`): la ricevuta non vale più per i file correnti. Eseguite `check-gate 2` per il motivo e, se il bundle è cambiato, ripresentate il pacchetto. **Mai** ritoccare `gate2.json` o il catalogo delle azioni.
 5. Una pubblicazione per ricevuta: con le cartelle predefinite (dentro `[paths].dist`) la prima pubblicazione rende `stale` il Gate 2 e un secondo `publish` esce con exit 2.
 6. Riferite `status`, `executed_actions`, `published_files` e `details.bundle_digest`. Caricamenti in rete, invii e programmazioni restano fuori dalla CLI e richiedono la loro azione autorizzata.
+
+### Console webredazionale — consultazione a fine flusso
+
+Al termine del flusso, o dopo il Gate 2/pubblicazione, suggerite al Direttore o al redattore la console per copiare i testi LinkedIn, Twitter/X, Newsletter e Instagram, ascoltare il podcast NotebookLM ed esportare i file disponibili tramite download. `editorial view <post_id>` la genera e la apre; richiamarlo **riscrive** l'HTML in `dist/` e può rendere `stale` una ricevuta già vincolata. Per consultare senza modifiche, aprite direttamente nel browser il file `[paths].dist/web/<post_id>.html` preparato prima del gate. Se occorre rigenerarlo, fatelo prima di un nuovo pacchetto Gate 2 e riferite l'invalidazione; ogni successiva pubblicazione richiede il nuovo gate umano. Gli stati mostrati sono registrati, non rivalidati dalla console.
 
 ### F6 — Monitoraggio, trasparenza e correzioni
 
