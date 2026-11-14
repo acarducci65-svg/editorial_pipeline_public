@@ -191,6 +191,31 @@ def test_sample_receipts_are_valid(gate: int, capsys: pytest.CaptureFixture[str]
     assert result["status"] == "RECEIPT_VALID" and result["gate"] == gate
 
 
+@pytest.mark.parametrize("reports_present", [False, True])
+def test_sample_gate2_is_independent_of_reports(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], reports_present: bool
+) -> None:
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns("reports"))
+    reports = project / "dist/reports"
+    if reports_present:
+        reports.mkdir(parents=True)
+        (reports / ".gitkeep").write_text("", encoding="utf-8")
+        (reports / "validation.json").write_text("{}", encoding="utf-8")
+        (project / "dist/.gitkeep").write_text("", encoding="utf-8")
+    else:
+        assert not reports.exists()
+    assert (
+        main(["check-gate", "2", "post_01_valid", "--config", str(project / "editorial.toml")]) == 0
+    )
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "RECEIPT_VALID"
+    assert set(result["bundle"]["artifacts"]) == {
+        "dist/social/post_01/manifest.json",
+        *(f"dist/social/post_01/slide_{i:02}.html" for i in range(1, 7)),
+    }
+
+
 def test_edited_draft_invalidates_sample_receipt(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
