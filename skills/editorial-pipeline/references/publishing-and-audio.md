@@ -1,8 +1,8 @@
 # Produzione audio F5 e pubblicazione dopo il Gate 2
 
-Reference per **F5** (`build-audio`) e per l'esecuzione delle azioni autorizzate al **Gate 2** (`publish`). Integra `gates_and_evidence.md`, che resta la norma per pacchetti, ricevute e invalidazione: questi comandi non cambiano le regole dei gate, le applicano.
+Reference per **F5** (`build-audio`), per l'esecuzione delle azioni autorizzate al **Gate 2** (`publish`) e per la console webredazionale (`view`, §5). Integra `gates_and_evidence.md`, che resta la norma per pacchetti, ricevute e invalidazione: questi comandi non cambiano le regole dei gate, le applicano.
 
-Posizione nel ciclo: `F3 → Gate 1 → F4 ‖ F5 → controlli finali → Gate 2 → publish → F6`.
+Posizione nel ciclo: `F3 → Gate 1 → F4 ‖ F5 → view (preparazione console) → controlli finali → Gate 2 → publish → consultazione console → F6`.
 
 ---
 
@@ -154,3 +154,41 @@ Le destinazioni predefinite sono dentro `[paths].dist`, che fa parte del bundle 
 - [ ] Frase del Direttore con le azioni; ricevuta scritta dopo; `check-gate 2` → `RECEIPT_VALID`.
 - [ ] `publish --dry-run` mostrato; `publish` eseguito solo per i target autorizzati.
 - [ ] Esito riferito con `bundle_digest`; nessun file aggiunto a `dist/` dopo la ricevuta.
+
+## 5. Console Webredazionale (Editorial Hub)
+
+La console riunisce gli asset locali di un articolo in una pagina responsive utilizzabile offline. Al termine del flusso, il Direttore o il redattore può consultarla per copiare i copy social, ascoltare il podcast ed esportare i file tramite download. Mostra ciò che esiste: una sezione «Non disponibile» indica un asset assente, che `view` non genera.
+
+### 5.1 Funzionalità
+
+- **One-Click Copy con feedback:** schede per LinkedIn, Twitter/X, Newsletter (per esempio Substack/Ghost) e Instagram, con conteggio caratteri e pulsante «Copia testo». Il successo mostra «Copiato!» e «Testo copiato». Se il browser impedisce l'accesso agli appunti, il testo viene selezionato e compare l'istruzione di copiarlo con `Ctrl+C` o `Cmd+C`.
+- **Player audio NotebookLM:** player HTML5 con controlli di riproduzione per `podcast.m4a` o `podcast.mp3`, più download del podcast. La console riproduce l'audio già scaricato da NotebookLM Studio; non accede al taccuino e non avvia una generazione remota. L'ascolto integrale richiesto in F5 resta obbligatorio.
+- **Anteprima carosello:** galleria delle slide HTML o immagini presenti, con navigazione avanti/indietro, indicatori e swipe su schermo tattile. Ogni slide è scaricabile; il download PDF appare quando il PDF è già disponibile.
+- **Download asset:** elenco dei file locali raccolti (kit social, media, evidenze, articolo esportato o pacchetto, se presenti). Il pulsante «Scarica» esporta il file esistente per l'uso nel CMS o nei canali autorizzati; non crea un nuovo archivio né pubblica sui social.
+
+Sono visibili anche anteprime testuali, fonti e claim registrati. Gli stati dei gate derivano dai report o dalle ricevute disponibili: **non sono una nuova verifica** e non autorizzano alcuna azione.
+
+### 5.2 Modalità standard: file locale
+
+Eseguite dalla radice del progetto editoriale:
+
+```bash
+editorial view post_07
+editorial view post_07 --no-browser
+```
+
+Il comando genera `[paths].dist/web/post_07.html` (default `dist/web/post_07.html`) e, senza `--no-browser`, lo apre nel browser come file locale. `--no-browser` genera comunque l'HTML e stampa il percorso relativo. Serve Jinja2, incluso nell'extra `editorial-pipeline[social]`. CSS e JavaScript sono incorporati; audio e download usano collegamenti relativi: mantenete la struttura delle cartelle quando spostate la console.
+
+**Preparazione e Gate 2.** Generate la console prima di calcolare il bundle del Gate 2, dopo aver ultimato kit e audio. `view` riscrive il file anche se esiste già; generarlo o rigenerarlo dopo la ricevuta può renderla `stale`. Dopo il Gate 2/pubblicazione, aprite direttamente l'HTML già preparato per consultarlo senza scritture. Se serve aggiornarlo con nuovi asset, riferite il cambiamento e presentate un nuovo pacchetto Gate 2 prima di ulteriori azioni soggette al gate. Non correggete la ricevuta per adattarla alla console.
+
+### 5.3 Modalità di rete: server HTTP locale
+
+```bash
+editorial view post_07 --serve
+editorial view post_07 --serve --port 8080 --no-browser
+editorial view post_07 --serve --port 0
+```
+
+`--serve` rigenera la console e avvia un server HTTP locale fino a `Ctrl+C`, stampando l'URL da aprire. La porta predefinita è `8000`; `--port PORT` accetta `0`–`65535`, con `0` per una porta libera scelta dal sistema. Una porta esplicita occupata produce errore; `--port` ha effetto sul server solo con `--serve`. `--no-browser` mantiene attivo il server senza aprire automaticamente una finestra. Anche questa modalità va preparata prima del Gate 2 per evitare la rigenerazione dopo l'approvazione.
+
+Il server ascolta **solo su `127.0.0.1`** e serve la console con i file collegati, senza elenchi di directory né configurazione. È utile per le prove HTTP sul computer della redazione. Il collegamento diretto da cellulare o da un altro computer della rete locale **non è supportato**: non esiste un'opzione per esporre il server sulla LAN. Per verificare il layout mobile sullo stesso computer usate l'emulazione dispositivi del browser; l'accesso da un dispositivo reale richiede un inoltro o un servizio separato configurato dalla redazione. La sola scelta della porta non abilita l'accesso dalla rete.
