@@ -25,7 +25,7 @@ Leggete la reference indicata **prima** di eseguire la fase corrispondente:
 | `references/factchecking_protocol.md` | F1 e F3: fonti primarie, locator, `sources.json`, `factcheck.json`, confronto con la bozza |
 | `references/verification-and-rag.md` | F1 e F3 con Google NotebookLM: strumenti MCP `notebooklm-mcp`, `verify-facts` con `provider = "notebooklm"`, lettura dei finding remoti, zero-leak |
 | `references/gates_and_evidence.md` | Gate 1 e Gate 2: pacchetti, digest `v1:`, ricevute schema v1 con bundle, `check-gate`, invalidazione |
-| `references/publishing-and-audio.md` | F5 con `build-audio` (provider `script_only` e `notebooklm`) e pubblicazione con `publish` dopo il Gate 2: azioni, adapter `dist_archive` e `static_site`, `--dry-run`, esiti |
+| `references/publishing-and-audio.md` | F5 con `build-audio`: policy audio (solo NotebookLM Studio, alternativa `script_only`), procedura `nlm` passo per passo; pubblicazione con `publish` dopo il Gate 2: azioni, adapter `dist_archive` e `static_site`, `--dry-run`, esiti |
 
 Documentazione del progetto ospite (se presente): `docs/author_guide.md`, `docs/humanizer_guide.md`, `docs/transparency_pages.md`, `editorial.toml`, `templates/author_profile.yaml`, `templates/editorial_manifest.yaml`.
 
@@ -104,7 +104,7 @@ Convenzioni:
 | `editorial-pipeline validate-all [--json]` | F6, pre-release | Come sopra, per tutte le unità | — |
 | `editorial-pipeline verify-facts <post> [--json]` | F3 | Coerenza formale delle evidenze registrate: schema e `post_id`; `draft_digest` di `factcheck.json` e `draft-review.json` uguale al digest corrente; esiti ammessi, `source_key` e locator; fonte `primary` per `grounded_primary`; copie locali dentro il progetto; voci di `[humanizer].required_items` a `pass`; presenza di ogni `text` nella bozza normalizzata | Non interroga alcun corpus, non giudica se la fonte sostiene davvero il claim, non trova le frasi fattuali della bozza prive di claim |
 | `editorial-pipeline build-visual <post> [--dry-run] [--html-only] [--aspect-ratio 4:5\|1:1]` | F4 | Con `[phases.optional].F4_visual = true`, genera il carosello in `[paths].dist/social/<post_id>/` con manifest e SHA-256. `--dry-run` elenca i file senza scrivere nulla; `--html-only` produce solo HTML e manifest, senza Playwright | Con `F4_visual = false` si rifiuta (exit 1), anche in `--dry-run` |
-| `editorial-pipeline build-audio <post> [--provider script_only\|notebooklm] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il copione `podcast_script.md` (`script_only`, offline) o l'audio `podcast.m4a` (`notebooklm`, via `nlm`) in `[paths].dist/audio/<post_id>/`. `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm` | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non revisiona il copione, non approva nulla |
+| `editorial build-audio <post_id> [--provider notebooklm] [--format {m4a,mp3}] [--language it] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il podcast conversazionale a due voci di **Google NotebookLM Studio** (`podcast.m4a` o `podcast.mp3`, via `nlm`) in `[paths].dist/audio/<post_id>/`. Con `--provider script_only` scrive invece il solo copione `podcast_script.md` (offline). `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm` | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non ascolta né revisiona l'audio, non approva nulla. Il provider `tts` è deprecato e **vietato** per la pubblicazione (§4, F5) |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
 | `editorial-pipeline publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown e asset in `dist/published/<post_id>/`. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive |
 
@@ -237,23 +237,32 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
 
 **F5 — Podcast / Audio** (solo se `[phases.optional].F5 = true`; altrimenti `skipped` nel pacchetto Gate 2). Procedura completa: `references/publishing-and-audio.md` §2.
 
-1. Generate il copione dai claim verificati (provider `script_only`, salvo indicazione del Direttore per `notebooklm`):
-   ```bash
-   editorial-pipeline build-audio content/posts/post_07_titolo.md --dry-run --json   # percorso previsto, nessuna scrittura
-   editorial-pipeline build-audio content/posts/post_07_titolo.md --json             # dist/audio/post_07/podcast_script.md
-   ```
-   Il comando si rifiuta se le evidenze hanno `BLOCK`. Con `notebooklm` un errore `NotebookLM audio: …` si riferisce al Direttore: non cambiate provider da soli.
-2. Il copione deriva dalla bozza approvata: nessun claim nuovo. Ogni dato detto a voce ha il suo `claim_id`.
-3. Il copione passa dalla checklist anti-cliché (registrata con la prova social o in una prova dedicata).
-4. Le voci sintetiche si dichiarano come tali nella descrizione della puntata.
-5. Copione e audio stanno in `[paths].dist` e quindi nel bundle del Gate 2: chiudete F5 **prima** del pacchetto Gate 2. Rigenerarli dopo rende la ricevuta `stale`.
+> **Policy audio vincolante (direttiva del Direttore).** L'unico motore ammesso per un podcast da pubblicare è **Google NotebookLM Studio** (`provider = "notebooklm"`): una conversazione a due conduttori costruita sulle fonti del taccuino e sui soli claim verificati. I TTS mono-voce (motore locale `tts`, edge-tts, sintesi vocale di sistema o servizi analoghi) producono audio robotico e di qualità scadente: **non entrano mai nel kit né nel pacchetto Gate 2**, nemmeno come ripiego. Senza NotebookLM l'unica alternativa è `script_only`, il copione documentale da leggere o registrare in studio con voci umane.
 
-**Uscita:** kit completo, manifest del carosello, prova di revisione, tabella dati promozionali → claim; copione audio se previsto.
+| Provider | Uso | Artefatto in `[paths].dist/audio/<post_id>/` |
+|---|---|---|
+| `notebooklm` | **Standard editoriale** per il podcast | `podcast.m4a` (default) o `podcast.mp3` con `--format mp3` |
+| `script_only` | Unica alternativa: copione per lettura umana o registrazione in studio | `podcast_script.md` |
+| `tts` | **Vietato per la pubblicazione.** Deprecato, resta solo per compatibilità (la CLI stampa `Warning: DEPRECATED provider 'tts'`) | — non usatelo |
+
+1. Generate il podcast dai claim verificati:
+   ```bash
+   editorial build-audio post_07 --provider notebooklm --dry-run --json      # percorso previsto, nessuna scrittura, nessuna chiamata a nlm
+   editorial build-audio post_07 --provider notebooklm --format m4a --json   # dist/audio/post_07/podcast.m4a
+   ```
+   Prerequisiti: `nlm` installato, `nlm login` eseguito dal titolare dell'account, taccuino con le fonti dell'unità indicato dalla variabile `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`). Il comando si rifiuta se le evidenze hanno `BLOCK`.
+2. **Errori.** Con `--provider notebooklm` esplicito un errore `NotebookLM audio: …` esce con exit 1 e nessun podcast: riferite il motivo al Direttore. Se invece `notebooklm` arriva dalla configurazione e manca `nlm` o il taccuino, la CLI avvisa e ripiega su `script_only` (mai su `tts`): dichiaratelo nel pacchetto. Non cambiate provider da soli e non generate audio con altri strumenti di sintesi vocale. Se la generazione supera l'attesa limitata della CLI (`generation still pending`), completate la procedura manuale `nlm` (`references/publishing-and-audio.md` §2.3).
+3. **Ascolto integrale.** I conduttori di NotebookLM parafrasano e raccordano: ascoltate tutto l'audio e confrontatelo con `factcheck.json`. Un fatto, un numero o un'attribuzione senza `claim_id` (o un claim travisato) blocca l'audio: si rigenera con un `--focus` più stretto o si ripiega su `script_only` con l'assenso del Direttore.
+4. Il copione `script_only` deriva dalla bozza approvata (nessun claim nuovo, ogni dato con il suo `claim_id`) e passa dalla checklist anti-cliché.
+5. **Trasparenza.** La descrizione della puntata dichiara che le voci sono generate con Google NotebookLM a partire dalle fonti verificate dell'articolo (TP2).
+6. Copione e audio stanno in `[paths].dist` e quindi nel bundle del Gate 2: chiudete F5 **prima** del pacchetto Gate 2. Rigenerarli dopo rende la ricevuta `stale`.
+
+**Uscita:** kit completo, manifest del carosello, prova di revisione, tabella dati promozionali → claim; podcast NotebookLM ascoltato e confrontato con i claim (o copione `script_only`) se F5 è attiva.
 
 ### ══ GATE 2 — Pubblicazione ══
 
 1. **Controlli finali.** Rieseguite `validate-draft --json` e `verify-facts --json`: senza `BLOCK` e con lo stesso digest approvato al Gate 1. Per `investigative`: richieste di replica documentate nel testo.
-2. Componete il **pacchetto Gate 2** (`references/gates_and_evidence.md` §3): anteprime e testi integrali del kit, copione e audio F5 (o `F5: skipped`), tabella dati promozionali, data e ora di uscita nel fuso del progetto con equivalente UTC, elenco dei file da pubblicare, **azioni proposte**. Per l'esecuzione locale con `publish` proponete `archive` (pacchetto `tar.gz`) e/o `export_markdown` (sito statico), se sono nel catalogo `[gates.gate2].allowed_actions`, con la cartella di destinazione.
+2. Componete il **pacchetto Gate 2** (`references/gates_and_evidence.md` §3): anteprime e testi integrali del kit, audio NotebookLM e/o copione F5 con l'esito dell'ascolto (o `F5: skipped`), tabella dati promozionali, data e ora di uscita nel fuso del progetto con equivalente UTC, elenco dei file da pubblicare, **azioni proposte**. Per l'esecuzione locale con `publish` proponete `archive` (pacchetto `tar.gz`) e/o `export_markdown` (sito statico), se sono nel catalogo `[gates.gate2].allowed_actions`, con la cartella di destinazione.
 3. Ponete la domanda, ad esempio:
    > Approvi la pubblicazione di #post_07 il 20 novembre 2026 alle 08:00 (Europe/Rome; 07:00 UTC)? Azioni proposte: `publish`, `schedule`. Rispondi «Approvo Gate 2 #post_07 azioni: publish, schedule» indicando solo le azioni che autorizzi.
 4. **Fermatevi e attendete.**
