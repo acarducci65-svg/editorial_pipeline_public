@@ -1,0 +1,3 @@
+# I file in dist/ sono il kit di distribuzione vincolato dalla ricevuta di
+# Gate 2 (evidence/<id>/approvals/gate2.json): vanno versionati.
+!dist/

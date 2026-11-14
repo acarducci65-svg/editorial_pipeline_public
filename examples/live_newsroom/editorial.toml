@@ -1,0 +1,176 @@
+# =============================================================================
+# examples/live_newsroom/editorial.toml — Redazione di prova sul campo
+# =============================================================================
+#
+# Configurazione operativa dell'"Osservatorio Algoritmi & Welfare", redazione
+# dimostrativa usata per la prova sul campo dell'intero ciclo (F1 -> Gate 2).
+# La redazione e il profilo autore sono fittizi; le fonti citate negli
+# articoli sono invece reali e pubbliche.
+#
+# Note di configurazione:
+#   - nessun placeholder {{...}}: il file supera `validate_operative()`;
+#   - i segnaposto risolti a runtime usano la graffa singola (`{unit_id}`...);
+#   - `author.profile` punta alla pagina pubblica del profilo redazionale;
+#   - `manifesto.file` punta al manifesto macchina-leggibile (YAML: lo
+#     StyleChecker ne legge `deprecated_phrases`); la versione per i lettori
+#     è `pages/manifesto.md`.
+#
+# Percorsi relativi alla cartella che contiene questo file.
+# =============================================================================
+
+schema_version = 1
+
+[project]
+name = "Osservatorio Algoritmi & Welfare"
+slug = "osservatorio-welfare"
+language = "it"
+timezone = "Europe/Rome"
+content_unit = "articolo"
+content_unit_plural = "articoli"
+base_url = "https://welfare-ai.example.org"
+
+[paths]
+content = "content/posts"
+evidence = "evidence"
+dist = "dist"
+templates = "templates"
+pages = "pages"
+corrections = "content/corrections.json"
+sources = "evidence/sources"
+reports = "dist/reports"
+
+[author]
+profile = "pages/autore.md"
+
+[manifesto]
+file = "editorial_manifest.yaml"
+
+[register]
+active = "investigative"
+directory = "templates/registers"
+# Formule vietate in aggiunta al registro: cliché algoritmici ricorrenti nelle
+# prime stesure generate da modelli linguistici (checklist F2b della redazione).
+extra_forbidden = [
+  "nel panorama in rapida evoluzione",
+  "nel panorama in continua evoluzione",
+  "non è un caso che",
+  "un mosaico di complessità",
+  "è fondamentale sottolineare",
+  "è importante notare",
+  "in un mondo sempre più",
+  "sfide e opportunità",
+  "a 360 gradi",
+]
+
+[phases]
+core = ["F2a", "F2b", "F3", "F4", "F6"]
+
+[phases.optional]
+F0 = false
+F1 = true
+F4_visual = true
+F4_video = false
+F5 = true
+
+[phases.disabled_behavior]
+status = "skipped"
+report_in_summary = true
+
+[gates]
+approver_role = "Direttore"
+receipts_dir = "approvals"
+forbidden_excerpts = [
+  "automatically approved",
+  "auto-approved",
+  "auto-review",
+  "stop hook",
+  "synthetic",
+  "approvato automaticamente",
+]
+
+[gates.gate1]
+name = "Gate 1 — Approvazione bozza"
+required = true
+after = "F3"
+approval_phrase = "Approvato per verifica e produzione visuale"
+question = "Confermi la correttezza della bozza, delle fonti e delle citazioni per il Gate 1?"
+
+[gates.gate2]
+name = "Gate 2 — Approvazione pubblicazione"
+required = true
+after = "F6"
+approval_phrase = "Autorizzo la pubblicazione e l'archiviazione del post"
+question = "Confermi la pubblicazione del kit completo per il Gate 2?"
+allowed_actions = ["archive", "export_markdown"]
+
+[providers.drafting]
+adapter = "manual"
+model_label = "Modello linguistico di stesura (fornitore dichiarato in /metodo/)"
+
+[providers.humanizer]
+adapter = "manual"
+separate_pass_required = true
+
+[providers.rag]
+adapter = "local"
+corpus_id_env = "EDITORIAL_RAG_ID"
+max_claims_per_turn = 8
+
+[providers.audio]
+adapter = "script_only"
+
+[providers.visual]
+adapter = "playwright"
+
+[factcheck]
+allowed_outcomes = ["grounded_primary", "verified_external", "grounded_secondary"]
+blocking_outcomes = ["unsupported", "contradicted"]
+promotion_outcomes = ["grounded_primary", "verified_external"]
+require_locator_for_promotion = true
+circular_source_tags = ["self_draft"]
+
+[humanizer]
+required_items = [
+  "empty_emphasis",
+  "negative_parallelism",
+  "isolated_lines",
+  "vague_attribution",
+  "decorative_bold",
+  "invented_autobiography",
+]
+reviewer_must_differ_from_author = false
+
+[transparency]
+method_page = "/metodo/"
+corrections_page = "/correzioni/"
+press_page = "/per-chi-scrive/"
+trailing_slash = true
+require_separate_approval = true
+
+[transparency.templates]
+method = "templates/pages/metodo.template.md"
+corrections = "templates/pages/correzioni.template.md"
+press = "templates/pages/per-chi-scrive.template.md"
+
+[corrections]
+pre_publication_id = "ERR-{unit_id}-{seq}"
+post_publication_id = "COR-{unit_id}-{seq}"
+categories_pre = ["missing_source", "source_provenance", "overgeneralization", "number", "attribution", "audio"]
+categories_post = ["factual_error", "calculation_error", "misattribution", "clarification"]
+statuses = ["corrected", "clarified", "retracted"]
+show_reporter_name = false
+contact_email = "correzioni@welfare-ai.example.org"
+
+[privacy]
+report_paths = "relative"
+reject_absolute_paths = true
+deny_patterns = []
+
+[rag]
+provider = "local"
+
+[publishing]
+target = "dist_archive"
+
+[audio]
+provider = "script_only"

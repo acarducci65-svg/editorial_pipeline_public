@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "post_id": "ai_pensioni",
+  "sandbox": false,
+  "phase": "F2b",
+  "reviewer": "Assistente di revisione stile (passaggio separato dalla stesura); seconda revisione F2b sul testo aggiornato con la sezione italiana (T-047, 2026-11-14)",
+  "register": "investigative",
+  "draft_digest": "v1:1c413b756ba7804d64f9400aaad32be5868224b53fe4da786c56257e56439fa8",
+  "items": {
+    "empty_emphasis": "pass",
+    "negative_parallelism": "pass",
+    "isolated_lines": "pass",
+    "vague_attribution": "pass",
+    "decorative_bold": "pass",
+    "invented_autobiography": "pass"
+  },
+  "notes": {
+    "empty_emphasis": "Nessun aggettivo enfatico del registro investigative (clamoroso, inquietante, esplosivo...). Le grandezze sono espresse con il dato e l'ente che lo stima. Sezione italiana (T-047): nessun aggettivo enfatico; il titolo usa un'immagine («tenaglia demografica») sostenuta dai dati INPS e Itinerari Previdenziali citati subito dopo.",
+    "negative_parallelism": "Nessuna struttura 'non è X, ma Y' né 'non è un caso che'. L'unico contrasto (C14, 'non portano... ma spiazzano') traduce l'abstract della fonte. Sezione italiana: nessuna struttura 'non è X, ma Y'. Il contrasto «Lo Stato copre già una parte ampia del fabbisogno, ma la voce principale resta un prelievo sui redditi da lavoro» confronta due cifre del bilancio INPS (C19) e non è un parallelismo retorico.",
+    "isolated_lines": "Nessuna riga isolata a effetto. Le frasi brevi ('Niente salvadanaio, quindi.', 'Fin qui la demografia.') sono interne ai paragrafi e variano il ritmo. Sezione italiana: le frasi brevi («Le medie europee nascondono le differenze tra paesi.», «La demografia spinge nella direzione opposta.») sono interne ai paragrafi.",
+    "vague_attribution": "Ogni stima è attribuita per nome: Commissione europea (Ageing Report 2024), Fondo monetario internazionale, Acemoglu-Manera-Restrepo (NBER). Nessun 'si dice che' o 'molti sostengono'. Sezione italiana: ogni dato è attribuito per nome (INPS, Relazione del Presidente al XXIII Rapporto; Banca d'Italia, QEF 878 con i quattro autori e QEF 1005 con i due autori; Centro Studi e Ricerche Itinerari Previdenziali). La frase di sintesi nella parte finale («gli analisti del settore») rinvia alla soglia 1,5 attribuita a Itinerari Previdenziali poche righe prima.",
+    "decorative_bold": "Zero grassetti nel corpo dell'articolo, inclusa la sezione italiana.",
+    "invented_autobiography": "Nessuna prima persona singolare, nessun ricordo o testimonianza inventata. La nota sul metodo dichiara le fasi assistite da modello. La sezione italiana è in terza persona; la valutazione finale è dichiarata come «valutazione della redazione costruita sulle fonti citate»."
+  },
+  "deaizing_checklist": {
+    "forbidden_cliches_checked": [
+      "nel panorama in rapida evoluzione",
+      "nel panorama in continua evoluzione",
+      "non è un caso che",
+      "un mosaico di complessità",
+      "è fondamentale sottolineare",
+      "è importante notare",
+      "in un mondo sempre più",
+      "sfide e opportunità",
+      "a 360 gradi"
+    ],
+    "cliche_enforcement": "Le formule sono in register.extra_forbidden di editorial.toml: una loro ricomparsa nel testo produce BLOCK in validate-draft.",
+    "rhythm": "Periodi alternati: frasi brevi di raccordo (3-6 parole) tra periodi argomentativi lunghi; apertura su un'immagine concreta (la busta paga) invece che su una premessa generale.",
+    "structure": "Problema (ripartizione e demografia) -> disintermediazione algoritmica (FMI) -> distorsione fiscale (Acemoglu e altri) -> laboratorio italiano (INPS, Itinerari Previdenziali, Banca d'Italia) -> tre famiglie di proposte -> cosa sappiamo e cosa no.",
+    "facts_vs_evaluations": "Le valutazioni della redazione sono in frasi separate dai dati attribuiti (regola IN-01 del registro). Nella sezione italiana la valutazione conclusiva è in un paragrafo distinto e dichiarata come valutazione della redazione; la controevidenza della Banca d'Italia (QEF 1005: nessun effetto negativo sull'occupazione complessiva) è riportata accanto ai dati di esposizione.",
+    "italian_section_t047": "La proiezione del rapporto attivi/pensionati verso la parità 1:1 indicata nella traccia non è stata inserita: nessuna fonte primaria consultabile la riporta. Al suo posto: rapporto 1,4758 (2024) e soglia 1,5 (Itinerari Previdenziali), quota di over 65 al 35 per cento nel 2050 (INPS)."
+  },
+  "automatic_scan": {
+    "command": "editorial validate-draft ai_pensioni --config examples/live_newsroom/editorial.toml",
+    "style_findings": 0
+  }
+}

@@ -1,0 +1,156 @@
+# =============================================================================
+# Registro: academic_essay — Saggistica divulgativa e accademica
+# =============================================================================
+#
+# Per articoli long-form che espongono ricerca (propria o altrui) a un
+# pubblico colto non specialista: blog saggistici, divulgazione scientifica,
+# rubriche di approfondimento.
+#
+# Formato comune a tutti i registri (vedi docs/humanizer_guide.md):
+#   - `forbidden_expressions`: confronto letterale a confini di parola sul
+#     testo visibile, normalizzato (markup e URL rimossi, spazi e apostrofi
+#     tipografici uniformati, case-insensitive). Ogni occorrenza è un error
+#     bloccante.
+#   - `forbidden_patterns`: espressioni regolari (sintassi Python `re`),
+#     applicate con flag IGNORECASE allo stesso testo normalizzato.
+#   - `suggestion` è una direzione di riscrittura, non una frase da incollare.
+# =============================================================================
+
+schema_version: 1
+
+register:
+  id: "academic_essay"
+  name: "Saggistica divulgativa"
+  language: "it"
+  description: >-
+    Registro chiaro, analitico, sobrio. Periodi con subordinazione naturale,
+    terminologia definita al primo uso, fonti nominate con autore e anno.
+    Ironia leggera ammessa, compiacimento mai.
+
+content_specs:
+  typical_length_words: [1500, 2500]
+  reading_speed_wpm: 230
+  max_heading_depth: 3
+  allowed_markdown: ["bold", "italic", "links", "lists", "blockquote", "tables", "footnotes"]
+  forbidden_markdown: ["code_fence", "latex"]   # Formule a parole o in immagine con alt text
+  forbidden_placeholders: ["TODO", "TBD", "FIXME", "XXX"]
+
+humanizer_rules:
+
+  # 1. Enfasi vuota e autorità presa in prestito ------------------------------
+  empty_emphasis:
+    forbidden_expressions:
+      - { text: "la prestigiosa rivista", suggestion: "Il nome della rivista, senza aggettivi." }
+      - { text: "il prestigioso", suggestion: "Il nome dell'istituzione o della rivista." }
+      - { text: "l'articolo seminale", suggestion: "Dire l'anno e cosa ha introdotto." }
+      - { text: "il lavoro seminale", suggestion: "Dire l'anno e cosa ha introdotto." }
+      - { text: "la svolta epocale", suggestion: "Dire cosa è cambiato e quando." }
+      - { text: "un punto di riferimento fondamentale", suggestion: "Dire chi lo usa e per cosa." }
+      - { text: "pietra miliare", suggestion: "Dire chi lo cita e perché." }
+      - { text: "rivoluzionario", suggestion: "Descrivere il cambiamento con dati o date." }
+      - { text: "cambio di paradigma", suggestion: "Descrivere cosa si faceva prima e cosa dopo." }
+      - { text: "brillanti ricercatori", suggestion: "I nomi, senza aggettivi." }
+      - { text: "illustri studiosi", suggestion: "I nomi, senza aggettivi." }
+    forbidden_patterns:
+      - { pattern: '\bdue (brillanti |noti |celebri )?(economisti|studiosi|ricercatori|scienziati)\b', suggestion: "Nominare le persone direttamente: «Nel <anno> <Nome> e <Nome> studiarono…»." }
+
+  # 2. Tic da chatbot e da blogger ---------------------------------------------
+  chatbot_tics:
+    forbidden_expressions:
+      - { text: "pensateci", suggestion: "Porre il dilemma senza annunciarlo." }
+      - { text: "ecco il paradosso", suggestion: "Descrivere il paradosso." }
+      - { text: "il paradosso sta proprio qui", suggestion: "Riferire il fatto." }
+      - { text: "è affascinante notare", suggestion: "Togliere il preambolo." }
+      - { text: "è interessante notare", suggestion: "Togliere il preambolo." }
+      - { text: "nel complesso possiamo affermare", suggestion: "Togliere il preambolo." }
+      - { text: "in conclusione", suggestion: "Chiudere con il contenuto." }
+      - { text: "navigare le complessità", suggestion: "Nominare la difficoltà concreta." }
+      - { text: "un viaggio attraverso", suggestion: "Nominare il percorso: da chi a chi, da quando a quando." }
+      - { text: "la cosa buffa è che", suggestion: "Riferire il fatto." }
+      - { text: "immergiamoci", suggestion: "Entrare nel tema con il primo fatto." }
+      - { text: "senza ombra di dubbio", suggestion: "Dire su quale prova si basa la certezza." }
+      - { text: "in un mondo in cui", suggestion: "Partire da un fatto datato." }
+      - { text: "giochiamo un ruolo cruciale", suggestion: "Dire quale effetto, misurato come." }
+      - { text: "un ruolo cruciale", suggestion: "Dire quale effetto, misurato come." }
+
+  # 3. Strutture binarie forzate -----------------------------------------------
+  negative_parallelism:
+    patterns_described:
+      - "non X, ma Y"
+      - "non si tratta di X, si tratta di Y"
+      - "X non è Y: è Z"
+    detection_patterns:
+      - '\bnon (è|si tratta di) [^.;:]{1,60}[,;:] (ma|bensì|si tratta di|è) '
+    max_per_1000_words: 1.0
+    justification_required: true
+    rule: >-
+      Ammesso quando il contrasto è nella fonte (un risultato che smentisce
+      un'ipotesi), vietato quando lo crea la frase. Ogni occorrenza oltre la
+      soglia va motivata nella revisione. Ridurre anche triadi a effetto e
+      domande retoriche in serie.
+
+  # 4. Righe isolate a effetto -------------------------------------------------
+  isolated_lines:
+    max_words_standalone: 6
+    forbidden_closers: ["Punto.", "Fine.", "Tutto qui.", "Semplice."]
+    exceptions:
+      - context: "apertura di ambientazione"
+        example: "Una mattina di novembre. La sala è mezza vuota."
+        max_consecutive: 2
+
+  # 5. Ricordi inventati -------------------------------------------------------
+  invented_autobiography:
+    spy_verbs_first_person_present: ["guardo", "conto", "entro", "scelgo", "apro", "mi siedo", "ricordo"]
+    allowed_contexts: ["author_profile.first_person.verified_facts", "personal_source con locator", "testo dettato dall'autore"]
+    preferred_forms: ["seconda persona plurale", "forma impersonale"]
+
+  # 6. Grassetto sobrio --------------------------------------------------------
+  decorative_bold:
+    max_per_80_words: 1.0
+    allowed_uses: ["prima definizione di un concetto", "dato centrale di una sezione (max 1)"]
+    forbidden_uses: ["frasi intere oltre 8 parole", "decorazione senza valore semantico"]
+
+  # 7. Attribuzioni puntuali ---------------------------------------------------
+  vague_attribution:
+    forbidden_expressions:
+      - { text: "gli esperti concordano", suggestion: "Autori e studi specifici." }
+      - { text: "gli statistici hanno calcolato", suggestion: "Chi ha stimato cosa, e dove." }
+      - { text: "gli studi dimostrano", suggestion: "Quali studi, con autore e anno." }
+      - { text: "la ricerca mostra", suggestion: "Quale ricerca, con autore e anno." }
+      - { text: "secondo molti", suggestion: "Secondo chi." }
+      - { text: "è ormai accertato", suggestion: "Da chi, con quale studio." }
+      - { text: "la scienza dice", suggestion: "Quale studio, con autore e anno." }
+    required_specificity: ["autore e anno", "rivista o istituzione per studi collettivi", "locator per i dati"]
+
+  # Regole specifiche del registro ---------------------------------------------
+  register_specific:
+    - id: "AE-01"
+      rule: "Le condizioni di validità di un modello o teorema non si tolgono per scorrevolezza."
+      evidence: "prova testuale"
+    - id: "AE-02"
+      rule: "Le grandezze di un modello mantengono la definizione data al primo uso, anche dette a parole."
+      evidence: "prova testuale"
+    - id: "AE-03"
+      rule: "Linguaggio causale («causa», «determina») solo se la fonte lo sostiene con un disegno adeguato."
+      evidence: "prova testuale"
+    - id: "AE-04"
+      rule: "«Tesi» nel senso di argomento si sostituisce con «argomento», «ipotesi», «conclusione»."
+      evidence: "prova testuale"
+
+review_metrics:
+  - { metric: "forbidden_expression_count", threshold: 0, severity: "error" }
+  - { metric: "vague_attribution_count", threshold: 0, severity: "error" }
+  - { metric: "negative_parallelism_per_1000_words", threshold: 1.0, severity: "warning" }
+  - { metric: "bold_per_80_words", threshold: 1.0, severity: "warning" }
+  - { metric: "isolated_line_count", threshold: 0, severity: "warning" }
+
+checklist_mapping:
+  "1. Enfasi vuota e autorità presa in prestito": "empty_emphasis"
+  "2. Tic da chatbot e da blogger": "empty_emphasis"
+  "3. Strutture binarie forzate": "negative_parallelism"
+  "4. Righe isolate a effetto": "isolated_lines"
+  "5. Ricordi inventati": "invented_autobiography"
+  "6. Grassetto sobrio": "decorative_bold"
+  "7. Attribuzioni puntuali": "vague_attribution"
+  "8. Rigore disciplinare (AE-01..AE-04)": "evidence_path"
+  "9. Voce dell'autore": "evidence_path"

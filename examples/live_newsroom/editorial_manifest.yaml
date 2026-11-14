@@ -1,0 +1,81 @@
+# =============================================================================
+# editorial_manifest.yaml — Manifesto macchina-leggibile della redazione
+# =============================================================================
+#
+# Osservatorio Algoritmi & Welfare (redazione dimostrativa). La versione per
+# i lettori è pages/manifesto.md. Lo StyleChecker legge `deprecated_phrases`
+# e blocca la bozza quando una di queste formule compare nel testo.
+# =============================================================================
+
+schema_version: 1
+
+project_identity:
+  name: "Osservatorio Algoritmi & Welfare"
+  tagline: "automazione, lavoro e stato sociale, con le fonti in vista"
+  mission: >-
+    Spiegare come l'automazione e i modelli di intelligenza artificiale
+    cambiano il finanziamento dello stato sociale, con dati pubblici,
+    citazioni verificabili e un registro delle correzioni.
+  publication_type: "osservatorio di analisi"
+  frequency: "mensile"
+  content_unit: "articolo"
+  content_unit_plural: "articoli"
+
+definition: >-
+  Una redazione aumentata è una direzione umana che si avvale di modelli di
+  intelligenza artificiale e tiene per sé le decisioni. I modelli propongono
+  stesure, revisioni e controlli sulle fonti; il Direttore sceglie tema e
+  fonti, riscrive, approva e risponde di ogni riga pubblicata.
+
+transparency_principles:
+  - id: "TP1"
+    core: true
+    title: "Le decisioni restano umane"
+    statement: >-
+      Tema, fonti, riscrittura e approvazione finale spettano al Direttore.
+  - id: "TP2"
+    core: true
+    title: "Uso dell'AI dichiarato"
+    statement: >-
+      Ogni articolo dichiara quali fasi sono state assistite da modelli
+      linguistici; la pagina /metodo/ descrive gli strumenti.
+  - id: "TP3"
+    core: true
+    title: "Nessuna auto-approvazione"
+    statement: >-
+      Nessun agente approva il proprio lavoro. Gate 1 e Gate 2 richiedono
+      una frase di approvazione esplicita del Direttore.
+  - id: "TP4"
+    core: true
+    title: "Ogni numero ha una fonte"
+    statement: >-
+      Ogni dato è collegato a un documento pubblico con pagina o sezione e
+      citazione letterale, registrati nelle evidenze dell'articolo.
+  - id: "TP5"
+    core: true
+    title: "Gli errori si correggono in pubblico"
+    statement: >-
+      Le correzioni sono datate e restano visibili in /correzioni/.
+
+deprecated_phrases:
+  - phrase: "zero allucinazioni"
+    reason: "Promessa di risultato assoluto, non verificabile."
+    replacement: "Ogni fatto ha una fonte, ogni errore ha una data."
+  - phrase: "100% trasparenza"
+    reason: "Assoluto non verificabile."
+    replacement: "Descrivere il controllo fatto e rimandare a /metodo/."
+  - phrase: "verificato al 100%"
+    reason: "Assoluto non verificabile."
+    replacement: "Indicare l'esito della verifica e la fonte."
+  - phrase: "nessun errore"
+    reason: "Assoluto non verificabile."
+    replacement: "Rimandare al registro /correzioni/."
+  - phrase: "scritto da un umano"
+    reason: "Nasconde le fasi assistite."
+    replacement: "Dichiarare le fasi assistite e chi ha approvato."
+
+deprecated_phrases_en:
+  - "zero hallucinations"
+  - "100% verified"
+  - "written by a human"
+  - "AI-approved"

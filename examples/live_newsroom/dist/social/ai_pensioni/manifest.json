@@ -1,0 +1,50 @@
+{
+  "post_id": "ai_pensioni",
+  "artifact_type": "carousel_html",
+  "files": [
+    {
+      "path": "ai_pensioni/slide_01.html",
+      "kind": "html",
+      "sha256": "48d6d646ecdec4d3ebd5ef5119f7372347ad06045aa19bb57dd4db12eb5137e7"
+    },
+    {
+      "path": "ai_pensioni/slide_02.html",
+      "kind": "html",
+      "sha256": "1dcd4670f152c007aefd8f744a8b1bdefb96fcdb2a3c67ad8c656a637eeb21b8"
+    },
+    {
+      "path": "ai_pensioni/slide_03.html",
+      "kind": "html",
+      "sha256": "96613a1a2f8418fc1dc599f0f7f0e154c54da85efb69eca6585d99e7b7915069"
+    },
+    {
+      "path": "ai_pensioni/slide_04.html",
+      "kind": "html",
+      "sha256": "4f92c98650e240f8822acc52107fc501aa86462241355aef336c44aa23c8ddf1"
+    },
+    {
+      "path": "ai_pensioni/slide_05.html",
+      "kind": "html",
+      "sha256": "5409ecde167ab8bdd5950ec5cefad40e1473557c794b762fad8fa04d39c4b8c7"
+    },
+    {
+      "path": "ai_pensioni/slide_06.html",
+      "kind": "html",
+      "sha256": "698b8a8e044e7d9a46c696df2777b07851e0b5b5f5431f1c384eccbf2cc5ba55"
+    },
+    {
+      "path": "ai_pensioni/slide_07.html",
+      "kind": "html",
+      "sha256": "870a3117fd6692fff53f7fe322e5ecd02873e603bdef7ef5a7064ae6d2038637"
+    },
+    {
+      "path": "ai_pensioni/slide_08.html",
+      "kind": "html",
+      "sha256": "f969f448a7bbd75c3d5928337e16dad50f9ed07e4470fa6015d0dd82f07275d5"
+    }
+  ],
+  "digest": "09d3b99c45bb4c0ba74c21efea0258136cf09cc228436b92cc57d423309826ba",
+  "notes": [
+    "Rasterisation disabled: HTML preview only"
+  ]
+}
