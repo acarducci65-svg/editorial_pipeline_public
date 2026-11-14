@@ -39,3 +39,9 @@ Thumbs.db
 *~
 /scripts/*_legacy.py
 /scripts/*_local.py
+# Coordinamento interno e protocolli multi-agente
+.coord/
+.agents/
+tools/
+AGENTS.md
+GEMINI.md

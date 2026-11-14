@@ -3,10 +3,11 @@
   "post_id": "post_01",
   "sandbox": true,
   "verifier": "Verificatore locale dimostrativo",
+  "draft_digest": "v1:71dfac690d4207a4118d7f81d3500c95c134d1325f1ac2b4a928cb2b8edb2913",
   "claims": [
     {
       "id": "C1",
-      "text": "Dalla versione 3.7 l'interprete accetta l'opzione -X importtime.",
+      "text": "Dalla versione 3.7 l'interprete accetta l'opzione `-X importtime`.",
       "outcome": "verified_external",
       "source_key": "python-docs-cmdline",
       "locator": "sezione Miscellaneous options, voce -X importtime",
@@ -14,7 +15,7 @@
     },
     {
       "id": "C2",
-      "text": "Il resoconto esce su standard error, in microsecondi.",
+      "text": "Il resoconto esce su standard error",
       "outcome": "verified_external",
       "source_key": "python-docs-cmdline",
       "locator": "sezione Miscellaneous options, voce -X importtime",
@@ -22,12 +23,16 @@
     },
     {
       "id": "C3",
-      "text": "La libreria di grafici pesava circa due terzi dell'avvio dello script di prova.",
+      "text": "la libreria di grafici importata in testa al file pesava da sola circa due terzi dell'avvio.",
       "outcome": "grounded_primary",
       "source_key": "sandbox-benchmark-log",
       "locator": "tabella 1, mediana di cinque ripetizioni",
       "promotable": true
     }
   ],
-  "summary": {"total": 3, "blocking": 0, "promotable": 3}
+  "summary": {
+    "total": 3,
+    "blocking": 0,
+    "promotable": 3
+  }
 }

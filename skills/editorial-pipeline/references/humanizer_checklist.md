@@ -19,7 +19,7 @@ Tutti gli esempi sono inventati per questa guida: nomi, enti, numeri e titoli no
 | `giustificato: <motivo>` | Occorrenza mantenuta per una ragione documentata (es. contrasto presente nella fonte) | `pass` |
 | `failed` | Occorrenza non risolta | `fail` |
 
-   Un `fail` impedisce di presentare il Gate 1. Il blocco è **procedurale**: la CLI non legge `draft-review.json`, quindi tocca all'agente non comporre il pacchetto e al Direttore controllarlo.
+   Un `fail` impedisce di presentare il Gate 1: `verify-facts` e `check-gate` leggono `draft-review.json` e segnalano `BLOCK` (`humanizer.review`) se una voce di `[humanizer].required_items` non vale `pass` o se il `draft_digest` della revisione non coincide con la bozza corrente.
 4. **Registrate** la revisione (vedi §6).
 5. **Frasi riscritte in F3.** Ogni frase corretta durante il fact-check torna dalle voci 1–7 e 10 prima del Gate 1; la prova di revisione si aggiorna.
 
@@ -319,7 +319,7 @@ Il testo rivisto deve suonare come l'autore, non come un modello che ha tolto i 
 
 ## 5. Formule vietate in ogni testo pubblico
 
-Valgono in bozze, copy, copioni e pagine di trasparenza. Sono le `deprecated_phrases` del manifesto. **Avvertenza:** il linter attuale non legge il manifesto; cercatele a mano o aggiungetele a `[register].extra_forbidden`.
+Valgono in bozze, copy, copioni e pagine di trasparenza. Sono le `deprecated_phrases` del manifesto. Il linter (`validate-draft`) le legge da `[manifesto].file` e le segnala come `BLOCK`.
 
 | Non scrivete | Perché | Al suo posto |
 |---|---|---|
@@ -342,7 +342,7 @@ La revisione produce due file in `evidence/<post_id>/`:
   "post_id": "post_07",
   "phase": "F2b",
   "register_id": "tech_blog",
-  "digest": "<digest dell'unità dopo la revisione>",
+  "draft_digest": "v1:<digest completo dell'unità dopo la revisione>",
   "reviewer": "<etichetta dell'agente>",
   "reviewer_is_author": false,
   "reviewed_at": "2026-11-13T10:00:00+01:00",
@@ -386,7 +386,9 @@ Revisore: <agente>, passaggio separato dalla stesura.
 
 `social-review.md` ha in più una riga per ogni unità di testo promozionale (slide, post, primo commento, didascalia, story, abstract, copione), con esito e, per ogni numero, il `claim_id` che lo copre.
 
-Se il testo cambia dopo la revisione, si rivedono le parti cambiate e si aggiorna la prova; poi il digest. Ricalcolare solo il digest è un errore: il report torna coerente ma la revisione non copre il testo nuovo.
+La CLI legge `post_id`, `draft_digest` e `items` (le chiavi di `[humanizer].required_items` devono valere `pass`); gli altri campi sono documentali. `social-review.json` non è letto dalla CLI.
+
+Se il testo cambia dopo la revisione, si rivedono le parti cambiate e si aggiorna la prova; poi `draft_digest`. Ricalcolare solo il digest è un errore: il report torna coerente ma la revisione non copre il testo nuovo.
 
 ## 7. Limiti
 

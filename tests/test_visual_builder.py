@@ -166,9 +166,10 @@ def _assert_manifest(manifest: ArtifactManifest, out: Path) -> None:
     assert str(out) not in json.dumps(stored)
 
 
-def test_build_dry_run_writes_html_only(tmp_path: Path) -> None:
+def test_build_html_only_writes_html_only(tmp_path: Path) -> None:
     manifest = builder(rasterize=False).build_carousel(make_spec(), tmp_path)
     assert manifest.artifact_type == "carousel_html"
+    assert {p.suffix for p in tmp_path.rglob("*") if p.is_file()} == {".html", ".json"}
     assert [f["path"] for f in manifest.files] == [
         "post_01/slide_01.html",
         "post_01/slide_02.html",

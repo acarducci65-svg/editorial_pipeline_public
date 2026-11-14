@@ -1,6 +1,6 @@
 # Gate umani ed evidenze
 
-Reference per i due gate del ciclo editoriale: cosa mostrare al Direttore, come si calcola il digest, come si registra e si verifica la ricevuta, quando un'approvazione diventa `stale`.
+Reference per i due gate del ciclo editoriale: cosa mostrare al Direttore, come si calcola il digest versionato, come si scrive la ricevuta (schema v1 con bundle di digest) e come la verifica `check-gate`, quando un'approvazione diventa `stale`.
 
 Principio guida: **la ricevuta rende verificabile *cosa* è stato approvato e su quale versione. Non autentica *chi* ha scritto in chat, e non sostituisce mai il messaggio umano.**
 
@@ -14,17 +14,18 @@ Il fact-checking (F3) **precede** il Gate 1: il Direttore firma una bozza di cui
 
 ---
 
-## 1. Digest dell'unità
+## 1. Digest versionato
 
-La CLI identifica una versione dell'unità con un SHA-256 calcolato su:
+La CLI identifica una versione di un file (unità, evidenza, ricevuta, artefatto del kit) con un digest versionato:
 
 ```
-sha256( <percorso relativo POSIX dalla radice del progetto> + "\0" + <byte del file> )
+v1:<sha256( <percorso relativo POSIX dalla radice del progetto> + "\0" + <byte del file con CRLF normalizzato a LF> )>
 ```
 
+- Il prefisso `v1:` indica l'algoritmo. Un digest senza prefisso o con un'altra versione non è accettato nelle ricevute.
 - Il percorso relativo fa parte del digest: rinominare o spostare il file cambia il digest.
-- Qualsiasi modifica al file (testo, frontmatter compreso `status:`, spazi, fine riga) cambia il digest.
-- Il digest corrente si legge dal campo `digest` del report:
+- I fine riga `CRLF` sono normalizzati a `LF` prima del calcolo: lo stesso file ha lo stesso digest su Windows e su Linux. Qualsiasi altra modifica (testo, frontmatter compreso `status:`, spazi) cambia il digest.
+- Il digest corrente dell'unità si legge dal campo `digest` del report:
 
 ```bash
 editorial-pipeline validate-draft content/posts/post_07_titolo.md --json
@@ -34,17 +35,19 @@ editorial-pipeline validate-draft content/posts/post_07_titolo.md --json
 {
   "posts": [
     {
-      "rel_path": "content/posts/post_07_titolo.md",
-      "digest": "3f9a1c2e7b...e41d",
-      "state": "OK",
+      "digest": "v1:3f9a1c2e7b…e41d",
       "evidence": "evidence/post_07",
-      "findings": []
+      "findings": [],
+      "rel_path": "content/posts/post_07_titolo.md",
+      "state": "OK"
     }
   ]
 }
 ```
 
-Nei pacchetti si mostra il **digest abbreviato** (primi 8–12 caratteri); nella ricevuta e nel comando `check-gate` si usa il **digest completo**.
+Il digest delle evidenze e degli artefatti non ha un comando dedicato: lo stesso algoritmo si applica a ogni file, e `check-gate` stampa nel campo `bundle` i digest che ha ricalcolato.
+
+Nei pacchetti si mostra il **digest abbreviato** (`v1:` + primi 8–12 caratteri); nelle evidenze e nelle ricevute si usa il **digest completo**.
 
 ## 2. Pacchetto Gate 1 — Bozza verificata
 
@@ -60,13 +63,33 @@ Nei pacchetti si mostra il **digest abbreviato** (primi 8–12 caratteri); nella
 
 Il Direttore decide su due evidenze lette insieme: la revisione di stile e il fact-check. L'agente le prepara in quest'ordine:
 
-1. **`draft-review.json`** (F2b): esiti delle 10 voci di `humanizer_checklist.md`, con `digest`, `reviewer`, `reviewer_is_author`, `items` (`pass`/`fail`) e `items_detail`. Prova testuale in `draft-review.md`.
-2. **`factcheck.json`** (F3): claim estratti dalla bozza **dopo** F2b, ciascuno con `text` identico alla frase, esito, `source_key`, locator; claim esclusi per natura in `excluded`; errori in `pre_publication_errors`. Schema in `factchecking_protocol.md` §5.
-3. **Controllo di copertura, a carico dell'agente.** `verify-facts` controlla solo la coerenza interna di `factcheck.json` con `sources.json`: non apre la bozza e non legge `draft_digest`. Prima del pacchetto l'agente verifica a mano che:
-   - ogni `claims[].text` compaia alla lettera nella bozza corrente;
-   - ogni frase della bozza con numeri, date, nomi propri, attribuzioni o virgolette abbia un claim o una voce in `excluded`;
-   - `draft_digest` coincida con il `digest` di `validate-draft`.
-4. **Riallineamento dopo F3.** Se F3 ha cambiato frasi, la revisione di stile delle frasi nuove si aggiunge a `draft-review.md` (sezione «Frasi riscritte in F3»), `draft-review.json` riceve il nuovo `digest`, `factcheck.json` il nuovo `draft_digest`. I tre digest (report, `draft-review.json`, `factcheck.json`) devono coincidere.
+1. **`draft-review.json`** (F2b): esiti delle voci di `humanizer_checklist.md`. Campi letti dalla CLI:
+
+   ```json
+   {
+     "schema_version": 1,
+     "post_id": "post_07",
+     "draft_digest": "v1:3f9a1c2e7b…e41d",
+     "reviewer": "<etichetta del revisore>",
+     "reviewer_is_author": false,
+     "items": {
+       "empty_emphasis": "pass",
+       "negative_parallelism": "pass",
+       "isolated_lines": "pass",
+       "vague_attribution": "pass",
+       "decorative_bold": "pass",
+       "invented_autobiography": "pass"
+     }
+   }
+   ```
+
+   `post_id` e `draft_digest` devono coincidere con l'unità corrente; ogni voce di `[humanizer].required_items` deve valere `pass`. Altri campi (`reviewer`, `items_detail`, …) sono documentali. Prova testuale in `draft-review.md`.
+2. **`factcheck.json`** (F3): claim estratti dalla bozza **dopo** F2b, ciascuno con `text` presente alla lettera nella bozza, esito, `source_key`, locator; claim esclusi per natura in `excluded`; errori in `pre_publication_errors`. Schema in `factchecking_protocol.md` §5.
+3. **Controllo con la CLI.** `verify-facts` controlla entrambi i file: digest uguale a quello corrente (`rag.stale_factcheck`, `humanizer.stale_review` → `BLOCK`), voci F2b a `pass`, esiti, fonti e locator, e la presenza di ogni `claims[].text` nella bozza (`rag.claim_not_in_draft` → `WARN`). Il pacchetto si compone solo con zero `BLOCK` e zero `rag.claim_not_in_draft`.
+4. **Controllo di copertura, a carico dell'agente.** La CLI non sa quali frasi della bozza sono fattuali. Prima del pacchetto l'agente verifica a mano che ogni frase con numeri, date, nomi propri, attribuzioni o virgolette abbia un claim o una voce in `excluded`.
+5. **Riallineamento dopo F3.** Se F3 ha cambiato frasi, la revisione di stile delle frasi nuove si aggiunge a `draft-review.md` (sezione «Frasi riscritte in F3») e `draft-review.json` e `factcheck.json` ricevono il nuovo digest. I tre digest (report, `draft-review.json`, `factcheck.json`) devono coincidere.
+
+Esempio completo e funzionante: `examples/sample_blog/evidence/post_01/`.
 
 ### 2.3 Contenuto del pacchetto
 
@@ -84,14 +107,14 @@ Presentato in chat in un unico messaggio:
 | 8 | Esito di `verify-facts`: totale claim, `OK`, `WARN` (`grounded_secondary` dichiarati nel testo) | report CLI |
 | 9 | Errori intercettati in stesura, revisione e F3, con prima/dopo | `pre_publication_errors` + note di revisione |
 | 10 | Frasi cambiate da F3, prima/dopo | `draft-review.md` |
-| 11 | Dichiarazione di copertura: «ogni claim della bozza è in `factcheck.json`, controllato a mano» | controllo 2.2, passo 3 |
+| 11 | Dichiarazione di copertura: «ogni frase fattuale della bozza è in `factcheck.json` o in `excluded`, controllato a mano» | controllo 2.2, passo 4 |
 | 12 | Digest abbreviato (uguale in report, `draft-review.json`, `factcheck.json`) | report CLI |
 | 13 | Domanda di approvazione con la frase esatta da scrivere | `[gates.gate1].question` |
 
 Esempio di chiusura del pacchetto:
 
-> **Digest:** `3f9a1c2e7b`
-> Approvi questa bozza verificata (digest `3f9a1c2e7b`) per passare alla promozione? Rispondi «Approvo Gate 1 #post_07» oppure indica le correzioni.
+> **Digest:** `v1:3f9a1c2e7b`
+> Approvi questa bozza verificata (digest `v1:3f9a1c2e7b`) per passare alla promozione? Rispondi «Approvo Gate 1 #post_07» oppure indica le correzioni.
 
 Dopo la domanda l'agente **termina il turno**. In esecuzione non interattiva scrive il pacchetto in `evidence/<post_id>/gate1-package.md` ed esce.
 
@@ -112,18 +135,18 @@ Prerequisiti: Gate 1 valido sul digest corrente; F4 (e F5, se attiva) completate
 | 6-bis | Solo `investigative`: richieste di replica (destinatario per ruolo, data, canale, esito o assenza di risposta) e conferma che data ed esito compaiono nel testo | prova testuale F2b |
 | 7 | Data e ora di uscita nel fuso del progetto, con equivalente UTC | `[project].timezone` |
 | 8 | Elenco dei file che verranno pubblicati o sincronizzati (percorsi relativi, compilato dall'agente se il progetto non ha un comando di deploy con dry-run) | agente |
-| 9 | Azioni **proposte**, scelte tra `[gates.gate2].allowed_actions` (`publish`, `schedule`, `sync`) | proposta dell'agente |
+| 9 | Azioni **proposte**, scelte tra `[gates.gate2].allowed_actions` (es. `publish`, `schedule`) | proposta dell'agente |
 | 10 | Domanda di approvazione con la frase esatta, comprensiva di azioni | `[gates.gate2].question` |
 
 Esempio di chiusura:
 
-> Approvi la pubblicazione di #post_07 il 20 novembre 2026 alle 08:00 (Europe/Rome; 07:00 UTC)? Azioni proposte: `publish`, `sync`. Rispondi «Approvo Gate 2 #post_07 azioni: publish, sync» indicando solo le azioni che autorizzi.
+> Approvi la pubblicazione di #post_07 il 20 novembre 2026 alle 08:00 (Europe/Rome; 07:00 UTC)? Azioni proposte: `publish`, `schedule`. Rispondi «Approvo Gate 2 #post_07 azioni: publish, schedule» indicando solo le azioni che autorizzi.
 
-**Perimetro delle azioni.** L'approvazione del Direttore deve contenere esplicitamente le azioni autorizzate. Le azioni valide sono **solo** quelle scritte dal Direttore, non quelle proposte dall'agente. Se il Direttore scrive «Approvo Gate 2 #post_07 azioni: schedule», l'agente non esegue `publish` né `sync`. Una frase senza elenco di azioni non vale come Gate 2: si chiede quali azioni autorizza.
+**Perimetro delle azioni.** L'approvazione del Direttore deve contenere esplicitamente le azioni autorizzate. Le azioni valide sono **solo** quelle scritte dal Direttore, non quelle proposte dall'agente. Se il Direttore scrive «Approvo Gate 2 #post_07 azioni: schedule», l'agente non esegue `publish`. Una frase senza elenco di azioni non vale come Gate 2: si chiede quali azioni autorizza.
 
-## 4. Ricevute
+## 4. Ricevute (schema v1)
 
-Dopo il messaggio del Direttore, e mai prima, l'agente che lo ha ricevuto scrive la ricevuta in `evidence/<post_id>/<[gates].receipts_dir>/gate<N>.json` (default `approvals/`).
+Dopo il messaggio del Direttore, e mai prima, l'agente che lo ha ricevuto scrive la ricevuta in `evidence/<post_id>/<[gates].receipts_dir>/gate<N>.json` (default `approvals/`). Lo schema è **chiuso**: un campo in più, un tipo diverso o un digest senza prefisso `v1:` rendono la ricevuta invalida.
 
 `approvals/gate1.json`:
 
@@ -132,65 +155,102 @@ Dopo il messaggio del Direttore, e mai prima, l'agente che lo ha ricevuto scrive
   "schema_version": 1,
   "gate": 1,
   "post_id": "post_07",
+  "role": "Direttore",
   "decision": "approved",
-  "digest": "3f9a1c2e7b...e41d",
-  "approved_by": "Direttore",
-  "approved_at": "2026-11-18T10:42:00+01:00",
-  "approved_at_source": "message",
-  "chat_message_ref": "sessione-2026-11-18/msg-14",
-  "chat_excerpt": "Approvo Gate 1 #post_07",
-  "recorded_by": "<etichetta dell'agente che ha ricevuto il messaggio>"
+  "timestamp": "2026-11-18T10:42:00+01:00",
+  "excerpt": "Approvo Gate 1 #post_07",
+  "bundle": {
+    "draft_digest": "v1:…",
+    "sources_digest": "v1:…",
+    "factcheck_digest": "v1:…",
+    "review_digest": "v1:…"
+  }
 }
 ```
 
-`approvals/gate2.json`: come sopra con `"gate": 2` e in più:
+`approvals/gate2.json`:
 
 ```json
 {
-  "publish_at_local": "2026-11-20T08:00:00+01:00",
-  "publish_at_utc": "2026-11-20T07:00:00Z",
-  "allowed_actions": ["publish", "sync"],
-  "files": ["content/posts/post_07_titolo.md", "dist/social/post_07/manifest.json"]
+  "schema_version": 1,
+  "gate": 2,
+  "post_id": "post_07",
+  "role": "Direttore",
+  "decision": "approved",
+  "timestamp": "2026-11-19T17:05:00+01:00",
+  "excerpt": "Approvo Gate 2 #post_07 azioni: publish, schedule",
+  "allowed_actions": ["publish", "schedule"],
+  "bundle": {
+    "draft_digest": "v1:…",
+    "gate1_digest": "v1:…",
+    "artifacts": {
+      "dist/social/post_07/manifest.json": "v1:…",
+      "dist/social/post_07/slide_01.html": "v1:…"
+    }
+  }
 }
 ```
 
+| Campo | Regola |
+|---|---|
+| `schema_version`, `gate` | Interi (`1`; `1` o `2`), non stringhe |
+| `post_id` | Uguale al `post_id` dell'unità |
+| `role` | Uguale a `[gates].approver_role`: etichetta del **ruolo**, mai un nome proprio |
+| `decision` | Solo `approved`. Rifiuti e richieste di correzione non si scrivono qui (vedi sotto) |
+| `timestamp` | Data e ora ISO 8601 con offset di fuso esplicito (`+01:00` o `Z`) |
+| `excerpt` | Messaggio del Direttore parola per parola. Deve contenere la frase `[gates.gateN].approval_phrase` con `{unit_id}` risolto, come frase intera; non deve contenere negazioni o condizioni (`non`, `se`, `salvo`, `purché`, `qualora`, `a patto`, `not`, `if`, `unless`, `pending`, …) né voci di `[gates].forbidden_excerpts` |
+| `bundle` (Gate 1) | Digest `v1:` di bozza, `sources.json`, `factcheck.json`, `draft-review.json` al momento del pacchetto |
+| `bundle` (Gate 2) | Digest della bozza, digest del file `approvals/gate1.json`, e mappa `percorso relativo → digest` di **ogni** file in `[paths].dist` |
+| `allowed_actions` (Gate 2) | Non vuoto, senza duplicati, sottoinsieme di `[gates.gate2].allowed_actions`; ogni azione deve comparire nell'`excerpt`. Si copia dalla frase del Direttore, mai dalla proposta dell'agente |
+
 Regole:
 
-- `decision`: `approved` oppure `changes_requested` (rifiuto o richiesta di correzioni, con estratto letterale). Un'approvazione condizionata («approvo, ma cambia X») si registra come `changes_requested`.
-- `approved_by` è l'etichetta del **ruolo** (`[gates].approver_role`), non un nome proprio.
-- `chat_excerpt` riporta parola per parola il messaggio del Direttore.
-- `allowed_actions` si copia dalla frase del Direttore, mai dalla proposta dell'agente.
-- `approved_at` ha sempre un offset di fuso esplicito; `approved_at_source` è `message` se l'harness espone l'ora del messaggio, altrimenti `recorded`.
-- `chat_message_ref` è un riferimento **locale e opaco** (es. `sessione-2026-11-18/msg-14`): mai identificativi di conversazione, notebook o progetto di piattaforme cloud.
-- Estratti che contengono una voce di `[gates].forbidden_excerpts` («auto-approved», «stop hook», «synthetic», «approvato automaticamente»…) invalidano la ricevuta.
+- **Rifiuti.** «Rifiuto Gate N», una richiesta di correzioni o un'approvazione condizionata («approvo, ma cambia X») si registrano in un file separato, `approvals/gateN-changes-<n>.json` (estratto letterale, timestamp, fase di ritorno), che la CLI non legge. Un `gateN.json` non più valido si elimina.
+- **Metadati di sessione.** Riferimenti al messaggio, ora di pubblicazione, elenco dei file da pubblicare e etichetta dell'agente che registra vanno in un file a parte (es. `approvals/gate2-notes.md`), non nella ricevuta. Riferimenti solo **locali e opachi** (es. `sessione-2026-11-18/msg-14`): mai identificativi di conversazione, notebook o progetto di piattaforme cloud.
 - Una ricevuta non si scrive sulla base di un'approvazione riferita da un altro agente, né si ricostruisce a posteriori.
 
-## 5. Generazione e verifica del token
+Esempio completo e funzionante: `examples/sample_blog/evidence/post_01/approvals/`.
 
-Il token della CLI è il **digest completo** dell'unità approvata. `check-gate` ricalcola il digest del file corrente e lo confronta, in tempo costante, con il token ricevuto:
+## 5. Verifica con `check-gate`
 
 ```bash
-editorial-pipeline check-gate 1 content/posts/post_07_titolo.md --token 3f9a1c2e7b...e41d
+editorial-pipeline check-gate 1 content/posts/post_07_titolo.md
+editorial-pipeline check-gate 2 content/posts/post_07_titolo.md
 ```
+
+Sequenza dei controlli, che si ferma al primo fallimento:
+
+1. Linter di stile e verifica delle evidenze (gli stessi di `validate-draft` e `verify-facts`): un solo `BLOCK` ferma il gate.
+2. `approvals/gate1.json`: schema v1, `gate` e `post_id` corrispondenti, `role` uguale a `[gates].approver_role`, `excerpt` valido.
+3. Bundle del Gate 1 ricalcolato sui file correnti e confrontato con la ricevuta.
+4. Solo Gate 2: `approvals/gate2.json` con le stesse regole, `allowed_actions` ammesse e citate nell'`excerpt`, bundle ricalcolato (bozza, `gate1.json`, ogni file in `[paths].dist`).
 
 | Esito | Exit | Significato | Cosa fare |
 |---|---|---|---|
-| JSON con `"status": "APPROVED"` | 0 | Il token coincide con il digest corrente. `"author": "human"` è un valore fisso: non identifica nessuno e non prova l'approvazione | Proseguire con la fase successiva, solo se ricevuta e messaggio del Direttore esistono |
-| `explicit human approval, timestamp and token required` | 2 | Token assente o vuoto | Non si attraversa il gate |
-| `human approval does not match evidence` | 2 | Il file è cambiato dopo il pacchetto | Rimostrare il pacchetto aggiornato e chiedere una nuova approvazione |
-| `Error: ValueError` | 1 | Unità non trovata o configurazione non valida | Correggere percorso o `editorial.toml` |
+| JSON con `"status": "RECEIPT_VALID"`, `gate`, `post_id`, `role`, `timestamp`, `allowed_actions`, `bundle` | 0 | Ricevuta formalmente valida e legata ai file correnti | Proseguire, solo se il messaggio del Direttore esiste davvero |
+| `Gate blocked by BLOCK findings: <codici>` | 2 | Linter o evidenze con `BLOCK` | Risolvere e rifare il pacchetto |
+| `Gate N: missing or invalid receipt` | 2 | Ricevuta assente, JSON non valido o schema non rispettato | Nessun gate senza ricevuta conforme |
+| `Gate N: receipt gate/post mismatch`, `receipt approver role mismatch` | 2 | Ricevuta di un altro gate, unità o ruolo | Correggere solo se è un errore di trascrizione del messaggio esistente |
+| `receipt excerpt lacks unconditional human approval` | 2 | Frase assente, condizionata o con formule vietate | Chiedere di nuovo con la frase esatta |
+| `Gate 1: stale receipt bundle` | 2 | Bozza o evidenze cambiate dopo l'approvazione | Nuovo pacchetto e nuovo Gate 1 |
+| `Gate 2: actions not permitted or absent from excerpt` | 2 | Azioni non configurate, duplicate o non scritte dal Direttore | Chiedere quali azioni autorizza |
+| `Gate 2: stale receipt bundle or distribution kit` | 2 | Bozza, `gate1.json` o un file di `[paths].dist` cambiati | Nuovo pacchetto e nuovo Gate 2 |
+| `Gate: invalid or unreadable bundle` | 2 | Un file del bundle (es. `draft-review.json`) è illeggibile | Ripristinare l'evidenza |
+| `Error: …` | 1 | Unità non trovata o configurazione non valida | Correggere percorso o `editorial.toml` |
+
+L'opzione `--token` è deprecata: è accettata per compatibilità ma ignorata, e non sostituisce mai la ricevuta.
 
 Procedura obbligata:
 
 1. Pacchetto mostrato con il digest abbreviato.
 2. Messaggio esplicito del Direttore, con ruolo utente, con la frase di approvazione (e, al Gate 2, le azioni).
-3. Ricevuta scritta con il digest completo mostrato.
-4. `check-gate` con `--token` uguale al digest della ricevuta.
-5. Output della CLI salvato accanto alla ricevuta (es. `approvals/gate1.check.json`).
+3. Ricevuta scritta con i digest ricalcolati sui file mostrati nel pacchetto.
+4. `check-gate` con esito `RECEIPT_VALID`.
+5. Output della CLI salvato accanto alla ricevuta (es. `approvals/gate1.check.json`), fuori da `[paths].dist`.
 
-Attenzione: il digest è calcolabile da chiunque abbia accesso al file, agente compreso. `check-gate` dimostra la **corrispondenza** tra token e testo; non legge la ricevuta, non verifica il Gate 1 né le altre evidenze. Eseguirlo prima del messaggio del Direttore è una Ghost Approval, anche se la CLI risponde `APPROVED`.
+**Limite formale.** `check-gate` dimostra che la ricevuta è conforme e legata ai file correnti; non può dimostrare che un essere umano l'abbia dettata. Ogni campo della ricevuta è scrivibile dall'agente: una ricevuta scritta prima del messaggio del Direttore, o senza di esso, è una Ghost Approval anche se la CLI risponde `RECEIPT_VALID`.
 
-`check-gate` non controlla i prerequisiti di fase (fact-check, kit): vanno verificati con `validate-draft`, `verify-facts` e il controllo di copertura (§2.2) prima di comporre il pacchetto.
+**Kit condiviso.** Il bundle del Gate 2 comprende ogni file di `[paths].dist`, non solo quelli dell'unità: generare il carosello di un'altra unità o aggiungere un report in `dist/` dopo la ricevuta rende `stale` il Gate 2 già registrato.
 
 ## 6. Invalidazione
 
@@ -198,12 +258,13 @@ Attenzione: il digest è calcolabile da chiunque abbia accesso al file, agente c
 |---|---|
 | Modifica del testo o del frontmatter dell'unità (anche solo `status:`) | `draft-review.json`, `factcheck.json`, Gate 1, kit promozionale, Gate 2 |
 | Spostamento o rinomina del file | Digest, quindi Gate 1 e Gate 2 |
-| Modifica di `sources.json` | `factcheck.json`, Gate 1, Gate 2 |
+| Modifica di `sources.json` | `factcheck.json`, Gate 1 (`sources_digest`), Gate 2 |
 | Modifica di `factcheck.json` | Gate 1 e Gate 2 (il fact-check fa parte di ciò che si approva al Gate 1) |
 | Modifica di `draft-review.json` | Gate 1 e Gate 2 |
-| Modifica del kit promozionale, del copione audio o rigenerazione del carosello | `social-review.json`, Gate 2 |
+| Modifica del kit promozionale, del copione audio, rigenerazione del carosello o qualsiasi file nuovo o cambiato in `[paths].dist` | `social-review.json`, Gate 2 (`artifacts`) |
 | Cambio di registro o di `extra_forbidden` | `draft-review.json`, `social-review.json`, quindi Gate 1 e Gate 2 |
 | Spostamento della data o delle azioni | Gate 2 |
+| Riscrittura di `approvals/gate1.json` | Gate 2 (`gate1_digest`) |
 
 Dopo una correzione si riparte dalla **prima** evidenza invalidata, mai dall'ultima. Ricalcolare soltanto il digest senza rifare il controllo è un errore. Nessuna modifica è troppo piccola per richiedere un nuovo gate.
 
@@ -211,6 +272,8 @@ Dopo una correzione si riparte dalla **prima** evidenza invalidata, mai dall'ult
 
 - Presentare il Gate 1 prima di F3, o con un `BLOCK` aperto.
 - Considerare `verify-facts` senza `BLOCK` come prova che tutti i claim della bozza sono coperti.
+- Considerare `RECEIPT_VALID` come prova che il Direttore ha approvato: è solo coerenza formale della ricevuta.
+- Aggiungere campi alla ricevuta (riferimenti di chat, ora di pubblicazione): lo schema è chiuso e la ricevuta diventa invalida.
 - Scrivere «Gate 1 approvato» nel messaggio dell'agente prima della risposta del Direttore.
 - Trovare la frase di approvazione nel proprio pacchetto e trattarla come risposta.
 - Considerare un «ok» generico come approvazione: si chiede di nuovo con la frase esatta.

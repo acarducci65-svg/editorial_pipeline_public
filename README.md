@@ -13,13 +13,13 @@ that works with AI models for drafting, checking and promotion, and keeps every 
 in human hands.
 
 Editorial Pipeline does not write or publish for you. It gives the process structure:
-style registers that flag clichés, offline fact-checking against registered evidence,
+style registers that flag clichés, offline consistency checks on registered evidence,
 promotional carousels with integrity manifests, and two **binding human gates** that no
 agent can cross on its own.
 
-> **Status: pre-alpha (`0.1.0.dev0`).** The core, the CLI and the local adapters work and are
-> tested; remote RAG verification is a non-operational stub and the package is not yet
-> published on PyPI. Interfaces may still change.
+> **Status: pre-alpha (`0.1.0.dev0`).** The core, the CLI and the local adapters work and
+> are tested. The package is not yet published on PyPI and interfaces may still change.
+> The `notebooklm` RAG adapter is **not implemented** (see [RAG adapters](#rag-adapters)).
 
 ## Why
 
@@ -57,15 +57,18 @@ flowchart LR
 ```
 
 The canonical order is declared in `editorial.toml` (`[phases]`, `gates.gate1.after`,
-`gates.gate2.after`). If the text changes after a check, that check and everything that
-depends on it must be redone, and an approved gate must be requested again: approvals are
-bound to the SHA-256 digest of the exact text the person saw.
+`gates.gate2.after`). If a file changes after a check, that check and everything that
+depends on it must be redone, and an approved gate must be requested again: each approval
+receipt is bound to the digests of the exact files the person saw
+(see [Gates and bundle binding](#gates-and-bundle-binding)).
 
 ## Quickstart
 
 ### 1. Install
 
-The package is not on PyPI yet: install it from a clone of the repository.
+The package is not on PyPI yet: install it from a clone of the repository. It provides
+**two equivalent commands**, `editorial` (short alias) and `editorial-pipeline`: every
+example below works with either.
 
 ```sh
 # with uv (recommended): the CLI becomes available globally
@@ -78,63 +81,159 @@ python -m pip install ./editorial_pipeline_public
 python -m pip install "./editorial_pipeline_public[social]"
 playwright install chromium
 
-editorial-pipeline --help
+editorial --version          # same as: editorial-pipeline --version
+editorial --help
 ```
 
 ### 2. Try the fictional sandbox
 
-`examples/sample_blog` is an invented blog with fictional author, posts and evidence.
-Run the commands from the repository root:
+`examples/sample_blog` is an invented blog with fictional author, posts, evidence and
+demonstration receipts. Run the commands from the repository root:
 
 ```sh
 # overall state: configuration, folders, findings for every post
-editorial-pipeline status --config examples/sample_blog/editorial.toml
+editorial status --config examples/sample_blog/editorial.toml
 
-# style linter + evidence files + digest of the draft
-editorial-pipeline validate-draft post_01_valid --config examples/sample_blog/editorial.toml --json
+# style linter + evidence files + versioned digest of the draft
+editorial validate-draft post_01_valid --config examples/sample_blog/editorial.toml --json
 
 # the second post contains deliberate clichés: the linter returns BLOCK (exit 1)
 editorial-pipeline validate-draft post_02_with_cliches --config examples/sample_blog/editorial.toml
 
-# offline fact-check of the registered claims against sources.json
-editorial-pipeline verify-facts post_01_valid --config examples/sample_blog/editorial.toml
+# offline consistency check of the registered evidence (sources, fact-check, F2b review)
+editorial verify-facts post_01_valid --config examples/sample_blog/editorial.toml
 
-# carousel export: HTML preview, then PNG/PDF with a SHA-256 manifest
-editorial-pipeline build-visual post_01_valid --dry-run --config examples/sample_blog/editorial.toml
-editorial-pipeline build-visual post_01_valid --aspect-ratio 4:5 --config examples/sample_blog/editorial.toml
+# formal check of the demonstration receipts: "status": "RECEIPT_VALID" (exit 0)
+editorial check-gate 1 post_01_valid --config examples/sample_blog/editorial.toml
+editorial check-gate 2 post_01_valid --config examples/sample_blog/editorial.toml
 ```
 
-### 3. Bind a human approval to the evidence
+The sandbox ships with `phases.optional.F4_visual = false`, so `build-visual` refuses to
+run there (exit 1, nothing written). See [Carousels](#carousels-build-visual) to try it.
 
-`check-gate` refuses to run without a token (exit 2). The token is the digest printed by
-`validate-draft`; it is passed **only after** the human director has written the
-approval phrase in the chat, for that exact digest.
-
-```sh
-editorial-pipeline check-gate 1 post_01_valid --config examples/sample_blog/editorial.toml --token <digest>
-```
-
-`APPROVED` means the receipt matches the current text. It does not replace the human
-decision and is not a proof of identity: see
-[`docs/architecture.md`](docs/architecture.md) (section *Gate e sovranità umana*) for
-the exact guarantees.
-
-### 4. Start your own newsroom
+### 3. Start your own newsroom
 
 ```sh
-editorial-pipeline init my-newsroom
+editorial init my-newsroom
 cd my-newsroom
 # fill in the {{...}} placeholders in editorial.toml, the author profile and the manifesto
-editorial-pipeline status
+editorial status
 ```
 
-Exit codes: `0` ok · `1` at least one `BLOCK` or an input error · `2` approval refused.
+### 4. Install the agent skill
+
+```sh
+# copies SKILL.md and references/ into <dir>/editorial-pipeline/
+editorial install-skill .claude/skills
+editorial install-skill .claude/skills --force   # overwrite an existing installation
+```
+
+`<dir>` is the **parent** skills folder of your agent (for example `.claude/skills/` for
+Claude Code); the command creates `editorial-pipeline/` inside it. Without `--force` an
+existing installation is left untouched (exit 1). The skill is read from the installed
+package, so the command also works outside the repository.
+
+## Command reference
+
+| Command | Purpose | Main options |
+| --- | --- | --- |
+| `init <dir>` | Create a project with `editorial.toml` and templates; refuses an existing folder | — |
+| `install-skill <dir>` | Install the agent skill into `<dir>/editorial-pipeline/` | `--force` |
+| `status` | Folder state + style/evidence report for every post | `--config` |
+| `validate-draft <post>` | Register linter, evidence files present, versioned digest | `--json`, `--config` |
+| `validate-all` | `validate-draft` on every post | `--json`, `--config` |
+| `verify-facts <post>` | Consistency of `sources.json`, `factcheck.json` and `draft-review.json` with the draft | `--json`, `--config` |
+| `build-visual <post>` | Carousel HTML (+ PNG/PDF) with SHA-256 manifest | `--dry-run`, `--html-only`, `--aspect-ratio {4:5,1:1}`, `--config` |
+| `check-gate {1,2} <post>` | Formal verification of the human receipt and its bundle | `--config` (`--token` is deprecated and ignored) |
+
+Global options: `--version` / `-v`, `--help`. `--config` defaults to `editorial.toml` in
+the current folder; that folder becomes the project root. Output is JSON with relative
+paths only.
+
+Exit codes: `0` ok · `1` at least one `BLOCK` or an input/configuration error ·
+`2` gate refused (missing, invalid or stale receipt).
+
+## Versioned digest
+
+Every file the pipeline tracks (draft, evidence, receipts, kit artifacts) is identified by
+a deterministic, versioned digest:
+
+```text
+v1:<sha256( relative POSIX path + NUL byte + content with CRLF normalised to LF )>
+```
+
+- The `v1:` prefix names the algorithm; receipts reject digests without it.
+- Line endings are normalised to LF before hashing, so the same text gives the same digest
+  on Windows, macOS and Linux. The repository's `.gitattributes` keeps text files in LF.
+- The relative path is part of the digest: moving or renaming a file changes it.
+
+`validate-draft` prints the digest of the draft; `check-gate` prints, in its `bundle`
+field, every digest it recomputed.
+
+## Gates and bundle binding
+
+A gate is crossed only after the human director writes the configured approval phrase in
+the chat. **Then, and never before**, the agent that received the message records a
+receipt in `evidence/<post_id>/approvals/gate<N>.json`, and `check-gate` verifies it:
+
+```sh
+editorial check-gate 1 post_07 --config editorial.toml
+editorial check-gate 2 post_07 --config editorial.toml
+```
+
+| Receipt | Bundle bound by digest | Becomes stale when |
+| --- | --- | --- |
+| `gate1.json` | draft + `sources.json` + `factcheck.json` + `draft-review.json` (F2b) | the draft **or any of those evidence files** changes |
+| `gate2.json` | draft + the `gate1.json` file + every file in `[paths].dist`, plus `allowed_actions` | the draft, the Gate 1 receipt or any file of the distribution kit changes |
+
+`check-gate` also refuses a receipt when the schema is not exactly v1, the post or role
+does not match, the `excerpt` lacks the unconditional approval phrase (negations,
+conditions and `forbidden_excerpts` are rejected), Gate 2 actions are not allowed or not
+written in the excerpt, or the draft still has `BLOCK` findings. On success it prints
+`"status": "RECEIPT_VALID"` with gate, post, role, timestamp, authorised actions and the
+recomputed bundle (exit 0); every refusal exits with code 2.
+
+`RECEIPT_VALID` proves that a receipt is well-formed and bound to the current files. It is
+**not** proof that a person approved: every field of a receipt can be written by an agent,
+so a receipt written before the director's message is a ghost approval even if the CLI
+accepts it. See [`docs/architecture.md`](docs/architecture.md) and chapter 5 of the
+[manual](docs/manuale_configurazione_e_uso.md).
+
+## Carousels (`build-visual`)
+
+`build-visual` turns each `##` section of a post into a slide under
+`dist/social/<post_id>/`, with a `manifest.json` listing the SHA-256 of every file.
+
+| Option | Effect |
+| --- | --- |
+| *(none)* | HTML slides + PNG images + PDF (needs the `social` extra and `playwright install chromium`; without a browser it degrades to HTML with a note in the manifest) |
+| `--html-only` | HTML slides + manifest only; Playwright is never started |
+| `--dry-run` | Prints the files that would be written and **writes nothing**; combine with `--html-only` to preview the HTML-only plan |
+| `--aspect-ratio 4:5\|1:1` | Slide format (default `4:5`) |
+
+The command honours `[phases.optional].F4_visual`: when it is `false` (the default in the
+template and in the sandbox) `build-visual` stops with `Phase F4_visual is disabled`,
+exit 1, and writes nothing, not even with `--dry-run`. Enable the phase in your own project
+to use it. Regenerating a carousel after Gate 2 makes the Gate 2 receipt stale.
+
+## RAG adapters
+
+`verify-facts` chooses its behaviour from `[providers.rag].adapter`:
+
+| Adapter | Status | What it does |
+| --- | --- | --- |
+| `local` (also `manual`) | **Implemented, offline** | Checks the formal consistency of the *registered* evidence: schemas and `post_id`; `draft_digest` of `factcheck.json` and `draft-review.json` equal to the current draft; every claim with an allowed outcome, an existing source and a locator; `grounded_primary` only on primary sources; no circular sources; local copies inside the project; every claim found in the draft; every F2b item `pass`. It does **not** search or read the sources and does not judge whether a claim is true. |
+| `none` | Implemented | Always returns `BLOCK` (`rag.unavailable`): evidence cannot be verified. |
+| `notebooklm` | **Not implemented** | Runs the local checks, then fails with `RagUnavailableError` (exit 1). No remote verification is performed. |
+
+Finding the passage that supports a claim is research work for the agent or the person;
+the local adapter then checks that what was recorded is coherent.
 
 ## Documentation
 
 | Document | Content |
 | --- | --- |
-| [**`docs/manuale_configurazione_e_uso.md`**](docs/manuale_configurazione_e_uso.md) · [**PDF (A4)**](docs/manuale_configurazione_e_uso.pdf) | **Official complete user & configuration manual** (61-page A4 PDF and Markdown, Italian) |
+| [**`docs/manuale_configurazione_e_uso.md`**](docs/manuale_configurazione_e_uso.md) · [**PDF (A4)**](docs/manuale_configurazione_e_uso.pdf) | **Official complete user & configuration manual** (Markdown and A4 PDF, Italian) |
 | [`docs/architecture.md`](docs/architecture.md) | Ports & Adapters layout, components, gates and human sovereignty |
 | [`docs/configuration.md`](docs/configuration.md) | Full reference of `editorial.toml`, path validation, registers and templates |
 | [`docs/rag_factcheck.md`](docs/rag_factcheck.md) | `RagProvider` port, local and NotebookLM adapters, evidence format |
@@ -150,13 +249,14 @@ The detailed guides are currently written in Italian.
 ## Multi-agent support
 
 The skill in `skills/editorial-pipeline/` is plain Markdown plus shell commands, so any
-agent harness that can read files and run a terminal can use it.
+agent harness that can read files and run a terminal can use it. Install it with
+`editorial install-skill <skills-dir>`.
 
 | Agent | How to use it |
 | --- | --- |
-| **Antigravity IDE** | Load the skill folder into the workspace; run the CLI from the integrated terminal. |
-| **Claude Code** | Copy or link `skills/editorial-pipeline/` into `.claude/skills/`; the skill is picked up by its `name` and `description`. |
-| **Codex CLI** | Reference `SKILL.md` from `AGENTS.md`; run the CLI through the shell tool. |
+| **Antigravity IDE** | `editorial install-skill .agents/skills` (or the workspace skills folder); run the CLI from the integrated terminal. |
+| **Claude Code** | `editorial install-skill .claude/skills`; the skill is picked up by its `name` and `description`. |
+| **Codex CLI** | Install the skill in a project folder and reference its `SKILL.md` from `AGENTS.md`; run the CLI through the shell tool. |
 
 Whatever the harness, an agent stops at each gate, asks the configured question and ends
 its turn. Tool auto-approval modes concern shell permissions, never editorial gates.
@@ -182,13 +282,13 @@ redazione che usa modelli AI per scrivere, verificare e promuovere, e tiene ogni
 decisione nelle mani delle persone.
 
 Editorial Pipeline non scrive e non pubblica al posto vostro. Dà struttura al processo:
-registri di stile che segnalano i cliché, verifica offline dei fatti sulle evidenze
+registri di stile che segnalano i cliché, controllo offline della coerenza delle evidenze
 registrate, caroselli promozionali con manifest di integrità e due **gate umani
 vincolanti** che nessun agente può attraversare da solo.
 
 > **Stato: pre-alpha (`0.1.0.dev0`).** Nucleo, CLI e adapter locali funzionano e sono
-> testati; la verifica RAG remota è uno stub non operativo e il pacchetto non è ancora
-> pubblicato su PyPI. Le interfacce possono cambiare.
+> testati. Il pacchetto non è ancora pubblicato su PyPI e le interfacce possono cambiare.
+> L'adapter RAG `notebooklm` **non è implementato**.
 
 ### Perché
 
@@ -210,58 +310,90 @@ trasforma ciascuno di questi rischi in un passaggio esplicito e verificabile:
 | Fase | Contenuto | Esito |
 | --- | --- | --- |
 | F0 *(opzionale)* | Ricerca bibliografica | Elenco di letture |
-| F1 | Inventario delle fonti con hash e locator | `sources.json` |
-| F2 | Stesura (F2a) e umanizzazione in un passaggio separato (F2b) | Bozza + prova di revisione |
+| F1 | Inventario delle fonti con locator | `sources.json` |
+| F2 | Stesura (F2a) e umanizzazione in un passaggio separato (F2b) | Bozza + `draft-review.json` |
 | F3 | Verifica dei fatti su evidenze / RAG | `factcheck.json`, `verify-facts` senza `BLOCK` |
-| **Gate 1** | **Approvazione umana della bozza** | Ricevuta legata al digest |
+| **Gate 1** | **Approvazione umana della bozza** | `approvals/gate1.json` con bundle di digest |
 | F4 | Kit promozionale e caroselli | Testi per canale, manifest SHA-256 |
 | F5 *(opzionale)* | Audio | Puntata o sintesi audio |
 | F6 | Controlli finali e snapshot | Report senza `BLOCK` |
-| **Gate 2** | **Approvazione umana della pubblicazione** | Ricevuta con le azioni autorizzate |
+| **Gate 2** | **Approvazione umana della pubblicazione** | `approvals/gate2.json` con le azioni autorizzate |
 
 Il diagramma completo è nella [sezione inglese](#lifecycle-six-phases-two-human-gates).
-L'ordine canonico è dichiarato in `editorial.toml`. Se il testo cambia dopo un controllo,
-quel controllo e ciò che ne dipende vanno rifatti e il gate va richiesto di nuovo:
-l'approvazione è legata al digest SHA-256 del testo che la persona ha visto.
 
 ### Avvio rapido
+
+Il pacchetto installa **due comandi equivalenti**: `editorial` (alias breve) ed
+`editorial-pipeline`.
 
 ```sh
 # 1. Installazione da un clone del repository (non ancora su PyPI)
 uv tool install ./editorial_pipeline_public
 # oppure: python -m pip install ./editorial_pipeline_public
 # extra opzionali: "[social]" per i caroselli, "[audio]" per l'audio
+editorial --version                 # equivale a: editorial-pipeline --version
 
 # 2. Sandbox fittizia, dalla radice del repository
-editorial-pipeline status --config examples/sample_blog/editorial.toml
-editorial-pipeline validate-draft post_01_valid --config examples/sample_blog/editorial.toml --json
-editorial-pipeline verify-facts post_01_valid --config examples/sample_blog/editorial.toml
-editorial-pipeline build-visual post_01_valid --dry-run --config examples/sample_blog/editorial.toml
+editorial status --config examples/sample_blog/editorial.toml
+editorial validate-draft post_01_valid --config examples/sample_blog/editorial.toml --json
+editorial verify-facts post_01_valid --config examples/sample_blog/editorial.toml
+editorial check-gate 2 post_01_valid --config examples/sample_blog/editorial.toml   # RECEIPT_VALID
 
-# 3. Solo DOPO l'approvazione scritta del Direttore in chat, sullo stesso digest
-editorial-pipeline check-gate 1 post_01_valid --config examples/sample_blog/editorial.toml --token <digest>
-
-# 4. Nuova redazione
-editorial-pipeline init mia-redazione
+# 3. Nuova redazione e installazione della skill per l'agente
+editorial init mia-redazione
+editorial install-skill .claude/skills          # crea .claude/skills/editorial-pipeline/
 ```
 
-`APPROVED` attesta che la ricevuta corrisponde al testo attuale: non sostituisce la
-decisione umana e non prova l'identità di chi approva.
+| Comando | Opzioni principali |
+| --- | --- |
+| `init <cartella>` | — |
+| `install-skill <cartella>` | `--force` per sovrascrivere un'installazione esistente |
+| `status`, `validate-all` | `--json`, `--config` |
+| `validate-draft <post>`, `verify-facts <post>` | `--json`, `--config` |
+| `build-visual <post>` | `--dry-run` (nessuna scrittura), `--html-only` (niente Playwright), `--aspect-ratio {4:5,1:1}` |
+| `check-gate {1,2} <post>` | `--config`; `--token` è deprecato e ignorato |
 
-Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input · `2` approvazione
-rifiutata.
+Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input · `2` gate rifiutato
+(ricevuta assente, non valida o `stale`).
+
+### Digest, gate e bundle binding
+
+- **Digest versionato.** Ogni file è identificato da `v1:` seguito dallo SHA-256 di
+  percorso relativo + byte NUL + contenuto con i fine riga normalizzati in LF: lo stesso
+  testo dà lo stesso digest su Windows, macOS e Linux.
+- **Gate 1.** Dopo la frase del Direttore in chat, e mai prima, l'agente scrive
+  `evidence/<post_id>/approvals/gate1.json`, che vincola con i loro digest la bozza,
+  `sources.json`, `factcheck.json` e `draft-review.json` (F2b). Se una di queste evidenze
+  cambia, la ricevuta diventa `stale` e il gate va richiesto di nuovo.
+- **Gate 2.** `gate2.json` vincola la bozza, il file `gate1.json`, ogni file di
+  `[paths].dist` e le azioni autorizzate (`allowed_actions`, scritte dal Direttore).
+- **`check-gate`** verifica ricevute e bundle e risponde `"status": "RECEIPT_VALID"`
+  (exit 0) oppure rifiuta con exit 2. `RECEIPT_VALID` attesta la coerenza formale della
+  ricevuta con i file attuali: non sostituisce la decisione umana e non prova l'identità
+  di chi approva.
+
+### Caroselli e adapter RAG
+
+- `build-visual` rispetta `[phases.optional].F4_visual`: se la fase è disattivata (come
+  nel modello e nella sandbox) si ferma con exit 1 senza scrivere nulla. `--dry-run` elenca
+  i file previsti senza scriverli; `--html-only` produce solo HTML e manifest, senza
+  rasterizzazione Playwright.
+- Adapter RAG: `local` (e `manual`) verifica offline la **coerenza formale delle evidenze
+  registrate**, senza leggere le fonti né giudicare la verità dei claim; `none` restituisce
+  sempre `BLOCK`; `notebooklm` **non è implementato** e termina con `RagUnavailableError`.
 
 ### Documentazione
 
-- [**Manuale Ufficiale di Configurazione e Uso**](docs/manuale_configurazione_e_uso.md) · [**Edizione PDF A4 (61 pagine)**](docs/manuale_configurazione_e_uso.pdf): guida completa e dettagliata, capitolo per capitolo, con comandi, configurazione, checklist de-aizing e tutorial pratico.
+- [**Manuale Ufficiale di Configurazione e Uso**](docs/manuale_configurazione_e_uso.md) · [**Edizione PDF A4**](docs/manuale_configurazione_e_uso.pdf): guida completa capitolo per capitolo, con comandi, configurazione, gate e ricevute, checklist de-aizing e tutorial pratico.
 - Le guide tematiche in [`docs/`](docs/) approfondiscono singoli aspetti: architettura, configurazione, verifica dei fatti, guida per il Direttore, umanizzazione e pagine di trasparenza (`/metodo/`, `/correzioni/`, `/per-chi-scrive/`). La skill operativa per agenti è in [`skills/editorial-pipeline/`](skills/editorial-pipeline/SKILL.md). La tabella completa è nella [sezione inglese](#documentation).
 
 ### Agenti supportati
 
 La skill funziona con **Antigravity IDE**, **Claude Code** e **Codex CLI**, e con
-qualunque ambiente capace di leggere Markdown ed eseguire comandi di shell. In ogni caso
-l'agente si ferma ai gate, pone la domanda configurata e chiude il turno: le modalità di
-auto-approvazione dei comandi riguardano i permessi degli strumenti, mai i gate editoriali.
+qualunque ambiente capace di leggere Markdown ed eseguire comandi di shell; si installa
+con `editorial install-skill <cartella-skill>`. In ogni caso l'agente si ferma ai gate,
+pone la domanda configurata e chiude il turno: le modalità di auto-approvazione dei
+comandi riguardano i permessi degli strumenti, mai i gate editoriali.
 
 ### Contribuire e licenza
 

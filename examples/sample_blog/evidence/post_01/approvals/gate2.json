@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "gate": 2,
+  "post_id": "post_01",
+  "role": "Direttore",
+  "decision": "approved",
+  "timestamp": "2026-11-13T18:00:00+01:00",
+  "excerpt": "Approvo Gate 2 #post_01 con azione publish",
+  "allowed_actions": [
+    "publish"
+  ],
+  "bundle": {
+    "draft_digest": "v1:71dfac690d4207a4118d7f81d3500c95c134d1325f1ac2b4a928cb2b8edb2913",
+    "gate1_digest": "v1:e1b72a9b85b2fcaa55a1e965035e2433405a33bc59dcc62b46fb87eae6fda49a",
+    "artifacts": {
+      "dist/reports/.gitkeep": "v1:d69a207546cf21a035d50a9634a9e14d157daefebd236afb9fc3d1f66afa88d7",
+      "dist/social/post_01/manifest.json": "v1:4c3dd6855c72c33a798eca4850b2189e1450e2d9397b39660dec74ab7904cc73",
+      "dist/social/post_01/slide_01.html": "v1:5f35da19a6ef84d5121f4373c5e6720a439e13e25a2c6d0037117e19d2e0df9e",
+      "dist/social/post_01/slide_02.html": "v1:940f60f42b88a626ef0b1537775340b6c80741de467fbf7798d0e1c467d70a31",
+      "dist/social/post_01/slide_03.html": "v1:e37b9a078211a1a4a2099193db98c8eebc126de98b89c42cad0eead3d6823fe0",
+      "dist/social/post_01/slide_04.html": "v1:e7ac5b6423d75a23337493e560dbbf888000ad9859724b59575647cfc6e7d702",
+      "dist/social/post_01/slide_05.html": "v1:17674a461dca1f01eff855fcd070c4d5d77e75ceb2fc5092169532aa25eecc1a",
+      "dist/social/post_01/slide_06.html": "v1:538087abe51332945809462dbfe93c8e9ee2771cd633937c2ec28cc9fcd58ea4"
+    }
+  }
+}

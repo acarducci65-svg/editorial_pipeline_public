@@ -179,8 +179,24 @@ def test_invalid_registers(tmp_path: Path) -> None:
         load_register(wrong_name)
     scalar = tmp_path / "scalar.yaml"
     scalar.write_text("just text\n", encoding="utf-8")
-    with pytest.raises(TypeError, match="not a mapping"):
+    with pytest.raises(ValueError, match="Register YAML must be a mapping"):
         load_register(scalar)
+
+
+@pytest.mark.parametrize("content", ["- item\n", "42\n", "null\n", "", "false\n"])
+def test_non_mapping_register_is_controlled(tmp_path: Path, content: str) -> None:
+    path = tmp_path / "mini.yaml"
+    path.write_text(content, encoding="utf-8")
+    with pytest.raises(ValueError, match="^Register YAML must be a mapping$"):
+        load_register(path)
+
+
+def test_blank_extra_forbidden_does_not_create_findings() -> None:
+    checker = StyleChecker(StyleRegister.model_validate(_minimal()), ["", " \t\n", "epocale"])
+    assert checker.scan_text("Testo normale.\n\n") == ()
+    (finding,) = checker.scan_text("Una svolta epocale.")
+    assert finding.code == "style.extra_forbidden.forbidden_expression"
+    assert "epocale" in finding.message
 
 
 def test_aggregate_state() -> None:
@@ -189,3 +205,120 @@ def test_aggregate_state() -> None:
     assert aggregate_state(()) is VerificationState.OK
     assert aggregate_state([warn]) is VerificationState.WARN
     assert aggregate_state([warn, block]) is VerificationState.BLOCK
+
+
+@pytest.mark.parametrize(
+    "metric,rules,text,threshold",
+    [
+        (
+            "forbidden_expression_count",
+            {"empty_emphasis": {"forbidden_expressions": [{"text": "epocale"}]}},
+            "epocale",
+            1,
+        ),
+        (
+            "vague_attribution_count",
+            {"vague_attribution": {"forbidden_expressions": [{"text": "si dice"}]}},
+            "si dice",
+            1,
+        ),
+        (
+            "negative_parallelism_per_1000_words",
+            {"negative_parallelism": {"detection_patterns": ["non conta"]}},
+            "non conta " + "parola " * 998,
+            1,
+        ),
+        ("isolated_line_count", {"isolated_lines": {"forbidden_closers": ["Fatto."]}}, "Fatto.", 1),
+        (
+            "bold_per_80_words",
+            {"decorative_bold": {"max_per_80_words": 0}},
+            "**uno** " + "parola " * 79,
+            1,
+        ),
+        ("code_fence_without_language", {}, "```\n# commento\n```\n", 1),
+    ],
+)
+def test_metric_threshold_boundary(
+    metric: str, rules: dict[str, object], text: str, threshold: float
+) -> None:
+    data = _minimal(**rules)
+    data["review_metrics"] = [{"metric": metric, "threshold": threshold, "severity": "error"}]
+    assert StyleChecker(StyleRegister.model_validate(data)).scan_text(text) == ()
+    data["review_metrics"] = [{"metric": metric, "threshold": threshold / 2, "severity": "error"}]
+    findings = StyleChecker(StyleRegister.model_validate(data)).scan_text(text)
+    assert findings and all(f.state is VerificationState.BLOCK for f in findings)
+
+
+def test_code_fence_language_counts_openings_only() -> None:
+    data = _minimal()
+    data["review_metrics"] = [
+        {"metric": "code_fence_without_language", "threshold": 0, "severity": "warning"}
+    ]
+    checker = StyleChecker(StyleRegister.model_validate(data))
+    assert checker.scan_text("```python\n```\n~~~text\n~~~\n") == ()
+    findings = checker.scan_text("---\na: ```\n---\n````\n```\n````\n~~~\nx\n~~~\n")
+    assert len(findings) == 2
+    assert all(f.state is VerificationState.WARN for f in findings)
+
+
+def test_metric_threshold_aggregates_rules_without_relaxing_project_bans() -> None:
+    data = _minimal(
+        empty_emphasis={"forbidden_expressions": [{"text": "epocale"}]},
+        chatbot_tics={"forbidden_expressions": [{"text": "rivoluzionario"}]},
+    )
+    data["review_metrics"] = [
+        {"metric": "forbidden_expression_count", "threshold": 1, "severity": "warning"}
+    ]
+    checker = StyleChecker(StyleRegister.model_validate(data), ["vietato"])
+    assert checker.scan_text("epocale") == ()
+    findings = checker.scan_text("epocale rivoluzionario vietato")
+    assert [f.state for f in findings] == [
+        VerificationState.WARN,
+        VerificationState.WARN,
+        VerificationState.BLOCK,
+    ]
+
+
+@pytest.mark.parametrize(
+    "manifest_text",
+    [
+        'deprecated_phrases: ["frase vietata", "  "]\n',
+        'deprecated_phrases_en: ["frase vietata"]\n',
+        'deprecated_phrases:\n  - phrase: "frase vietata"\n    replacement: "fonte"\n',
+    ],
+)
+def test_manifest_prose_only(tmp_path: Path, manifest_text: str) -> None:
+    import shutil
+
+    from editorial_pipeline.config import load_config
+
+    root = tmp_path / "blog"
+    shutil.copytree("examples/sample_blog", root)
+    config = load_config(root / "editorial.toml")
+    (root / config.manifesto.file).write_text(manifest_text, encoding="utf-8")
+    checker = StyleChecker.from_config(config, root)
+    assert (
+        checker.scan_text(
+            "---\ntitle: frase vietata\n---\n```text\nfrase vietata\n```\n`frase vietata`"
+        )
+        == ()
+    )
+    (finding,) = checker.scan_text("FRASE VIETATA")
+    assert finding.code == "style.manifesto.deprecated_phrase"
+    assert finding.state is VerificationState.BLOCK
+
+
+def test_manifest_invalid_mapping_and_missing_file(tmp_path: Path) -> None:
+    import shutil
+
+    from editorial_pipeline.config import load_config
+
+    root = tmp_path / "blog"
+    shutil.copytree("examples/sample_blog", root)
+    config = load_config(root / "editorial.toml")
+    path = root / config.manifesto.file
+    path.write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError, match="Manifesto YAML must be a mapping"):
+        StyleChecker.from_config(config, root)
+    path.unlink()
+    assert StyleChecker.from_config(config, root).scan_text("Testo normale.") == ()

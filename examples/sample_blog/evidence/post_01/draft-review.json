@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "post_id": "post_01",
+  "sandbox": true,
+  "phase": "F2b",
+  "reviewer": "Revisore dimostrativo (passaggio separato)",
+  "draft_digest": "v1:71dfac690d4207a4118d7f81d3500c95c134d1325f1ac2b4a928cb2b8edb2913",
+  "items": {
+    "empty_emphasis": "pass",
+    "negative_parallelism": "pass",
+    "isolated_lines": "pass",
+    "vague_attribution": "pass",
+    "decorative_bold": "pass",
+    "invented_autobiography": "pass"
+  }
+}

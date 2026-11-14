@@ -13,6 +13,8 @@ import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
+import yaml
+
 from editorial_pipeline.config.models import EditorialConfig
 from editorial_pipeline.domain.models import Finding, VerificationState
 from editorial_pipeline.domain.registers import RULE_TO_CLI_KEY, StyleRegister, load_register
@@ -99,12 +101,24 @@ class StyleChecker:
       ``negative_parallelism_per_1000_words`` [WARN], one finding per occurrence;
     - ``isolated_lines.forbidden_closers``: ``isolated_line_count`` [WARN];
     - ``invented_autobiography`` spy verbs: WARN (needs human evidence, never auto-fixed);
-    - ``decorative_bold`` density over ``max_per_80_words``: ``bold_per_80_words`` [WARN].
+    - ``decorative_bold`` density: ``bold_per_80_words`` [WARN];
+    - code fences without a language: ``code_fence_without_language`` [WARN];
+    - manifesto deprecated phrases: always BLOCK.
+
+    Configured metric thresholds take precedence over rule limits. Counts and
+    densities equal to their threshold are allowed; findings retain their line
+    locations when the draft total exceeds the threshold.
     """
 
-    def __init__(self, register: StyleRegister, extra_forbidden: Sequence[str] = ()) -> None:
+    def __init__(
+        self,
+        register: StyleRegister,
+        extra_forbidden: Sequence[str] = (),
+        deprecated_phrases: Sequence[tuple[str, str]] = (),
+    ) -> None:
+        self.deprecated_phrases = tuple((p, hint) for p, hint in deprecated_phrases if p.strip())
         self.register = register
-        self.extra_forbidden = tuple(extra_forbidden)
+        self.extra_forbidden = tuple(phrase for phrase in extra_forbidden if phrase.strip())
 
     @classmethod
     def from_path(cls, path: Path | str, extra_forbidden: Sequence[str] = ()) -> "StyleChecker":
@@ -112,10 +126,25 @@ class StyleChecker:
 
     @classmethod
     def from_config(cls, config: EditorialConfig, project_root: Path) -> "StyleChecker":
-        """Load ``<register.directory>/<register.active>.yaml`` from a project."""
-        directory = config.resolve_paths(project_root)["register.directory"]
-        return cls.from_path(
-            directory / f"{config.register.active}.yaml", config.register.extra_forbidden
+        """Load the active register and deprecated phrases from the project manifesto."""
+        paths = config.resolve_paths(project_root)
+        directory = paths["register.directory"]
+        phrases: list[tuple[str, str]] = []
+        manifest = paths["manifesto.file"]
+        if manifest.is_file():
+            data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                raise ValueError("Manifesto YAML must be a mapping")
+            for key in ("deprecated_phrases", "deprecated_phrases_en"):
+                for item in data.get(key, []):
+                    if isinstance(item, str):
+                        phrases.append((item, ""))
+                    elif isinstance(item, dict) and isinstance(item.get("phrase"), str):
+                        phrases.append((item["phrase"], str(item.get("replacement", ""))))
+        return cls(
+            load_register(directory / f"{config.register.active}.yaml"),
+            config.register.extra_forbidden,
+            phrases,
         )
 
     # ------------------------------------------------------------------ helpers
@@ -238,7 +267,71 @@ class StyleChecker:
                 VerificationState.BLOCK,
                 "Segnaposto da risolvere prima del Gate 1.",
             )
+        findings += self._scan_fences(raw)
+        # Thresholds apply to the total metric across all register rules, not each match.
+        metric_groups: dict[str, list[Finding]] = {}
+        for finding in findings:
+            code = finding.code
+            metric = ""
+            if code.endswith(
+                (".forbidden_expression", ".forbidden_pattern")
+            ) and not code.startswith("style.extra_forbidden."):
+                metric = (
+                    "vague_attribution_count"
+                    if code.startswith("style.vague_attribution.")
+                    else "forbidden_expression_count"
+                )
+            elif code.endswith(".detection_pattern"):
+                metric = "negative_parallelism_per_1000_words"
+            elif code.endswith(".isolated_closer"):
+                metric = "isolated_line_count"
+            elif code == "style.code_fence_without_language":
+                metric = "code_fence_without_language"
+            if metric:
+                metric_groups.setdefault(metric, []).append(finding)
+        suppressed: set[int] = set()
+        words = max(len(_WORD.findall(prose)), 1)
+        for review_metric in self.register.review_metrics:
+            group = metric_groups.get(review_metric.metric, [])
+            value = float(len(group))
+            if review_metric.metric == "negative_parallelism_per_1000_words":
+                value *= 1000 / words
+            if value <= review_metric.threshold:
+                suppressed.update(id(finding) for finding in group)
+        findings = [f for f in findings if id(f) not in suppressed]
+        for phrase, hint in self.deprecated_phrases:
+            findings += self._scan_regex(
+                prose,
+                phrase_regex(phrase),
+                "manifesto",
+                "deprecated_phrase",
+                VerificationState.BLOCK,
+                hint,
+            )
         return tuple(findings)
+
+    def _scan_fences(self, raw: str) -> list[Finding]:
+        findings: list[Finding] = []
+        fence = ""
+        for number, line in enumerate(raw.splitlines(), 1):
+            match = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+            if not match:
+                continue
+            token, info = match.groups()
+            if fence:
+                if token[0] == fence[0] and len(token) >= len(fence) and not info.strip():
+                    fence = ""
+            else:
+                fence = token
+                if not info.strip():
+                    findings.append(
+                        Finding(
+                            "style.code_fence_without_language",
+                            f"Code fence without language at line {number}",
+                            self._severity("code_fence_without_language", VerificationState.WARN),
+                        )
+                    )
+        return findings
 
     def _scan_closers(self, prose: str, rule_key: str, closers: Sequence[str]) -> list[Finding]:
         if not closers:
@@ -259,6 +352,10 @@ class StyleChecker:
         ]
 
     def _scan_bold(self, raw: str, rule_key: str, limit: float) -> list[Finding]:
+        for metric in self.register.review_metrics:
+            if metric.metric == "bold_per_80_words":
+                limit = metric.threshold
+                break
         text = _CODE_FENCE.sub(_blank, raw)
         bold = len(_BOLD.findall(text))
         words = len(_WORD.findall(normalize(raw)))

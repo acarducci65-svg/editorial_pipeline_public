@@ -26,6 +26,7 @@ Regole:
 - I tag di `[factcheck].circular_source_tags` (default `self_draft`) non contano mai come prova.
 - Le copie locali vanno in `[paths].sources`, con hash SHA-256, se la licenza lo permette. Se non lo permette, si registrano URL e data di accesso.
 - Identificativi di servizi RAG remoti (corpus, notebook, conversazioni) non si scrivono nei file: si leggono da variabili d'ambiente (`[providers.rag].corpus_id_env`).
+- `local_copy` (o `local_path`) deve essere un percorso relativo a un file esistente dentro il progetto: altrimenti la fonte è `BLOCK` (`rag.source`) e con lei tutti i claim che la citano.
 
 ## 2. Esiti ammessi
 
@@ -37,9 +38,9 @@ Regole:
 | `unsupported` | Nessun riscontro | `BLOCK` | No: si toglie o si riformula | No |
 | `contradicted` | La fonte dice il contrario | `BLOCK` | No: si corregge | No |
 
-Per la CLI attuale un claim è `OK` se: esito tra `grounded_primary`, `verified_external` (o il legacy `verified`), `source_key` presente in `sources.json`, `locator` non vuoto, e il suo `text` compare una sola volta in `factcheck.json`. `grounded_secondary` è `WARN`; ogni altra combinazione, compresi i duplicati, è `BLOCK`.
+Per la CLI un claim è `OK` se: l'esito è in `[factcheck].allowed_outcomes` e non in `blocking_outcomes`; `source_key` esiste in `sources.json` e la fonte non ha tag circolari né copie locali mancanti o esterne al progetto; `locator` non è vuoto; per `grounded_primary` la fonte ha `"primary": true`. `grounded_secondary` è `WARN`; ogni altra combinazione è `BLOCK`. Esiti non configurati (compreso il legacy `verified`) sono `BLOCK`.
 
-> **Limite importante.** `verify-facts` controlla `factcheck.json` contro `sources.json`, **non contro la bozza**. Non rileva claim parafrasati, frasi della bozza senza claim, né un `factcheck.json` scritto su una versione precedente (`draft_digest` non è letto). La CLI valida la coerenza interna delle evidenze; **l'agente redattore garantisce che tutti i claim della bozza siano mappati in `factcheck.json`** (§6, passo 7) e il Direttore lo controlla al Gate 1.
+> **Limite formale.** Con `adapter = "local"` (o `manual`), `verify-facts` è una **verifica di coerenza formale delle evidenze registrate**: controlla schema, digest, esiti, fonti, locator e presenza dei `text` nella bozza, ma non interroga alcun corpus e non giudica se il passaggio della fonte sostiene davvero il claim. Non rileva nemmeno le frasi fattuali della bozza senza claim. Riscontro sulla fonte e copertura della bozza sono a carico dell'agente redattore (§6), e il Direttore li controlla al Gate 1. L'adapter `notebooklm` non è implementato: la CLI esce con errore.
 
 Casi particolari:
 
@@ -129,7 +130,7 @@ Percorso: `[paths].evidence/<post_id>/factcheck.json`.
 {
   "schema_version": 1,
   "post_id": "post_07",
-  "draft_digest": "<digest dell'unità verificata>",
+  "draft_digest": "v1:<digest completo dell'unità verificata>",
   "verifier": "<agente o persona che ha eseguito la verifica>",
   "rag_provider": "local",
   "claims": [
@@ -178,17 +179,19 @@ Percorso: `[paths].evidence/<post_id>/factcheck.json`.
 
 | Campo | Obbligatorio | Note |
 |---|---|---|
-| `post_id` | Sì | Deve coincidere con `sources.json` e con l'unità, altrimenti la CLI rifiuta |
-| `claims` | Sì | Lista non vuota |
-| `claims[].text` | Sì | Frase della bozza **alla lettera**, sul testo visibile (senza marcatori Markdown). La CLI non la confronta con la bozza: il confronto è a carico dell'agente (§6, passo 7). Un `text` deve essere unico: una frase con più fatti si riscrive in frasi distinte |
-| `claims[].outcome` | Sì | Uno degli esiti del §2 |
+| `post_id` | Sì | Deve coincidere con `sources.json` e con l'unità, altrimenti la CLI rifiuta (`rag.schema`) |
+| `draft_digest` | Sì | Digest `v1:` completo dell'unità verificata, letto da `validate-draft --json`. Se diverso dal digest corrente: `BLOCK` `rag.stale_factcheck` |
+| `claims` | Sì | Lista non vuota. `id` (o `claim_id`) unico: un duplicato invalida l'intero file |
+| `claims[].text` | Sì | Frase o tratto di frase della bozza **alla lettera**, compreso il codice in linea tra backtick. Il confronto ignora i rimandi numerici `[1]`, gli spazi multipli e gli a capo, e tratta come uguali virgolette tipografiche e diritte (`«»`, `“”`, `’`); il codice tra backtick resta esatto. Se il `text` non compare nella bozza: `WARN` `rag.claim_not_in_draft` |
+| `claims[].outcome` | Sì | Uno degli esiti di `[factcheck].allowed_outcomes` (§2) |
 | `claims[].source_key` | Per esiti `OK` | Deve esistere in `sources.json` |
 | `claims[].locator` | Per esiti `OK` | Non vuoto, specifico (§3) |
-| `claims[].verified_at` | Per `verified_external` | Data e ora con offset di fuso |
+| `claims[].verified_at` | Per `verified_external` | Data e ora con offset di fuso (documentale) |
 | `claims[].promotable` | Consigliato | `true` solo per `grounded_primary` / `verified_external` con locator |
-| `draft_digest` | Sì (procedura) | Digest dell'unità verificata; deve coincidere con il digest presentato al Gate 1. La CLI non lo legge: se il file cambia, il fact-check è `stale` anche se `verify-facts` resta `OK` |
 | `excluded` | Se presenti | Frasi escluse per natura, con `text` e `reason` (`opinion`, `forecast`, `author_judgment`). Mostrate al Gate 1 |
 | `pre_publication_errors` | Se presenti | Diventano voci della sezione A di `/correzioni/` dopo l'uscita |
+
+`verify-facts` legge anche `draft-review.json` (F2b) nella stessa cartella: `post_id`, `draft_digest` uguale al digest corrente e ogni voce di `[humanizer].required_items` a `pass` (schema in `gates_and_evidence.md` §2.2). Esempio completo e funzionante: `examples/sample_blog/evidence/post_01/`.
 
 ## 6. Procedura di F3
 
@@ -200,10 +203,9 @@ F3 parte dalla bozza **dopo** F2b e termina prima del Gate 1.
 4. **Lettura del passaggio.** Confrontate voi il passaggio con il claim: numero, unità di misura, periodo, popolazione, luogo, edizione della fonte. Un modello RAG può fraintendere la fonte.
 5. **Esito e locator.** Assegnate l'esito del §2 e scrivete il locator del §3.
 6. **Correzione della bozza.** `unsupported` → togliete o riformulate la frase; `contradicted` → correggetela; registrate l'errore in `pre_publication_errors`. Aggiornate `text` nel claim con la frase nuova. Le frasi riscritte ripassano dalle voci 1–7 e 10 di `humanizer_checklist.md` (aggiornate `draft-review.json`).
-7. **Confronto con la bozza (obbligatorio, manuale).** Con il digest finale:
-   - per ogni claim cercate `text` nella bozza corrente (ricerca testuale esatta sul testo visibile);
-   - per ogni frase della bozza con numeri, date, nomi propri o virgolette verificate che esista un claim o una voce in `excluded`;
-   - scrivete in `draft_digest` il digest corrente letto da `validate-draft --json`.
+7. **Copertura della bozza (obbligatoria, manuale).** Con il digest finale:
+   - per ogni frase della bozza con numeri, date, nomi propri o virgolette verificate che esista un claim o una voce in `excluded` (la CLI non lo controlla);
+   - scrivete in `draft_digest` di `factcheck.json` e di `draft-review.json` il digest corrente letto da `validate-draft --json`.
 8. **Verifica CLI.**
    ```bash
    editorial-pipeline verify-facts content/posts/post_07_titolo.md --json
@@ -211,14 +213,14 @@ F3 parte dalla bozza **dopo** F2b e termina prima del Gate 1.
    ```json
    {
      "findings": [
-       {"code": "rag.claim", "message": "Claim evidence: OK", "state": "OK"},
-       {"code": "rag.claim", "message": "Claim evidence: OK", "state": "OK"},
-       {"code": "rag.claim", "message": "Claim evidence: WARN", "state": "WARN"}
+       {"code": "rag.claim", "message": "claim_id=C1: recorded evidence and locator present", "state": "OK"},
+       {"code": "rag.claim", "message": "claim_id=C2: recorded evidence and locator present", "state": "OK"},
+       {"code": "rag.claim", "message": "claim_id=C3: secondary evidence requires review", "state": "WARN"}
      ],
      "post": "content/posts/post_07_titolo.md"
    }
    ```
-   I finding sono nell'ordine dei claim. Exit `1` se c'è almeno un `BLOCK`.
+   Codici possibili: `rag.claim` (esito di ciascun claim), `rag.source` (fonte non primaria, circolare o con copia locale non valida), `rag.schema` (file mancanti, JSON non valido, `post_id` o identificativi duplicati), `rag.stale_factcheck`, `rag.claim_not_in_draft` (`WARN`), `humanizer.review` e `humanizer.stale_review` (revisione F2b mancante, incompleta o su un altro digest). Exit `1` se c'è almeno un `BLOCK`. Prima del Gate 1 non devono restare né `BLOCK` né `rag.claim_not_in_draft`.
 9. **Consegna al Gate 1.** Con `validate-draft` e `verify-facts` senza `BLOCK` sullo stesso digest, `draft-review.json` e `factcheck.json` riallineati, si compone il pacchetto Gate 1 (`gates_and_evidence.md` §2). Le correzioni fatte in F3 avvengono **prima** del gate: non c'è alcuna approvazione da rifare, ma le frasi cambiate si mostrano al Direttore con il prima/dopo.
 
 Se dopo il Gate 1 la bozza o `factcheck.json` cambiano, Gate 1 e Gate 2 diventano `stale` (`gates_and_evidence.md` §6): si rifà F3 sulle parti toccate e si chiede un nuovo Gate 1.
@@ -231,8 +233,10 @@ Se dopo il Gate 1 la bozza o `factcheck.json` cambiano, Gate 1 e Gate 2 diventan
 
 ## 8. Errori comuni
 
-- Parafrasare il claim in `text`: la CLI **non** se ne accorge e restituisce `OK`; il confronto con la bozza è a carico dell'agente.
-- Scrivere `factcheck.json` su una versione precedente della bozza: `verify-facts` resta `OK`, ma il fact-check è `stale`.
+- Parafrasare il claim in `text`: la CLI segnala `rag.claim_not_in_draft`; si copia la frase della bozza, non la si riassume.
+- Dimenticare frasi fattuali della bozza: la CLI non le vede, la copertura è a carico dell'agente.
+- Aggiornare la bozza senza aggiornare `draft_digest` di `factcheck.json` e `draft-review.json`: `BLOCK` `rag.stale_factcheck` e `humanizer.stale_review`. Ricalcolare il digest senza rifare il controllo è comunque un errore.
+- Usare `grounded_primary` con una fonte `"primary": false`: `BLOCK`.
 - Presentare il Gate 1 prima di F3.
 - Usare come `source_key` una fonte assente da `sources.json`.
 - Locator generici («nel rapporto», «cap. 3»).

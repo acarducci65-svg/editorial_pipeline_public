@@ -17,7 +17,7 @@ def get_rag_provider(
     name: str, config: EditorialConfig | None = None, root: Path | None = None
 ) -> RagProvider:
     if name == "local":
-        return LocalRagProvider()
+        return LocalRagProvider(config, root)
     if name == "notebooklm":
         env = config.providers.rag.corpus_id_env if config is not None else "EDITORIAL_RAG_ID"
         return NotebookLMAdapter(corpus_id_env=env)

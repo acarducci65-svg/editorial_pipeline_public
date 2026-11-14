@@ -1,19 +1,19 @@
 """Command-line interface for project validation."""
 
 import argparse
-import json
+import re
 import shutil
 import sys
 from collections.abc import Sequence
-from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
+from editorial_pipeline import __version__
 from editorial_pipeline.adapters.rag import (
-    EvidenceMissingError,
     RagUnavailableError,
     get_rag_provider,
 )
@@ -24,21 +24,61 @@ from editorial_pipeline.adapters.visual import (
     VisualBuildError,
     get_visual_builder,
 )
+from editorial_pipeline.application.evidence_verifier import EvidenceVerifier
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
-from editorial_pipeline.cli.reports import digest, relative_path, serialize
+from editorial_pipeline.cli.reports import _sanitize, digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
-from editorial_pipeline.domain.gates import GhostApprovalForbiddenError, HumanApproval
-from editorial_pipeline.domain.models import Finding, VerificationState
+from editorial_pipeline.config.models import MACRO_RUNTIME_AMMESSE
+from editorial_pipeline.domain.gates import (
+    RECEIPT_ADAPTER,
+    Gate1Receipt,
+    Gate2Receipt,
+    GateReceipt,
+    GhostApprovalForbiddenError,
+    mentions,
+    validate_excerpt,
+)
+from editorial_pipeline.domain.models import (
+    EvidenceBundle,
+    Finding,
+    GateDecision,
+    PostId,
+    VerificationState,
+)
+
+
+class PostIdCollisionError(ValueError):
+    """Multiple Markdown files share an evidence identifier."""
 
 
 def _config(path: str) -> tuple[Path, EditorialConfig, dict[str, Path]]:
     file = Path(path).resolve()
     config = load_config(file)
-    config.validate_operative()
+    try:
+        config.validate_operative()
+    except ValueError as exc:
+        # Add the field and missing key without exposing the configuration value.
+        pending: list[tuple[str, Any]] = [("", config.model_dump(by_alias=True))]
+        while pending:
+            location, value = pending.pop()
+            if isinstance(value, dict):
+                pending.extend(
+                    (f"{location}.{key}".lstrip("."), item) for key, item in value.items()
+                )
+            elif isinstance(value, (list, tuple)):
+                pending.extend((f"{location}.{i}", item) for i, item in enumerate(value))
+            elif isinstance(value, str):
+                for placeholder in re.findall(r"\{\{.*?\}\}", value, re.DOTALL):
+                    if placeholder not in MACRO_RUNTIME_AMMESSE:
+                        raise ValueError(
+                            f"Unresolved placeholder at {location}: {placeholder}"
+                        ) from exc
+        raise
     return file.parent, config, config.resolve_paths(file.parent)
 
 
 def _post(target: str, root: Path, posts: Path) -> Path:
+    _discover_posts(posts)
     candidate = Path(target)
     if not candidate.is_absolute():
         candidate = root / candidate if len(candidate.parts) > 1 else posts / candidate
@@ -55,6 +95,23 @@ def _post_id(post: Path) -> str:
     return "_".join(parts[:2]) if len(parts) > 2 and parts[1].isdigit() else post.stem
 
 
+def _discover_posts(posts: Path) -> dict[str, Path]:
+    discovered: dict[str, Path] = {}
+    for post in sorted(posts.rglob("*.md")):
+        if not post.is_file():
+            continue
+        post_id = _post_id(post)
+        if post_id in discovered:
+            raise PostIdCollisionError("post_id collision in project content directory")
+        discovered[post_id] = post
+    return discovered
+
+
+def _plain_heading(text: str) -> str:
+    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    return re.sub(r"[*_`~]", "", text).strip()
+
+
 def _carousel(post: Path, post_id: str, author: str, aspect_ratio: str) -> CarouselSpec:
     text = post.read_text(encoding="utf-8")
     metadata: dict[str, Any] = {}
@@ -63,14 +120,27 @@ def _carousel(post: Path, post_id: str, author: str, aspect_ratio: str) -> Carou
         parsed = yaml.safe_load(header)
         if isinstance(parsed, dict):
             metadata = parsed
-    title = str(metadata.get("title") or post_id)
+    title = _plain_heading(str(metadata.get("title") or post_id)) or post_id
     subtitle = str(metadata.get("subtitle") or "")
     sections: list[tuple[str, list[str]]] = []
+    fence = ""
     for line in text.splitlines():
-        if line.startswith("# "):
-            title = line[2:].strip() or title
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        in_code = bool(fence)
+        if marker:
+            token, info = marker.groups()
+            if not fence:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence) and not info.strip():
+                fence = ""
+        if in_code or marker:
+            if not sections:
+                sections.append((title, []))
+            sections[-1][1].append(line)
+        elif line.startswith("# "):
+            title = _plain_heading(line[2:]) or title
         elif line.startswith("## "):
-            sections.append((line[3:].strip(), []))
+            sections.append((_plain_heading(line[3:]), []))
         elif sections:
             sections[-1][1].append(line)
         elif line.strip():
@@ -79,6 +149,9 @@ def _carousel(post: Path, post_id: str, author: str, aspect_ratio: str) -> Carou
         Slide(i, heading or title, "\n".join(lines).strip())
         for i, (heading, lines) in enumerate(sections, 1)
     ]
+    for slide in slides:
+        if len(slide.title) + len(slide.text) > 800:
+            print(f"Warning: slide {slide.number} exceeds 800 characters", file=sys.stderr)
     return CarouselSpec(
         post_id, title, subtitle, author, slides or [Slide(1, title, "")], aspect_ratio
     )
@@ -114,11 +187,99 @@ def _copy_resources(source: Any, target: Path) -> None:
             destination.write_bytes(item.read_bytes())
 
 
+def _receipt(gate: int, post_id: str, config: EditorialConfig, evidence: Path) -> GateReceipt:
+    path = evidence / config.gates.receipts_dir / f"gate{gate}.json"
+    try:
+        receipt = RECEIPT_ADAPTER.validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise GhostApprovalForbiddenError(f"Gate {gate}: missing or invalid receipt") from exc
+    if receipt.gate != gate or receipt.post_id != post_id:
+        raise GhostApprovalForbiddenError(f"Gate {gate}: receipt gate/post mismatch")
+    if receipt.role != config.gates.approver_role:
+        raise GhostApprovalForbiddenError(f"Gate {gate}: receipt approver role mismatch")
+    policy = config.gates.gate1 if gate == 1 else config.gates.gate2
+    validate_excerpt(
+        receipt.excerpt, policy.approval_phrase, post_id, config.gates.forbidden_excerpts
+    )
+    return receipt
+
+
+def _check_gate(
+    gate: int, post: Path, root: Path, config: EditorialConfig, paths: dict[str, Path]
+) -> dict[str, Any]:
+    post_id = _post_id(post)
+    evidence = paths["paths.evidence"] / post_id
+    findings = list(StyleChecker.from_config(config, root).scan_file(post))
+    findings.extend(EvidenceVerifier(config, root).verify(post, post_id, evidence))
+    checklist = EvidenceBundle(PostId(post_id), tuple(findings)).checklist
+    if checklist.blocked:
+        codes = sorted({f.code for f in checklist.findings if f.state == VerificationState.BLOCK})
+        raise GhostApprovalForbiddenError("Gate blocked by BLOCK findings: " + ", ".join(codes))
+    first = _receipt(1, post_id, config, evidence)
+    if not isinstance(first, Gate1Receipt):
+        raise GhostApprovalForbiddenError("Gate 1 receipt required")
+    expected = {
+        "draft_digest": digest(post, root),
+        "sources_digest": digest(evidence / "sources.json", root),
+        "factcheck_digest": digest(evidence / "factcheck.json", root),
+        "review_digest": digest(evidence / "draft-review.json", root),
+    }
+    if first.bundle.model_dump() != expected:
+        raise GhostApprovalForbiddenError("Gate 1: stale receipt bundle")
+    receipt: GateReceipt = first
+    actions: list[str] = []
+    if gate == 2:
+        second = _receipt(2, post_id, config, evidence)
+        if not isinstance(second, Gate2Receipt):
+            raise GhostApprovalForbiddenError("Gate 2 receipt required")
+        actions = second.allowed_actions
+        if (
+            len(set(actions)) != len(actions)
+            or not set(actions) <= set(config.gates.gate2.allowed_actions)
+            or not all(mentions(second.excerpt, action) for action in actions)
+        ):
+            raise GhostApprovalForbiddenError(
+                "Gate 2: actions not permitted or absent from excerpt"
+            )
+        artifacts = {
+            relative_path(file, root): digest(file, root)
+            for file in paths["paths.dist"].rglob("*")
+            if file.is_file()
+        }
+        expected_second = {
+            "draft_digest": expected["draft_digest"],
+            "gate1_digest": digest(evidence / config.gates.receipts_dir / "gate1.json", root),
+            "artifacts": artifacts,
+        }
+        if second.bundle.model_dump() != expected_second:
+            raise GhostApprovalForbiddenError("Gate 2: stale receipt bundle or distribution kit")
+        receipt = second
+    decision = GateDecision(gate, PostId(post_id), receipt)
+    return {
+        "status": "RECEIPT_VALID",
+        "gate": decision.gate,
+        "post_id": decision.post_id,
+        "post": relative_path(post, root),
+        "role": receipt.role,
+        "timestamp": receipt.timestamp.isoformat(),
+        "allowed_actions": actions,
+        "bundle": receipt.bundle.model_dump(),
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(prog="editorial-pipeline")
+    parser.add_argument("--version", "-v", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init")
     init.add_argument("target_dir")
+    install = sub.add_parser("install-skill", help="Install the editorial-pipeline agent skill")
+    install.add_argument("target_dir", help="Agent skills directory receiving editorial-pipeline/")
+    install.add_argument("--force", action="store_true", help="Overwrite an existing skill")
     for name in (
         "status",
         "validate-draft",
@@ -133,15 +294,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         if name in ("validate-draft", "check-gate", "verify-facts", "build-visual"):
             p.add_argument("post_target")
         if name == "check-gate":
-            p.add_argument("--token")
+            p.add_argument("--token", help="Deprecated; a formal receipt is always required")
         if name in ("validate-draft", "validate-all", "verify-facts"):
             p.add_argument("--json", action="store_true")
         if name == "build-visual":
             p.add_argument("--dry-run", action="store_true")
+            p.add_argument("--html-only", action="store_true")
             p.add_argument("--aspect-ratio", choices=("4:5", "1:1"), default="4:5")
         p.add_argument("--config", default="editorial.toml")
     args = parser.parse_args(argv)
     try:
+        if args.command == "install-skill":
+            skill = resources.files("editorial_pipeline").joinpath("_skills/editorial-pipeline")
+            if not skill.is_dir():
+                skill = Path(__file__).resolve().parents[3] / "skills/editorial-pipeline"
+            if (
+                not skill.joinpath("SKILL.md").is_file()
+                or not skill.joinpath("references").is_dir()
+            ):
+                raise ValueError("Skill resources are missing or incomplete")
+            target = Path(args.target_dir) / "editorial-pipeline"
+            if target.exists() and not args.force:
+                raise ValueError("Skill destination already exists; use --force to overwrite")
+            target.mkdir(parents=True, exist_ok=True)
+            (target / "SKILL.md").write_bytes(skill.joinpath("SKILL.md").read_bytes())
+            _copy_resources(skill.joinpath("references"), target / "references")
+            print(
+                "Skill installed in editorial-pipeline/. Reload your IDE or agent and activate "
+                "the editorial-pipeline skill."
+            )
+            return 0
         if args.command == "init":
             target = Path(args.target_dir)
             target.mkdir(parents=True, exist_ok=False)
@@ -163,62 +345,34 @@ def main(argv: Sequence[str] | None = None) -> int:
         posts = paths["paths.content"]
         if args.command == "check-gate":
             post = _post(args.post_target, root, posts)
-            approval = HumanApproval(
-                author="human",
-                timestamp=datetime.now(timezone.utc),
-                token=args.token or "",
-                source="human",
-            )
-            approval.bind_evidence(digest(post, root))
-            print(
-                json.dumps(
-                    {
-                        "gate": args.gate_num,
-                        "post": relative_path(post, root),
-                        "status": "APPROVED",
-                        "author": approval.author,
-                        "timestamp": approval.timestamp.isoformat(),
-                        "token": approval.token,
-                    }
-                )
-            )
+            try:
+                gate_result = _check_gate(args.gate_num, post, root, config, paths)
+            except (OSError, ValueError) as exc:
+                if isinstance(exc, GhostApprovalForbiddenError):
+                    raise
+                raise GhostApprovalForbiddenError("Gate: invalid or unreadable bundle") from exc
+            print(serialize(gate_result))
             return 0
         if args.command in ("verify-facts", "build-visual"):
             post = _post(args.post_target, root, posts)
             post_id = _post_id(post)
             if args.command == "verify-facts":
                 evidence = paths["paths.evidence"] / post_id
-                try:
-                    data = json.loads((evidence / "factcheck.json").read_text(encoding="utf-8"))
-                except FileNotFoundError as exc:
-                    raise EvidenceMissingError("Required evidence file is missing") from exc
-                if not isinstance(data, dict) or data.get("post_id") != post_id:
-                    raise ValueError("Invalid evidence post identifier")
-                records = data.get("claims")
-                if (
-                    not isinstance(records, list)
-                    or not records
-                    or any(
-                        not isinstance(item, dict)
-                        or not isinstance(item.get("text"), str)
-                        or not item["text"].strip()
-                        for item in records
-                    )
-                ):
-                    raise ValueError("Invalid or empty claims")
-                findings = get_rag_provider("local", config, root).verify(
-                    [item["text"] for item in records], evidence
-                )
-                draft_text = post.read_text(encoding="utf-8")
-                for index, item in enumerate(records, 1):
-                    if item["text"] not in draft_text:
-                        findings.append(
-                            Finding(
-                                "rag.claim_not_in_draft",
-                                f"Claim {index} has no literal match in the draft",
-                                VerificationState.WARN,
-                            )
+                adapter = config.providers.rag.adapter
+                if adapter in ("local", "manual"):
+                    findings = EvidenceVerifier(config, root).verify(post, post_id, evidence)
+                elif adapter == "none":
+                    findings = [
+                        Finding(
+                            "rag.unavailable",
+                            "RAG verification is disabled; evidence cannot be verified",
+                            VerificationState.BLOCK,
                         )
+                    ]
+                else:
+                    provider = get_rag_provider(adapter, config, root)
+                    findings = EvidenceVerifier(config, root).verify(post, post_id, evidence)
+                    findings.extend(provider.verify([], evidence))
                 print(
                     serialize(
                         {
@@ -231,14 +385,33 @@ def main(argv: Sequence[str] | None = None) -> int:
                     )
                 )
                 return int(any(f.state == VerificationState.BLOCK for f in findings))
+            if not config.phases.optional.F4_visual:
+                raise ValueError("Phase F4_visual is disabled in editorial.toml")
             spec = _carousel(post, post_id, config.project.name, args.aspect_ratio)
+            if args.dry_run:
+                files = [f"{post_id}/slide_{slide.number:02d}.html" for slide in spec.slides]
+                if not args.html_only:
+                    files += [f"{post_id}/slide_{slide.number:02d}.png" for slide in spec.slides]
+                    files.append(f"{post_id}/{post_id}_carousel.pdf")
+                files.append(f"{post_id}/manifest.json")
+                print(
+                    serialize(
+                        {
+                            "post_id": post_id,
+                            "dry_run": True,
+                            "output_dir": relative_path(paths["paths.dist"] / "social", root),
+                            "files": files,
+                        }
+                    )
+                )
+                return 0
             builder = get_visual_builder("playwright", config, root)
             if isinstance(builder, PlaywrightVisualBuilder):
                 if not (
                     paths["paths.templates"] / "social" / "carousel_slide.html.jinja2"
                 ).is_file():
                     builder.template_dir = None
-                if args.dry_run:
+                if args.html_only:
                     builder.rasterize = False
             manifest = builder.build_carousel(spec, paths["paths.dist"] / "social")
             print(serialize(manifest.to_dict()))
@@ -247,7 +420,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         selected = (
             [_post(args.post_target, root, posts)]
             if args.command == "validate-draft"
-            else sorted(post for post in posts.rglob("*.md") if not post.name.startswith("_"))
+            else sorted(
+                post for post in _discover_posts(posts).values() if not post.name.startswith("_")
+            )
         )
         reports = [_validate(post, root, paths["paths.evidence"], checker) for post in selected]
         result: dict[str, Any] = {"posts": reports}
@@ -259,9 +434,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             }
         print(serialize(result))
         return int(any(report["state"] == "BLOCK" for report in reports))
+    except PostIdCollisionError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     except GhostApprovalForbiddenError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    except (OSError, ValueError, RagUnavailableError, VisualBuildError, yaml.YAMLError) as exc:
+    except ValidationError as exc:
+        for error in exc.errors(include_url=False, include_context=False, include_input=False):
+            location = ".".join(str(part) for part in error["loc"]) or "configuration"
+            print(_sanitize(f"Error: {location}: {error['msg']}"), file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(_sanitize(f"Error: {exc}"), file=sys.stderr)
+        return 1
+    except (OSError, RagUnavailableError, VisualBuildError, yaml.YAMLError) as exc:
         print(f"Error: {type(exc).__name__}", file=sys.stderr)
         return 1

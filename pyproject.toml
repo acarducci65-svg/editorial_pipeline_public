@@ -38,15 +38,17 @@ dev = [
 ]
 
 [project.scripts]
+editorial = "editorial_pipeline.__main__:main"
 editorial-pipeline = "editorial_pipeline.__main__:main"
 
 [tool.hatch.build.targets.sdist]
-include = ["/src/editorial_pipeline", "/tests", "/README.md", "/LICENSE", "/pyproject.toml", "/templates", "/editorial.example.toml"]
+include = ["/src/editorial_pipeline", "/tests", "/README.md", "/LICENSE", "/pyproject.toml", "/templates", "/editorial.example.toml", "/examples", "/skills"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/editorial_pipeline"]
 
 [tool.hatch.build.targets.wheel.force-include]
+"skills" = "editorial_pipeline/_skills"
 "templates" = "editorial_pipeline/_scaffold/templates"
 "editorial.example.toml" = "editorial_pipeline/_scaffold/editorial.example.toml"
 
