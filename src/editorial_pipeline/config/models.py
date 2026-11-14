@@ -165,6 +165,13 @@ class Privacy(Schema):
     deny_patterns: list[str]
 
 
+class RagConfig(Schema):
+    provider: Literal["local", "manual", "none", "notebooklm"] = "local"
+    corpus_id: str | None = None
+    corpus_id_env: str = "EDITORIAL_RAG_ID"
+    timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
+
+
 class EditorialConfig(Schema):
     schema_version: Literal[1]
     project: Project
@@ -180,6 +187,7 @@ class EditorialConfig(Schema):
     transparency: Transparency
     corrections: Corrections
     privacy: Privacy
+    rag: RagConfig | None = None
 
     @property
     def register(self) -> Register:
