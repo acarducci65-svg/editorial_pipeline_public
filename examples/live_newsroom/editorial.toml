@@ -116,8 +116,11 @@ adapter = "local"
 corpus_id_env = "EDITORIAL_RAG_ID"
 max_claims_per_turn = 8
 
+# F5: Google NotebookLM Studio è l'unico motore audio ammesso per il podcast
+# (conversazione a due voci sulle fonti verificate). I TTS mono-voce sono
+# vietati per la pubblicazione; l'unica alternativa è "script_only".
 [providers.audio]
-adapter = "script_only"
+adapter = "notebooklm"
 
 [providers.visual]
 adapter = "playwright"
@@ -172,5 +175,10 @@ provider = "local"
 [publishing]
 target = "dist_archive"
 
+# [audio] prevale su [providers.audio].adapter.
+# Formato e lingua si passano alla CLI (default m4a e it):
+#   editorial build-audio <post_id> --provider notebooklm --format m4a --language it
+# Senza nlm o senza taccuino configurato la CLI ripiega su script_only, mai su TTS.
 [audio]
-provider = "script_only"
+provider = "notebooklm"
+corpus_id_env = "EDITORIAL_AUDIO_ID"   # nome della variabile (alias nlm del taccuino), mai l'ID
