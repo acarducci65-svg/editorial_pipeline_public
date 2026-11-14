@@ -47,11 +47,11 @@ flowchart LR
     F2 --> F3["F3 · Fact-checking<br/>on evidence / RAG"]
     F3 --> G1{{"GATE 1<br/>Human approval<br/>of the draft"}}
     G1 --> F4["F4 · Promotional kit<br/>+ carousels"]
-    G1 --> F5["F5 · Audio<br/>(optional)"]
+    G1 --> F5["F5 · Audio<br/>(optional, build-audio)"]
     F4 --> F6["F6 · Final checks<br/>+ snapshot"]
     F5 --> F6
     F6 --> G2{{"GATE 2<br/>Human approval<br/>of publication"}}
-    G2 --> P(["Publication, only with<br/>the authorised actions"])
+    G2 --> P(["editorial publish:<br/>only the authorised actions"])
 
     classDef gate fill:#fde68a,stroke:#b45309,stroke-width:2px,color:#000;
     class G1,G2 gate;
@@ -110,10 +110,16 @@ editorial verify-facts post_01_valid --config examples/sample_blog/editorial.tom
 # formal check of the demonstration receipts: "status": "RECEIPT_VALID" (exit 0)
 editorial check-gate 1 post_01_valid --config examples/sample_blog/editorial.toml
 editorial check-gate 2 post_01_valid --config examples/sample_blog/editorial.toml
+
+# post-Gate 2 execution: the demo receipt authorises only the generic "publish" action,
+# so the local adapter answers SKIPPED (exit 0, nothing written)
+editorial publish post_01_valid --dry-run --config examples/sample_blog/editorial.toml
 ```
 
-The sandbox ships with `phases.optional.F4_visual = false`, so `build-visual` refuses to
-run there (exit 1, nothing written). See [Carousels](#carousels-build-visual) to try it.
+The sandbox ships with `phases.optional.F4_visual = false` and `phases.optional.F5 = false`,
+so `build-visual` and `build-audio` refuse to run there (exit 1, nothing written). See
+[Carousels](#carousels-build-visual) and [Audio and publishing](#audio-build-audio-and-publishing-publish)
+to try them on a copy.
 
 ### 3. Start your own newsroom
 
@@ -148,14 +154,17 @@ package, so the command also works outside the repository.
 | `validate-all` | `validate-draft` on every post | `--json`, `--config` |
 | `verify-facts <post>` | Consistency of `sources.json`, `factcheck.json` and `draft-review.json` with the draft | `--json`, `--config` |
 | `build-visual <post>` | Carousel HTML (+ PNG/PDF) with SHA-256 manifest | `--dry-run`, `--html-only`, `--aspect-ratio {4:5,1:1}`, `--config` |
+| `build-audio <post>` | Optional phase F5: podcast script or NotebookLM audio overview from verified claims, in `dist/audio/<post_id>/` | `--provider {script_only,notebooklm}`, `--dry-run`, `--json`, `--config` |
 | `check-gate {1,2} <post>` | Formal verification of the human receipt and its bundle | `--config` (`--token` is deprecated and ignored) |
+| `publish <post>` | After Gate 2 only: re-validates the receipt and runs only the authorised local actions (tar.gz package or static-site export) | `--target {dist_archive,static_site}`, `--dry-run`, `--json`, `--config` |
 
 Global options: `--version` / `-v`, `--help`. `--config` defaults to `editorial.toml` in
 the current folder; that folder becomes the project root. Output is JSON with relative
 paths only.
 
-Exit codes: `0` ok · `1` at least one `BLOCK` or an input/configuration error ·
-`2` gate refused (missing, invalid or stale receipt).
+Exit codes: `0` ok · `1` at least one `BLOCK` or an input/configuration error (including a
+disabled phase) · `2` gate refused by `check-gate` or `publish` (missing, invalid or stale
+receipt, actions not authorised).
 
 ## Versioned digest
 
@@ -220,6 +229,59 @@ template and in the sandbox) `build-visual` stops with `Phase F4_visual is disab
 exit 1, and writes nothing, not even with `--dry-run`. Enable the phase in your own project
 to use it. Regenerating a carousel after Gate 2 makes the Gate 2 receipt stale.
 
+## Audio (`build-audio`) and publishing (`publish`)
+
+**Phase F5 — audio (optional).** `build-audio` runs only when `[phases.optional].F5 = true`;
+otherwise it stops with `Phase F5 is disabled`, exit 1, and writes nothing, not even with
+`--dry-run`. It also refuses drafts whose evidence has a `BLOCK`, and it builds only from the
+claims in `factcheck.json` with their source and locator.
+
+| Provider | Output in `dist/audio/<post_id>/` | Notes |
+| --- | --- | --- |
+| `script_only` (default) | `podcast_script.md` | Offline and deterministic: intro, one segment per source with each claim and its locator, outro with licence note and a human-review reminder |
+| `notebooklm` | `podcast.m4a` | NotebookLM audio overview through `nlm audio create`, bounded status polling and atomic download. Needs `nlm login` and the notebook id in an environment variable (`EDITORIAL_AUDIO_ID` by default). Failures exit 1 with a protected message suggesting `--provider script_only` |
+
+```toml
+[phases.optional]
+F5 = true
+
+[audio]
+provider = "script_only"              # or "notebooklm"
+corpus_id_env = "EDITORIAL_AUDIO_ID"  # name of the variable, never the id
+timeout_seconds = 60
+```
+
+Audio files live in `[paths].dist`, so they are part of the Gate 2 bundle: generate them
+**before** asking for Gate 2. Regenerating them afterwards makes the receipt stale.
+
+**Publishing after Gate 2.** `publish` first repeats the full `check-gate 2` verification;
+any failure stops it with `GhostApprovalForbiddenError`, exit 2, nothing written (also with
+`--dry-run`). It then runs only the actions that the director wrote in the Gate 2 approval:
+
+| Target | Actions that enable it | Output (default folder) |
+| --- | --- | --- |
+| `dist_archive` (default) | `archive`, `dist_archive`, `export_package` | `dist/packages/<post_id>.tar.gz` with draft, both receipts, every bundle artifact and `publish_manifest.json` |
+| `static_site` | `export_markdown`, `publish_markdown`, `static_site` | `dist/published/<post_id>/` with the Markdown draft and the visual assets, for an SSG |
+
+Generic actions such as `publish`, `schedule` or `sync` enable neither adapter: the command
+answers `SKIPPED` (exit 0) and writes nothing. Add `archive` and/or `export_markdown` to
+`[gates.gate2].allowed_actions` to make them available for approval. Before writing, the
+adapter re-reads every bundle file and re-checks its digest, and it never overwrites an
+existing output. `--dry-run` returns the plan with zero writes.
+
+```toml
+[publishing]
+target = "dist_archive"            # or "static_site"
+archive_dir = "public/packages"    # optional
+static_site_dir = "public/posts"   # optional
+```
+
+Default destinations are inside `[paths].dist`, so a first publication changes the Gate 2
+bundle and a second `publish` exits 2; configure destinations outside `dist/` when the
+director authorises both actions. Everything stays local: uploading, sending or scheduling
+are outside the CLI. Guides: [`docs/audio_production.md`](docs/audio_production.md) and
+[`docs/publishing.md`](docs/publishing.md).
+
 ## RAG adapters
 
 `verify-facts` chooses its behaviour from `[rag].provider` (optional section) or, when
@@ -266,11 +328,13 @@ receipts and never replace the Director's message in chat. Full guide:
 | [`docs/architecture.md`](docs/architecture.md) | Ports & Adapters layout, components, gates and human sovereignty |
 | [`docs/configuration.md`](docs/configuration.md) | Full reference of `editorial.toml`, path validation, registers and templates |
 | [`docs/rag_factcheck.md`](docs/rag_factcheck.md) | `RagProvider` port, local and NotebookLM adapters (MCP and `nlm` CLI levels, setup), evidence format |
+| [`docs/audio_production.md`](docs/audio_production.md) | Optional phase F5: `build-audio`, `script_only` and `notebooklm` providers, `[audio]`, Gate 2 binding |
+| [`docs/publishing.md`](docs/publishing.md) | `publish` after Gate 2: `allowed_actions`, `dist_archive` and `static_site` adapters, `--dry-run`, `[publishing]` |
 | [`docs/author_guide.md`](docs/author_guide.md) | Guide for the director: what the system does, what it asks, how to approve |
 | [`docs/humanizer_guide.md`](docs/humanizer_guide.md) | De-AI-ing checklist and style review evidence |
 | [`docs/transparency_pages.md`](docs/transparency_pages.md) | Specs for the `/metodo/`, `/correzioni/`, `/per-chi-scrive/` transparency pages and SSG/CMS integration |
 | [`skills/editorial-pipeline/SKILL.md`](skills/editorial-pipeline/SKILL.md) | Operating skill for AI agents: phases, commands, gate protocol |
-| [`skills/editorial-pipeline/references/`](skills/editorial-pipeline/references/) | Fact-checking protocol, humanizer checklist, gates and evidence |
+| [`skills/editorial-pipeline/references/`](skills/editorial-pipeline/references/) | Fact-checking protocol, humanizer checklist, gates and evidence, F5 audio and publishing |
 | [`examples/sample_blog/`](examples/sample_blog/) | Fictional sandbox used by tests and the quickstart |
 
 The detailed guides are currently written in Italian.
@@ -345,9 +409,10 @@ trasforma ciascuno di questi rischi in un passaggio esplicito e verificabile:
 | F3 | Verifica dei fatti su evidenze / RAG | `factcheck.json`, `verify-facts` senza `BLOCK` |
 | **Gate 1** | **Approvazione umana della bozza** | `approvals/gate1.json` con bundle di digest |
 | F4 | Kit promozionale e caroselli | Testi per canale, manifest SHA-256 |
-| F5 *(opzionale)* | Audio | Puntata o sintesi audio |
+| F5 *(opzionale)* | Audio con `build-audio` | `dist/audio/<post_id>/`: copione `podcast_script.md` o audio `podcast.m4a` |
 | F6 | Controlli finali e snapshot | Report senza `BLOCK` |
 | **Gate 2** | **Approvazione umana della pubblicazione** | `approvals/gate2.json` con le azioni autorizzate |
+| Pubblicazione | `publish`: solo le azioni scritte dal Direttore | Archivio `tar.gz` o esportazione per sito statico |
 
 Il diagramma completo è nella [sezione inglese](#lifecycle-six-phases-two-human-gates).
 
@@ -368,6 +433,8 @@ editorial status --config examples/sample_blog/editorial.toml
 editorial validate-draft post_01_valid --config examples/sample_blog/editorial.toml --json
 editorial verify-facts post_01_valid --config examples/sample_blog/editorial.toml
 editorial check-gate 2 post_01_valid --config examples/sample_blog/editorial.toml   # RECEIPT_VALID
+# la ricevuta dimostrativa autorizza solo "publish": l'adapter locale risponde SKIPPED (exit 0)
+editorial publish post_01_valid --dry-run --config examples/sample_blog/editorial.toml
 
 # 3. Nuova redazione e installazione della skill per l'agente
 editorial init mia-redazione
@@ -381,10 +448,13 @@ editorial install-skill .claude/skills          # crea .claude/skills/editorial-
 | `status`, `validate-all` | `--json`, `--config` |
 | `validate-draft <post>`, `verify-facts <post>` | `--json`, `--config` |
 | `build-visual <post>` | `--dry-run` (nessuna scrittura), `--html-only` (niente Playwright), `--aspect-ratio {4:5,1:1}` |
+| `build-audio <post>` | Fase F5: `--provider {script_only,notebooklm}`, `--dry-run`, `--json` |
 | `check-gate {1,2} <post>` | `--config`; `--token` è deprecato e ignorato |
+| `publish <post>` | Solo dopo il Gate 2: `--target {dist_archive,static_site}`, `--dry-run` (nessuna scrittura), `--json` |
 
-Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input · `2` gate rifiutato
-(ricevuta assente, non valida o `stale`).
+Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input (anche una fase
+disattivata) · `2` gate rifiutato da `check-gate` o da `publish` (ricevuta assente, non
+valida o `stale`, azioni non autorizzate).
 
 ### Digest, gate e bundle binding
 
@@ -420,10 +490,29 @@ Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input · `2` gate 
   `factcheck.json`. I finding remoti non approvano mai il Gate 1 né il Gate 2: decide il
   Direttore in chat. Guida: [`docs/rag_factcheck.md`](docs/rag_factcheck.md).
 
+### Audio F5 e pubblicazione
+
+- `build-audio` rispetta `[phases.optional].F5`: con `false` (modello e sandbox) si ferma
+  con exit 1 senza scrivere nulla, anche in `--dry-run`. Si rifiuta anche se le evidenze
+  hanno `BLOCK`, e usa solo i claim di `factcheck.json` con fonte e locator. Provider:
+  `script_only` (predefinito, offline) scrive il copione `podcast_script.md`; `notebooklm`
+  genera `podcast.m4a` con `nlm audio create`, con il taccuino nella variabile
+  `EDITORIAL_AUDIO_ID` (`[audio].corpus_id_env`). Gli artefatti stanno in
+  `dist/audio/<post_id>/`, quindi nel bundle del Gate 2: si generano **prima** del Gate 2.
+  Guida: [`docs/audio_production.md`](docs/audio_production.md).
+- `publish` ripete la verifica completa di `check-gate 2`: se fallisce si ferma con
+  `GhostApprovalForbiddenError`, exit 2, senza scrivere nulla. Poi esegue **solo** le azioni
+  scritte dal Direttore: `archive` → adapter `dist_archive` (`dist/packages/<post_id>.tar.gz`
+  con bozza, ricevute, artefatti e `publish_manifest.json`); `export_markdown` → adapter
+  `static_site` (`dist/published/<post_id>/` con Markdown e asset visivi). Le azioni
+  generiche (`publish`, `schedule`, `sync`) non attivano nessun adapter: esito `SKIPPED`,
+  exit 0. `--dry-run` restituisce il piano a zero scritture; le cartelle si configurano in
+  `[publishing]`. Guida: [`docs/publishing.md`](docs/publishing.md).
+
 ### Documentazione
 
 - [**Manuale Ufficiale di Configurazione e Uso**](docs/manuale_configurazione_e_uso.md) · [**Edizione PDF A4**](docs/manuale_configurazione_e_uso.pdf): guida completa capitolo per capitolo, con comandi, configurazione, gate e ricevute, checklist de-aizing e tutorial pratico.
-- Le guide tematiche in [`docs/`](docs/) approfondiscono singoli aspetti: architettura, configurazione, verifica dei fatti, guida per il Direttore, umanizzazione e pagine di trasparenza (`/metodo/`, `/correzioni/`, `/per-chi-scrive/`). La skill operativa per agenti è in [`skills/editorial-pipeline/`](skills/editorial-pipeline/SKILL.md). La tabella completa è nella [sezione inglese](#documentation).
+- Le guide tematiche in [`docs/`](docs/) approfondiscono singoli aspetti: architettura, configurazione, verifica dei fatti, produzione audio F5, pubblicazione dopo il Gate 2, guida per il Direttore, umanizzazione e pagine di trasparenza (`/metodo/`, `/correzioni/`, `/per-chi-scrive/`). La skill operativa per agenti è in [`skills/editorial-pipeline/`](skills/editorial-pipeline/SKILL.md). La tabella completa è nella [sezione inglese](#documentation).
 
 ### Agenti supportati
 

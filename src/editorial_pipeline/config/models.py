@@ -117,7 +117,7 @@ class Providers(Schema):
     drafting: DraftingProvider
     humanizer: HumanizerProvider
     rag: RagProvider
-    audio: Provider
+    audio: Provider = Field(default_factory=lambda: Provider(adapter="script_only"))
     visual: Provider
 
 
@@ -172,6 +172,19 @@ class RagConfig(Schema):
     timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
 
 
+class PublishingConfig(Schema):
+    target: Literal["dist_archive", "static_site"] = "dist_archive"
+    archive_dir: RelativePath | None = None
+    static_site_dir: RelativePath | None = None
+
+
+class AudioConfig(Schema):
+    provider: Literal["script_only", "notebooklm"] = "script_only"
+    corpus_id: str | None = Field(default=None, repr=False)
+    corpus_id_env: str = "EDITORIAL_AUDIO_ID"
+    timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
+
+
 class EditorialConfig(Schema):
     schema_version: Literal[1]
     project: Project
@@ -188,6 +201,8 @@ class EditorialConfig(Schema):
     corrections: Corrections
     privacy: Privacy
     rag: RagConfig | None = None
+    publishing: PublishingConfig | None = None
+    audio: AudioConfig | None = None
 
     @property
     def register(self) -> Register:
