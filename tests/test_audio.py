@@ -1,12 +1,182 @@
 import json
 import shutil
+import subprocess
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
 from editorial_pipeline.cli.commands import main
 from tests.test_cli import ROOT, _refresh_evidence, _write_gate_receipt
 from tests.test_publish import snapshot
+
+
+def test_tts_cli_dry_run(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    before = snapshot(project)
+    assert run(project, "--provider", "tts", "--dry-run", "--json") == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "DRY_RUN"
+    assert result["audio_files"] == ["dist/audio/post_01/podcast.mp3"]
+    assert result["details"]["planned_voice"] == "it-IT-DiegoNeural"
+    assert snapshot(project) == before
+
+
+@pytest.mark.parametrize("existing_script", [False, True])
+def test_tts_synthesizes_narration(
+    project: Path, monkeypatch: pytest.MonkeyPatch, existing_script: bool
+) -> None:
+    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
+
+    output = project / "dist/audio/post_01"
+    if existing_script:
+        output.mkdir(parents=True)
+        (output / "podcast_script.md").write_text(
+            "# Podcast: Titolo\nCopione da revisionare prima della registrazione o del TTS.\n"
+            "## Intro\n[Speaker] Una **notizia** con [fonte](https://example.com).\n"
+            "[Pausa]\nFonte: source-key\nRiferimento: pagina 1\n"
+            "<!-- nota privata -->\n[Nota: musica]\nBozza audio: revisione umana richiesta.\n",
+            encoding="utf-8",
+        )
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.shutil.which", lambda _: "edge-tts")
+
+    def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert args[:3] == ["edge-tts", "--file", "-"]
+        assert "--voice=it-IT-ElsaNeural" in args and "--rate=-10%" in args
+        assert kwargs["shell"] is False and kwargs["timeout"] == 300
+        assert kwargs["encoding"] == "utf-8"
+        text = str(kwargs["input"])
+        if existing_script:
+            assert text == "Una notizia con fonte."
+        else:
+            assert "Una bozza." in text and "Evidenza verificata." in text
+            assert "**" not in text and "[Speaker]" not in text
+        Path(args[args.index("--write-media") + 1]).write_bytes(b"mock mp3")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", execute)
+    result = LocalTtsAudioProvider(project, "it-IT-ElsaNeural", "-10%").build(
+        "post_01",
+        "# Titolo\nUna **bozza**.",
+        [{"key": "source", "claims": [{"text": "Evidenza verificata."}]}],
+        output,
+    )
+    assert result.status == "BUILT" and result.provider == "tts"
+    assert result.details == {"voice": "it-IT-ElsaNeural"}
+    assert result.audio_files == ["dist/audio/post_01/podcast.mp3"]
+    assert (project / result.audio_files[0]).read_bytes() == b"mock mp3"
+    assert sorted(p.name for p in output.iterdir()) == (
+        ["podcast.mp3", "podcast_script.md"] if existing_script else ["podcast.mp3"]
+    )
+
+
+@pytest.mark.parametrize("failure", ["missing", "exit", "timeout", "os", "empty", "absent"])
+def test_tts_errors_are_safe(
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from editorial_pipeline.adapters.audio import AudioUnavailableError, LocalTtsAudioProvider
+
+    output = project / "dist/audio/post_01"
+    output.mkdir(parents=True)
+    audio = output / "podcast.mp3"
+    audio.write_bytes(b"previous audio")
+    private = f"private diagnostic {project}"
+    monkeypatch.setattr(
+        "editorial_pipeline.adapters.audio.tts.shutil.which",
+        lambda _: None if failure == "missing" else "edge-tts",
+    )
+
+    def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if failure == "timeout":
+            raise subprocess.TimeoutExpired(args, 300, stderr=private)
+        if failure == "os":
+            raise OSError(private)
+        if failure == "exit":
+            raise subprocess.CalledProcessError(1, args, output=private, stderr=private)
+        if failure != "absent":
+            Path(args[args.index("--write-media") + 1]).write_bytes(b"")
+        return subprocess.CompletedProcess(args, 1 if failure == "exit" else 0, private, private)
+
+    mocked = Mock(side_effect=execute)
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", mocked)
+    with pytest.raises(AudioUnavailableError) as exc:
+        LocalTtsAudioProvider(project).build("post_01", "Narration", [], output)
+    assert private not in str(exc.value)
+    assert audio.read_bytes() == b"previous audio"
+    assert [p.name for p in output.iterdir()] == ["podcast.mp3"]
+    assert run(project, "--provider", "tts") == 1
+    assert private not in capsys.readouterr().err
+    if failure == "missing":
+        mocked.assert_not_called()
+
+
+def test_tts_dry_run_does_not_read_or_load_engine(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
+
+    before = snapshot(project)
+    with monkeypatch.context() as context:
+        context.setattr(Path, "read_text", Mock(side_effect=AssertionError("unexpected read")))
+        context.setattr(
+            "editorial_pipeline.adapters.audio.tts.shutil.which",
+            Mock(side_effect=AssertionError("unexpected engine lookup")),
+        )
+        result = LocalTtsAudioProvider(project).build(
+            "post", "Draft", [], project / "dist/audio/post", dry_run=True
+        )
+    assert result.status == "DRY_RUN"
+    assert snapshot(project) == before
+
+
+def test_tts_rejects_empty_narration(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from editorial_pipeline.adapters.audio import AudioUnavailableError, LocalTtsAudioProvider
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.shutil.which", lambda _: "edge-tts")
+    before = snapshot(project)
+    with pytest.raises(AudioUnavailableError, match="non-empty"):
+        LocalTtsAudioProvider(project).build(
+            "post", "# Heading\n[Pausa]", [], project / "dist/post"
+        )
+    assert snapshot(project) == before
+
+
+def test_tts_cli_build(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.shutil.which", lambda _: "edge-tts")
+
+    def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert "--voice=it-IT-DiegoNeural" in args and "--rate=+0%" in args
+        assert kwargs["input"]
+        Path(args[args.index("--write-media") + 1]).write_bytes(b"mock mp3")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", execute)
+    assert run(project, "--provider", "tts") == 0
+    assert (project / "dist/audio/post_01/podcast.mp3").read_bytes() == b"mock mp3"
+
+
+def test_tts_cleans_markdown_and_frontmatter(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.shutil.which", lambda _: "edge-tts")
+
+    def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert kwargs["input"] == "Primo punto\nSecondo punto\nCitazione"
+        Path(args[args.index("--write-media") + 1]).write_bytes(b"mock mp3")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", execute)
+    LocalTtsAudioProvider(project).build(
+        "post",
+        "---\ntitle: Metadata\n---\n# Heading\n- Primo *punto*\n"
+        "1. Secondo `punto`\n> Citazione\n```\nnota tecnica\n```",
+        [],
+        project / "dist/post",
+    )
 
 
 @pytest.fixture

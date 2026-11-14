@@ -16,6 +16,7 @@ from editorial_pipeline import __version__
 from editorial_pipeline.adapters.audio import (
     AudioProvider,
     AudioUnavailableError,
+    LocalTtsAudioProvider,
     NotebookLMAdapter,
     ScriptOnlyAdapter,
 )
@@ -328,7 +329,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             p.add_argument("--target", choices=("dist_archive", "static_site"))
             p.add_argument("--dry-run", action="store_true")
         if name == "build-audio":
-            p.add_argument("--provider", choices=("script_only", "notebooklm"))
+            p.add_argument("--provider", choices=("script_only", "notebooklm", "tts"))
             p.add_argument("--dry-run", action="store_true")
         if name == "build-visual":
             p.add_argument("--dry-run", action="store_true")
@@ -415,6 +416,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             audio_provider: AudioProvider
             if adapter in ("script_only", "none"):
                 audio_provider = ScriptOnlyAdapter(root)
+            elif adapter == "tts":
+                audio_provider = LocalTtsAudioProvider(root)
             elif adapter == "notebooklm":
                 audio_config = config.audio or AudioConfig()
                 audio_provider = NotebookLMAdapter(
