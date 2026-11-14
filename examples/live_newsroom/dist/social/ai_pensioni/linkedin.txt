@@ -1,0 +1,19 @@
+Chi finanzia le pensioni se la produttività cresce e i salari non tengono il passo?
+
+Per un sistema a ripartizione conta quanta ricchezza passa dalle buste paga. Tre dati aiutano a leggere il rapporto tra intelligenza artificiale e previdenza:
+
+• FMI, 2024: circa il 60% dell’occupazione nelle economie avanzate è esposto all’AI. Esposizione significa possibilità di trasformazione delle mansioni, anche a beneficio di chi lavora; il dato non misura i licenziamenti futuri.
+• INPS, bilancio 2023: 269 miliardi di euro di entrate contributive e quasi 165 miliardi di trasferimenti correnti dalla fiscalità generale. Sono voci dell’intero Istituto, che eroga anche prestazioni diverse dalle pensioni.
+• Banca d’Italia, QEF 1005: nel 2024 poco più del 10% delle imprese del campione con almeno 50 addetti usava l’AI. Lo studio rileva maggiore produttività e redditività senza effetti negativi sull’occupazione complessiva.
+
+Il passaggio decisivo resta la distribuzione dei guadagni: salari, profitti e gettito possono seguire strade diverse. Il NBER Working Paper 27052 studia come il fisco statunitense favorisca l’automazione; trasferire le sue conclusioni all’Italia richiede un’analisi specifica.
+
+Nell’approfondimento «Chi pagherà le pensioni nell’era dell’AI?» ricostruiamo i dati e le opzioni fiscali, con podcast e carosello di 8 slide nella console editoriale.
+
+Fonti primarie
+FMI, analisi 2024: https://www.imf.org/en/Blogs/Articles/2024/01/14/ai-will-transform-the-global-economy-lets-make-sure-it-benefits-humanity
+INPS, XXIII Rapporto annuale, Relazione del Presidente, p. 4 (dati 2023): https://www.inps.it/content/dam/inps-site/pdf/dati-analisi-bilanci/rapporti-annuali/xxiii-rapporto-annuale/RELAZIONE_DEL_PRESIDENTE_WEB_2.pdf
+Banca d’Italia, QEF 1005 (2026, dati 2024): https://www.bancaditalia.it/pubblicazioni/qef/2026-1005/index.html
+NBER, Working Paper 27052 (2020, sistema fiscale USA): https://www.nber.org/papers/w27052
+
+#IntelligenzaArtificiale #Pensioni #Lavoro #PoliticaFiscale
