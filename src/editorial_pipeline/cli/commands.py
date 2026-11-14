@@ -241,10 +241,13 @@ def _check_gate(
             raise GhostApprovalForbiddenError(
                 "Gate 2: actions not permitted or absent from excerpt"
             )
+        reports = paths.get("paths.reports")
         artifacts = {
             relative_path(file, root): digest(file, root)
             for file in paths["paths.dist"].rglob("*")
             if file.is_file()
+            and file.name != ".gitkeep"
+            and (reports is None or not file.resolve().is_relative_to(reports))
         }
         expected_second = {
             "draft_digest": expected["draft_digest"],

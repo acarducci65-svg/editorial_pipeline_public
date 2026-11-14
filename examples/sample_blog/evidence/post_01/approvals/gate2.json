@@ -13,7 +13,6 @@
     "draft_digest": "v1:71dfac690d4207a4118d7f81d3500c95c134d1325f1ac2b4a928cb2b8edb2913",
     "gate1_digest": "v1:e1b72a9b85b2fcaa55a1e965035e2433405a33bc59dcc62b46fb87eae6fda49a",
     "artifacts": {
-      "dist/reports/.gitkeep": "v1:d69a207546cf21a035d50a9634a9e14d157daefebd236afb9fc3d1f66afa88d7",
       "dist/social/post_01/manifest.json": "v1:4c3dd6855c72c33a798eca4850b2189e1450e2d9397b39660dec74ab7904cc73",
       "dist/social/post_01/slide_01.html": "v1:5f35da19a6ef84d5121f4373c5e6720a439e13e25a2c6d0037117e19d2e0df9e",
       "dist/social/post_01/slide_02.html": "v1:940f60f42b88a626ef0b1537775340b6c80741de467fbf7798d0e1c467d70a31",

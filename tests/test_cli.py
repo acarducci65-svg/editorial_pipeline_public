@@ -13,6 +13,7 @@ import pytest
 from editorial_pipeline import __version__
 from editorial_pipeline.cli.commands import _carousel, _post, main
 from editorial_pipeline.cli.reports import _sanitize, digest, serialize
+from editorial_pipeline.config import load_config
 
 CONFIG = "examples/sample_blog/editorial.toml"
 ROOT = Path("examples/sample_blog")
@@ -519,10 +520,14 @@ def _write_gate_receipt(project: Path, gate: int) -> Path:
             bundle[f"{key}_digest"] = digest(folder.parent / f"{name}.json", project)
     else:
         bundle["gate1_digest"] = digest(folder / "gate1.json", project)
+        paths = load_config(project / "editorial.toml").resolve_paths(project)
+        reports = paths.get("paths.reports")
         bundle["artifacts"] = {
             p.relative_to(project).as_posix(): digest(p, project)
             for p in (project / "dist").rglob("*")
             if p.is_file()
+            and p.name != ".gitkeep"
+            and (reports is None or not p.resolve().is_relative_to(reports))
         }
     receipt: dict[str, Any] = {
         "schema_version": 1,
@@ -580,6 +585,30 @@ def test_gate_validates_receipt_without_writing(
     assert "author" not in result and "token" not in result
     assert str(gate_project) not in output
     assert {p: p.read_bytes() for p in gate_project.rglob("*") if p.is_file()} == before
+
+
+@pytest.mark.parametrize("reports_dir", ["dist/reports", "dist/audit"])
+@pytest.mark.parametrize("extra", [".gitkeep", "social/post_01/.gitkeep", "report"])
+def test_gate2_ignores_placeholders_and_configured_reports(
+    gate_project: Path,
+    capsys: pytest.CaptureFixture[str],
+    reports_dir: str,
+    extra: str,
+) -> None:
+    config = gate_project / "editorial.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8").replace('"dist/reports"', f'"{reports_dir}"'),
+        encoding="utf-8",
+    )
+    ignored = gate_project / (
+        f"{reports_dir}/nested/check.json" if extra == "report" else f"dist/{extra}"
+    )
+    ignored.parent.mkdir(parents=True, exist_ok=True)
+    ignored.write_text("Internal bookkeeping", encoding="utf-8")
+    assert main(["check-gate", "2", "post_01_valid", "--config", str(config)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "RECEIPT_VALID"
+    assert ignored.relative_to(gate_project).as_posix() not in result["bundle"]["artifacts"]
 
 
 @pytest.mark.parametrize(
