@@ -1,6 +1,6 @@
 # Editorial Pipeline — Manuale ufficiale di configurazione e uso
 
-> **Versione del manuale:** 1.1.0 · **Data:** 14 novembre 2026 · **Software:** `0.1.0.dev0` · **Licenza:** Apache 2.0
+> **Versione del manuale:** 1.2.0 · **Data:** 14 novembre 2026 · **Software:** `0.1.0.dev0` · **Licenza:** Apache 2.0
 >
 > Framework open source per la redazione aumentata: libreria Python, CLI `editorial` / `editorial-pipeline` e skill per agenti AI (Antigravity IDE, Claude Code, Codex CLI). La pipeline fa verificare i fatti su fonti primarie, sottopone i testi a una revisione anti-cliché e lascia a una persona le due decisioni che contano: approvare la bozza e approvare la pubblicazione.
 
@@ -34,10 +34,16 @@ Tutti i comandi di esempio si lanciano dalla radice del progetto editoriale o da
 - [Capitolo 3 — Configurazione completa](#capitolo-3--configurazione-completa)
 - [Capitolo 4 — Il ciclo di vita editoriale a 6 fasi](#capitolo-4--il-ciclo-di-vita-editoriale-a-6-fasi)
 - [Capitolo 5 — I due gate umani e la dottrina del No Ghost Approval](#capitolo-5--i-due-gate-umani-e-la-dottrina-del-no-ghost-approval)
+  - [5.5 Il pacchetto Gate 2 — Pubblicazione (kit promozionale e audio)](#55-il-pacchetto-gate-2--pubblicazione)
+  - [5.9 Dopo il Gate 2: pubblicazione ed esportazione con `publish`](#59-dopo-il-gate-2-pubblicazione-ed-esportazione-con-publish)
 - [Capitolo 6 — Guida di riferimento ai comandi CLI](#capitolo-6--guida-di-riferimento-ai-comandi-cli)
+  - [6.2 Quadro sinottico](#62-quadro-sinottico)
+  - [6.10 `build-audio` (F5)](#610-build-audio-f5)
+  - [6.11 `publish` (dopo il Gate 2)](#611-publish-dopo-il-gate-2)
 - [Capitolo 7 — Vademecum di de-aizing e umanizzazione](#capitolo-7--vademecum-di-de-aizing-e-umanizzazione)
 - [Capitolo 8 — Grounding delle fonti e fact-checking RAG](#capitolo-8--grounding-delle-fonti-e-fact-checking-rag)
 - [Capitolo 9 — Tutorial pratico end-to-end con la sandbox](#capitolo-9--tutorial-pratico-end-to-end-con-la-sandbox)
+  - [9.6 Passo 5 — Audio F5, pubblicazione ed esportazione](#96-passo-5--audio-f5-pubblicazione-ed-esportazione)
 - [Capitolo 10 — Integrazione con gli agenti AI](#capitolo-10--integrazione-con-gli-agenti-ai)
 - [Appendice — FAQ, risoluzione dei problemi, pagine di trasparenza, note legali](#appendice--faq-risoluzione-dei-problemi-pagine-di-trasparenza-note-legali)
 
@@ -97,8 +103,8 @@ flowchart LR
 | **domain** | `Post`, `Finding`, `ChecklistState`, `EvidenceBundle`, `GateDecision`, `Gate1Receipt` / `Gate2Receipt` (schema chiuso delle ricevute con bundle di digest `v1:`), `HumanApproval`, `StyleRegister`, `VerificationState` (`OK`, `WARN`, `BLOCK`) |
 | **config** | `EditorialConfig` (schema Pydantic v2, campi extra rifiutati), `load_config`, `resolve_paths`, `validate_operative` |
 | **application** | `StyleChecker` (finding deterministici su espressioni e pattern del registro), `EvidenceVerifier` (coerenza di `sources.json`, `factcheck.json` e `draft-review.json` con la bozza), `aggregate_state` (precedenza `BLOCK` > `WARN` > `OK`) |
-| **adapters** | `RagProvider` con `LocalRagProvider` (offline, operativo) e `NotebookLMAdapter` (opzionale, interroga Google NotebookLM tramite la CLI `nlm`); `VisualBuilder` con `PlaywrightVisualBuilder` |
-| **cli** | `init`, `install-skill`, `status`, `validate-draft`, `validate-all`, `verify-facts`, `build-visual`, `check-gate` |
+| **adapters** | `RagProvider` con `LocalRagProvider` (offline, operativo) e `NotebookLMAdapter` (opzionale, interroga Google NotebookLM tramite la CLI `nlm`); `VisualBuilder` con `PlaywrightVisualBuilder`; `AudioProvider` con `ScriptOnlyAdapter` (copione offline) e `NotebookLMAdapter` (audio via `nlm`); `PublishAdapter` con `DistArchivePublisher` (`tar.gz`) e `StaticSitePublisher` (Markdown e asset per SSG) |
+| **cli** | `init`, `install-skill`, `status`, `validate-draft`, `validate-all`, `verify-facts`, `build-visual`, `build-audio`, `check-gate`, `publish` |
 
 ### 1.3 I 6 principi di trasparenza (TP1–TP6)
 
@@ -120,7 +126,7 @@ Accanto ai principi il manifesto contiene un **guardrail** (`guardrail.statement
 | Gate | Quando | Che cosa approva il Direttore | Che cosa autorizza |
 |---|---|---|---|
 | **Gate 1 — Bozza** | Dopo F3 (fact-checking) | Una bozza già rivista e verificata, con le sue evidenze (fonti, fact-check, revisione F2b), tutte identificate dal loro digest | Solo il passaggio a F4/F5 su quel bundle |
-| **Gate 2 — Pubblicazione** | Dopo F4/F5 e i controlli finali | Testo, ricevuta del Gate 1, kit promozionale in `dist/`, data e ora | Solo le azioni elencate nella frase del Direttore (`publish`, `schedule`, `sync`) |
+| **Gate 2 — Pubblicazione** | Dopo F4/F5 e i controlli finali | Testo, ricevuta del Gate 1, kit promozionale in `dist/`, data e ora | Solo le azioni elencate nella frase del Direttore (`publish`, `schedule`, `sync`, oppure `archive` ed `export_markdown`, che `editorial publish` esegue in locale) |
 
 Entrambi sono obbligatori: `required = false` nella configurazione è un errore di validazione. Il capitolo 5 ne descrive le regole.
 
@@ -145,7 +151,7 @@ Dipendenze di base, installate sempre: `pydantic>=2,<3`, `pyyaml>=6`, e `tomli>=
 | Extra | Contenuto | Quando serve |
 |---|---|---|
 | `social` | `jinja2`, `playwright` | Fase F4: generazione del carosello HTML (Jinja2 è indispensabile) e rasterizzazione PNG/PDF (Playwright) |
-| `audio` | `mutagen` | Fase F5: metadati dei file audio |
+| `audio` | `mutagen` | Fase F5: metadati dei file audio. `build-audio` con `script_only` non richiede extra; con `notebooklm` serve la CLI `nlm` (extra `rag` o `uv tool install notebooklm-mcp-cli`) |
 | `all` | `social` + `audio` | Installazione completa per l'uso editoriale |
 | `rag` | `notebooklm-mcp-cli` (eseguibili `nlm` e `notebooklm-mcp`; solo Python ≥ 3.11) | Fact-checking con `provider = "notebooklm"` (§8.6). In alternativa: `uv tool install notebooklm-mcp-cli` |
 | `dev` | `pytest`, `pytest-cov`, `ruff`, `mypy`, `types-pyyaml`, `tomli`, `jinja2` | Sviluppo e contributi al framework |
@@ -379,7 +385,7 @@ Lo style checker carica `directory/<active>.yaml` e verifica che `register.id` n
 | `optional.F1` | booleano | Inventario fonti con hash e locator (consigliato `true`) |
 | `optional.F4_visual` | booleano | Caroselli e immagini social (extra `social`). **Applicato dalla CLI**: con `false`, `build-visual` si rifiuta di partire (exit `1`, nessuna scrittura) |
 | `optional.F4_video` | booleano | Short verticale 9:16 |
-| `optional.F5` | booleano | Podcast o audio (extra `audio`) |
+| `optional.F5` | booleano | Podcast o audio. **Applicato dalla CLI**: con `false`, `build-audio` si rifiuta di partire (exit `1`, nessuna scrittura, anche con `--dry-run`) |
 | `disabled_behavior.status` | `skipped` \| `warning` \| `blocked` | Come si dichiara una fase opzionale spenta |
 | `disabled_behavior.report_in_summary` | booleano | Se riportarla nel sommario |
 
@@ -397,7 +403,7 @@ Una fase disattivata si dichiara `skipped` nel pacchetto di gate: non si omette 
 | `gate1.after`, `gate2.after` | `"F3"`, `"F6"` | Etichetta descrittiva della fase che precede il gate; non è applicata dal software |
 | `gate1.approval_phrase` | `"Approvo Gate 1 #{unit_id}"` | Frase che il Direttore deve scrivere; `check-gate` la cerca, come frase intera, nell'`excerpt` della ricevuta |
 | `gate1.question` | `"Approvi questa bozza (digest {{DIGEST_SHORT}}) ..."` | Domanda posta dall'agente a fine pacchetto |
-| `gate2.allowed_actions` | `["publish", "schedule", "sync"]` | Catalogo delle azioni che una ricevuta di Gate 2 può autorizzare; nessuna è implicita |
+| `gate2.allowed_actions` | `["publish", "schedule", "sync", "archive", "export_markdown"]` | Catalogo delle azioni che una ricevuta di Gate 2 può autorizzare; nessuna è implicita. `editorial publish` esegue solo `archive` (adapter `dist_archive`) ed `export_markdown` (adapter `static_site`), con i rispettivi alias (§6.11): `publish`, `schedule` e `sync` restano azioni da eseguire fuori dalla CLI |
 
 **Attenzione.** Nella versione attuale `check-gate` sostituisce nella frase di approvazione solo la macro a graffa singola `{unit_id}`. Se `approval_phrase` contiene ancora `{{UNIT_ID}}`, come nel file modello, nessuna ricevuta può risultare valida (rifiuto `receipt excerpt lacks unconditional human approval`). Scrivete quindi `approval_phrase = "Approvo Gate 1 #{unit_id}"`, come nella sandbox; le domande (`question`) possono continuare a usare le macro a doppia graffa, che servono all'agente.
 
@@ -412,10 +418,10 @@ Ogni provider dichiara un adapter. `manual` significa che il passo lo esegue una
 | `providers.drafting` | `adapter`, `model_label` | `manual`, `anthropic`, `openai`, `gemini`, `local`; `model_label` è il nome dichiarato nelle pagine pubbliche |
 | `providers.humanizer` | `adapter`, `separate_pass_required` | `separate_pass_required = true` impone un passaggio distinto dalla stesura |
 | `providers.rag` | `adapter`, `corpus_id_env`, `max_claims_per_turn` | `local` o `manual` (verifica offline), `none` (sempre `BLOCK`), `notebooklm` (verifica remota via `nlm`, §8.6); `corpus_id_env` è il **nome** di una variabile d'ambiente (es. `EDITORIAL_RAG_ID`), mai l'identificativo stesso |
-| `providers.audio` | `adapter` | `none`, `notebooklm`, `elevenlabs`, `openai_tts`, `local` |
+| `providers.audio` | `adapter` | Default `script_only`. `build-audio` lo legge solo se manca `[audio]`: accetta `script_only`, `none` (equivale a `script_only`) e `notebooklm`; altri valori (`elevenlabs`, `openai_tts`, `local`) sono dichiarativi e il comando li rifiuta |
 | `providers.visual` | `adapter` | `none`, `playwright`, `canva` |
 
-**Attenzione.** `verify-facts` legge `[providers.rag].adapter`, oppure `[rag].provider` se la sezione `[rag]` è presente, e si comporta di conseguenza (§8.6). Le altre chiavi `adapter` sono dichiarative: `build-visual`, per esempio, usa sempre Playwright qualunque sia `[providers.visual].adapter`; ciò che ne governa l'esecuzione è `[phases.optional].F4_visual`. Dichiarate comunque il valore reale: finisce nelle pagine di trasparenza.
+**Attenzione.** `verify-facts` legge `[providers.rag].adapter`, oppure `[rag].provider` se la sezione `[rag]` è presente, e si comporta di conseguenza (§8.6); `build-audio` fa lo stesso con `[providers.audio].adapter` e `[audio].provider` (§6.10). Le altre chiavi `adapter` sono dichiarative: `build-visual`, per esempio, usa sempre Playwright qualunque sia `[providers.visual].adapter`; ciò che ne governa l'esecuzione è `[phases.optional].F4_visual`. Dichiarate comunque il valore reale: finisce nelle pagine di trasparenza.
 
 #### `[rag]` — Provider di fact-checking (facoltativa)
 
@@ -432,6 +438,44 @@ provider = "notebooklm"
 corpus_id_env = "EDITORIAL_RAG_ID"
 timeout_seconds = 60
 ```
+
+#### `[audio]` — Provider della fase F5 (facoltativa)
+
+| Chiave | Default | Note |
+|---|---|---|
+| `provider` | `"script_only"` | `script_only` (copione offline) o `notebooklm` (audio via `nlm`). Se la sezione è presente prevale su `[providers.audio].adapter`; `--provider` prevale su entrambi |
+| `corpus_id_env` | `"EDITORIAL_AUDIO_ID"` | **Nome** della variabile d'ambiente con l'identificativo (o l'alias `nlm`) del taccuino |
+| `corpus_id` | assente | Ha la precedenza sulla variabile. Non va valorizzato nei file versionati (zero-leak) |
+| `timeout_seconds` | `60` | Timeout di ogni chiamata a `nlm`; numero finito maggiore di zero |
+
+```toml
+[phases.optional]
+F5 = true
+
+[audio]
+provider = "script_only"            # oppure "notebooklm"
+corpus_id_env = "EDITORIAL_AUDIO_ID"
+timeout_seconds = 60
+```
+
+La sezione non attiva la fase: senza `[phases.optional].F5 = true` il comando si rifiuta comunque. Guida completa: [`audio_production.md`](audio_production.md).
+
+#### `[publishing]` — Pubblicazione dopo il Gate 2 (facoltativa)
+
+| Chiave | Default | Note |
+|---|---|---|
+| `target` | `"dist_archive"` | Adapter usato da `publish` senza `--target`: `dist_archive` o `static_site` |
+| `archive_dir` | `[paths].dist/packages` | Cartella dell'archivio `<post_id>.tar.gz` |
+| `static_site_dir` | `[paths].dist/published` | Cartella dell'esportazione `<post_id>/` per il sito statico |
+
+```toml
+[publishing]
+target = "static_site"
+archive_dir = "public/packages"
+static_site_dir = "public/posts"
+```
+
+Le cartelle sono percorsi relativi, dentro il progetto, senza collegamenti simbolici e senza sovrapposizioni con le cartelle editoriali (contenuti, evidenze, fonti, modelli, pagine, correzioni). Se stanno dentro `[paths].dist`, la prima pubblicazione cambia il bundle del Gate 2 (§6.11). Guida completa: [`publishing.md`](publishing.md).
 
 #### `[factcheck]` — Regole di verifica
 
@@ -656,6 +700,7 @@ F3   Fact-checking RAG → factcheck.json, verify-facts senza BLOCK
 F4   Kit visual e social   ‖   F5   Audio / podcast (facoltativa)
      ── controlli finali ──
      ══ GATE 2 — Pubblicazione (Direttore) ══
+     editorial publish: solo le azioni autorizzate (archive, export_markdown)
 F6   Monitoraggio, trasparenza e correzioni
 ```
 
@@ -672,7 +717,7 @@ flowchart TD
   F4 --> CF["Controlli finali"]
   F5 --> CF
   CF --> G2{"GATE 2<br/>Pubblicazione"}
-  G2 -- "Approvo Gate 2 #ID azioni: ..." --> P["Azioni autorizzate"]
+  G2 -- "Approvo Gate 2 #ID azioni: ..." --> P["Azioni autorizzate<br/>(editorial publish)"]
   G2 -- "correzioni" --> F4
   P --> F6["F6 · Monitoraggio, trasparenza, correzioni"]
 ```
@@ -769,12 +814,14 @@ Pacchetto, domanda, attesa, ricevuta: capitolo 5.
 | | |
 |---|---|
 | **Obiettivo** | Un copione e un audio derivati dalla bozza approvata |
-| **Vincoli** | Nessun claim nuovo; ogni dato detto a voce ha il suo `claim_id`; voci sintetiche dichiarate nella descrizione; copione sottoposto alla checklist anti-cliché |
-| **Attivazione** | Solo con `[phases.optional].F5 = true` |
+| **Attività** | `build-audio <post>`: copione `podcast_script.md` con il provider `script_only` (offline) oppure audio `podcast.m4a` con `notebooklm` (CLI `nlm`), in `dist/audio/<post_id>/`; rilettura e revisione anti-cliché del copione |
+| **Vincoli** | Nessun claim nuovo: il comando usa solo i claim di `factcheck.json` con fonte e locator e si rifiuta se le evidenze hanno `BLOCK`; ogni dato detto a voce ha il suo `claim_id`; voci sintetiche dichiarate nella descrizione; copione sottoposto alla checklist anti-cliché |
+| **Attivazione** | Solo con `[phases.optional].F5 = true`: con `false` `build-audio` si rifiuta (exit `1`) |
+| **Output** | Copione e/o audio in `[paths].dist`, quindi nel bundle del Gate 2: si generano **prima** del Gate 2 (§6.10) |
 
 #### Controlli finali e Gate 2 — Pubblicazione
 
-Prima del pacchetto si rieseguono `validate-draft --json` e `verify-facts --json`: nessun `BLOCK` e lo stesso digest approvato al Gate 1. Per `investigative` si controlla che le richieste di replica siano documentate nel testo. Pacchetto, azioni e ricevuta: capitolo 5.
+Prima del pacchetto si rieseguono `validate-draft --json` e `verify-facts --json`: nessun `BLOCK` e lo stesso digest approvato al Gate 1. Per `investigative` si controlla che le richieste di replica siano documentate nel testo. Pacchetto, azioni e ricevuta: capitolo 5. Con la ricevuta valida, `editorial publish` esegue le sole azioni locali autorizzate (§5.9, §6.11).
 
 #### F6 — Monitoraggio, trasparenza e correzioni
 
@@ -796,8 +843,9 @@ Prima del pacchetto si rieseguono `validate-draft --json` e `verify-facts --json
 | F3 | `factcheck.json` | `verify-facts --json`, `validate-draft --json` | Verificatore |
 | Gate 1 | `approvals/gate1.json`, `approvals/gate1.check.json` | `check-gate 1 <post>` | **Direttore** |
 | F4 | `dist/social/<id>/`, `manifest.json`, `social-review.json`, `social-review.md` | `build-visual` | Revisore |
-| F5 | Copione, audio | — | Revisore |
+| F5 | `dist/audio/<id>/podcast_script.md` o `podcast.m4a` | `build-audio` | Revisore |
 | Gate 2 | `approvals/gate2.json`, `approvals/gate2.check.json` | `check-gate 2 <post>` | **Direttore** |
+| Pubblicazione | `dist/packages/<id>.tar.gz` o `dist/published/<id>/` (o le cartelle di `[publishing]`) | `publish <post> [--dry-run]` | Solo le azioni scritte dal **Direttore** |
 | F6 | `corrections.json`, pagine di trasparenza | `validate-all --json` | **Direttore** (per ogni rettifica) |
 
 ### 4.5 Invalidazione: quando un'evidenza diventa `stale`
@@ -812,7 +860,8 @@ Ogni modifica a monte rende obsolete le evidenze a valle. Si riparte sempre dall
 | Modifica di `factcheck.json` | Gate 1, Gate 2 | Sì (bundle del Gate 1) |
 | Modifica di `draft-review.json` | Gate 1, Gate 2 | Sì (bundle del Gate 1) |
 | Modifica o riscrittura di `approvals/gate1.json` | Gate 2 | Sì: `gate1_digest` nel bundle del Gate 2 |
-| Modifica del kit, del copione audio, rigenerazione del carosello, qualsiasi file nuovo in `[paths].dist` | `social-review.json`, Gate 2 | Gate 2 sì (`artifacts` del bundle); `social-review.json` no |
+| Modifica del kit, del copione audio, rigenerazione del carosello o dell'audio (`build-audio`), qualsiasi file nuovo in `[paths].dist` | `social-review.json`, Gate 2 | Gate 2 sì (`artifacts` del bundle); `social-review.json` no |
+| `publish` con destinazione dentro `[paths].dist` (default) | Gate 2, per ogni pubblicazione successiva | Sì: un secondo `publish` esce con exit `2` (§6.11) |
 | Cambio di registro o di `extra_forbidden` | `draft-review.json`, `social-review.json`, Gate 1, Gate 2 | Solo se il linter trova nuovi `BLOCK`; la revisione va comunque rifatta |
 | Spostamento della data o delle azioni | Gate 2 | Le azioni sì (devono comparire nell'estratto); la data no |
 
@@ -925,20 +974,20 @@ Dopo la domanda l'agente termina il turno.
 
 ### 5.5 Il pacchetto Gate 2 — Pubblicazione
 
-**Prerequisiti:** `check-gate 1` con esito `RECEIPT_VALID` sui file correnti; F4 (e F5, se attiva) completate; controlli finali senza `BLOCK` e con lo stesso digest del Gate 1. Da questo momento il contenuto di `[paths].dist` non si tocca più: ogni suo file entra nel bundle del Gate 2.
+**Prerequisiti:** `check-gate 1` con esito `RECEIPT_VALID` sui file correnti; F4 (e F5, se attiva: copione o audio già generati con `build-audio`) completate; controlli finali senza `BLOCK` e con lo stesso digest del Gate 1. Da questo momento il contenuto di `[paths].dist` non si tocca più: ogni suo file entra nel bundle del Gate 2.
 
 | # | Voce | Fonte del dato |
 |---|---|---|
 | 1 | Conferma che il Gate 1 è ancora valido (`check-gate 1` → `RECEIPT_VALID`) | Report CLI + `approvals/gate1.json` |
 | 2 | Esito di `verify-facts` | Report CLI |
 | 3 | Anteprime del carosello (almeno prima e ultima slide) e percorso del manifest | `build-visual` |
-| 4 | Testi integrali di ogni copy, per canale; copione audio se F5 è attiva | Kit F4/F5 |
+| 4 | Testi integrali di ogni copy, per canale; copione audio e percorso dell'eventuale `podcast.m4a` se F5 è attiva, altrimenti `F5: skipped` | Kit F4, `build-audio` |
 | 5 | Tabella dati promozionali: dato, `claim_id`, esito, fonte, locator | `factcheck.json` |
 | 6 | Esito della revisione anti-cliché del kit | `social-review.json` + prova |
 | 6-bis | Solo `investigative`: richieste di replica (destinatario per ruolo, data, canale, esito) | Prova testuale F2b |
 | 7 | Data e ora di uscita nel fuso del progetto, con equivalente UTC | `[project].timezone` |
-| 8 | Elenco dei file da pubblicare o sincronizzare (percorsi relativi) | Agente |
-| 9 | Azioni **proposte**, scelte tra `allowed_actions` | Proposta dell'agente |
+| 8 | Elenco dei file da pubblicare o sincronizzare (percorsi relativi); per le azioni locali di `editorial publish`, il target e la cartella di destinazione (il piano di `publish --dry-run` si ottiene solo dopo la ricevuta) | Agente |
+| 9 | Azioni **proposte**, scelte tra `allowed_actions` (per `editorial publish`: `archive` e/o `export_markdown`) | Proposta dell'agente |
 | 10 | Domanda con la frase esatta, comprensiva di azioni | `[gates.gate2].question` |
 
 Chiusura tipica:
@@ -1071,6 +1120,32 @@ L'opzione `--token` è **deprecata**: è accettata per compatibilità con gli sc
 - Considerare `RECEIPT_VALID` come prova che il Direttore ha approvato: è solo coerenza formale della ricevuta.
 - Aggiungere campi alla ricevuta (riferimenti di chat, ora di pubblicazione): lo schema è chiuso e la ricevuta diventa invalida.
 - Eseguire un'azione di Gate 2 non elencata dal Direttore.
+- Rigenerare copione o audio F5 dopo il Gate 2, o eseguire `build-audio` dopo aver chiesto l'approvazione.
+- Ritoccare `gate2.json` o il catalogo `allowed_actions` per far passare `publish` o evitare un `SKIPPED`.
+
+### 5.9 Dopo il Gate 2: pubblicazione ed esportazione con `publish`
+
+Il Gate 2 autorizza azioni; `editorial publish` esegue quelle **locali**. Il comando non decide e non aggiunge nulla: rifà la verifica di `check-gate 2` e produce un pacchetto o un'esportazione a partire dai byte approvati.
+
+**1. Il Gate 2 è un prerequisito invalicabile.** Senza ricevuta, con una ricevuta non valida o `stale`, con azioni non scritte dal Direttore o con `BLOCK` aperti, `publish` si ferma con `GhostApprovalForbiddenError` (messaggio `Gate 2: invalid or unreadable bundle`), exit `2`, nessuna scrittura, anche con `--dry-run`. Il motivo preciso si legge con `check-gate 2` (§5.7).
+
+**2. Solo le azioni autorizzate di persona.** Ogni adapter esegue solo le azioni della ricevuta che lo riguardano:
+
+| Azione nella frase del Direttore | Adapter | Risultato |
+|---|---|---|
+| `archive` (alias `dist_archive`, `export_package`) | `dist_archive` | `<post_id>.tar.gz` con bozza, `gate1.json`, `gate2.json`, tutti gli artefatti del bundle (carosello, kit, audio F5) e `publish_manifest.json` |
+| `export_markdown` (alias `publish_markdown`, `static_site`) | `static_site` | Cartella `<post_id>/` con il Markdown della bozza e gli asset visivi, pronta per un generatore di siti statici |
+| `publish`, `schedule`, `sync` o altre | nessuno | `SKIPPED` (exit `0`), nessuna scrittura: sono azioni da eseguire fuori dalla CLI |
+
+Se il Direttore scrive «Approvo Gate 2 #post_07 azioni: export_markdown», `publish --target dist_archive` risponde `SKIPPED` e l'agente non cerca alternative.
+
+**3. Rilettura al momento della scrittura.** L'adapter rilegge in memoria tutti i file del bundle, rivalida la ricevuta e ricalcola i digest prima di scrivere: un file cambiato fra il controllo e la scrittura blocca l'operazione (exit `2`).
+
+**4. Anteprima a zero scritture.** `--dry-run` esegue gli stessi controlli e restituisce `status: "DRY_RUN"`, i file previsti e le azioni pianificate in `details.planned_actions`; non crea file né cartelle.
+
+**5. Una pubblicazione per ricevuta.** Le destinazioni predefinite stanno in `[paths].dist`, che è parte del bundle: dopo la prima pubblicazione la ricevuta diventa `stale`. Per eseguire due azioni autorizzate configurate le cartelle di `[publishing]` fuori da `dist/`, oppure ripresentate il Gate 2.
+
+Dopo la pubblicazione si passa a F6. Un `PUBLISHED` attesta che i file derivano dal bundle approvato; non prova che il Direttore abbia approvato. Guida completa: [`publishing.md`](publishing.md).
 
 ---
 
@@ -1100,8 +1175,8 @@ Codici di uscita:
 | Exit | Significato |
 |---|---|
 | `0` | Nessun `BLOCK` (eventuali `WARN` non cambiano l'exit) |
-| `1` | Almeno un `BLOCK`, **oppure** errore di configurazione, percorso o input (`Error: ...`), compresa una fase disattivata (`build-visual`) o una skill già installata senza `--force` |
-| `2` | Gate rifiutato da `check-gate` (ricevuta assente, non valida o `stale`, oppure `BLOCK` aperti) |
+| `1` | Almeno un `BLOCK`, **oppure** errore di configurazione, percorso o input (`Error: ...`), compresa una fase disattivata (`build-visual`, `build-audio`), evidenze non valide per `build-audio`, un provider audio non disponibile, una destinazione di `publish` non ammessa o già esistente, o una skill già installata senza `--force` |
+| `2` | Gate rifiutato da `check-gate` o da `publish` (ricevuta assente, non valida o `stale`, azioni non autorizzate, oppure `BLOCK` aperti) |
 
 Un `Error: ...` senza JSON indica un problema di configurazione o di percorso, non di contenuto.
 
@@ -1116,7 +1191,9 @@ Un `Error: ...` senza JSON indica un problema di configurazione o di percorso, n
 | `validate-all [--json]` | F6, pre-release | Come `validate-draft`, su tutte le unità | — |
 | `verify-facts <post> [--json]` | F3 | Coerenza di `sources.json`, `factcheck.json` e `draft-review.json` con la bozza corrente, secondo `[providers.rag].adapter` | Non estrae claim, non legge le fonti, non giudica la verità dei claim |
 | `build-visual <post> [--dry-run] [--html-only] [--aspect-ratio 4:5\|1:1]` | F4 | Carosello HTML (+ PNG/PDF) in `dist/social/<post_id>/` con manifest e SHA-256; si rifiuta se `F4_visual = false` | Non revisiona i testi delle slide |
+| `build-audio <post> [--provider script_only\|notebooklm] [--dry-run] [--json]` | F5 | Copione `podcast_script.md` (offline) o audio `podcast.m4a` (via `nlm`) in `dist/audio/<post_id>/`, solo dai claim verificati; si rifiuta se `F5 = false` o se le evidenze hanno `BLOCK` | Non revisiona il copione, non approva l'audio |
 | `check-gate <1\|2> <post>` | Gate | Verifica la ricevuta umana, ricalcola e confronta il bundle; esito `RECEIPT_VALID` | Non legge la chat, non autentica persone, non esegue azioni |
+| `publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Rifà `check-gate 2` (exit `2` se fallisce), poi esegue solo le azioni autorizzate: archivio `tar.gz` o esportazione per sito statico | Non carica nulla in rete, non esegue `publish`/`schedule`/`sync` generici, non sovrascrive |
 
 ### 6.3 `init`
 
@@ -1355,7 +1432,80 @@ Il comando verifica la ricevuta del gate richiesto (per il Gate 2 anche quella d
 
 `timestamp` e `role` sono quelli registrati nella ricevuta, non l'ora dell'esecuzione. Per il Gate 2, `allowed_actions` riporta le azioni autorizzate e `bundle` contiene `draft_digest`, `gate1_digest` e `artifacts`. Ogni rifiuto stampa un messaggio su standard error ed esce con `2`. Esiti e significato: §5.7. Regole d'uso: §5.2 e regole 5, 6 e 10 del §5.3.
 
-### 6.10 `install-skill` e `--version`
+### 6.10 `build-audio` (F5)
+
+```text
+editorial build-audio <post> [--provider script_only|notebooklm] [--dry-run] [--json] [--config editorial.toml]
+```
+
+| Argomento / opzione | Descrizione |
+|---|---|
+| `<post>` | Unità di contenuto |
+| `--provider` | `script_only` o `notebooklm`. Precedenza: `--provider` > `[audio].provider` > `[providers.audio].adapter` > `script_only` (`none` equivale a `script_only`) |
+| `--dry-run` | Restituisce il percorso previsto; nessuna scrittura, nessuna chiamata a `nlm`, nessuna credenziale richiesta |
+| `--json` | Risultato in JSON: `status` (`BUILT`, `DRY_RUN`), `provider`, `script_file`, `audio_files`, `duration_seconds`, `details` |
+
+Sequenza dei controlli:
+
+1. `[phases.optional].F5` deve essere `true`, altrimenti `Error: Phase F5 is disabled in editorial.toml` (exit `1`, anche con `--dry-run`).
+2. La cartella `[paths].dist/audio/<post_id>/` non deve sovrapporsi a `[paths].reports` (esclusa dal bundle del Gate 2) né alle cartelle editoriali.
+3. Le evidenze della bozza corrente non devono avere `BLOCK`, altrimenti `Error: Audio requires current validated draft evidence` (exit `1`).
+4. Il provider riceve, per ogni fonte di `sources.json`, i claim di `factcheck.json` con il loro locator.
+
+| Provider | Artefatto | Note |
+|---|---|---|
+| `script_only` | `podcast_script.md` | Offline e deterministico: intro, un segmento per fonte con `[Speaker]`, `Riferimento:` e `[Pausa]`, outro con nota di licenza e promemoria di revisione umana |
+| `notebooklm` | `podcast.m4a` | `nlm audio create` sul taccuino di `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`), controllo di stato limitato (30 tentativi ogni 2 secondi), download atomico. Errori: messaggio `NotebookLM audio: <motivo>. Retry or use --provider script_only.`, exit `1` |
+
+Esempio sulla copia della sandbox con `F5 = true` (§9.6):
+
+```text
+$ editorial build-audio post_01_valid --config $CFG4
+BUILT: script_only
+dist/audio/post_01/podcast_script.md
+```
+
+Copione e audio entrano nel bundle del Gate 2: si generano prima di chiedere l'approvazione, e rigenerarli dopo rende la ricevuta `stale`. Guida completa: [`audio_production.md`](audio_production.md).
+
+### 6.11 `publish` (dopo il Gate 2)
+
+```text
+editorial publish <post> [--target dist_archive|static_site] [--dry-run] [--json] [--config editorial.toml]
+```
+
+| Argomento / opzione | Descrizione |
+|---|---|
+| `<post>` | Unità di contenuto |
+| `--target` | `dist_archive` o `static_site`. Precedenza: `--target` > `[publishing].target` > `dist_archive` |
+| `--dry-run` | Tutti i controlli, nessuna scrittura; restituisce il piano |
+| `--json` | Risultato in JSON: `status` (`PUBLISHED`, `DRY_RUN`, `SKIPPED`), `target`, `executed_actions`, `published_files`, `details` (`bundle_digest`, `planned_actions`, per l'archivio `archive_members`) |
+
+Sequenza:
+
+1. Verifica completa del Gate 2, come `check-gate 2`. Qualsiasi rifiuto → `Gate 2: invalid or unreadable bundle`, exit `2`, nessuna scrittura.
+2. Selezione delle azioni: `dist_archive` esegue `archive`, `dist_archive`, `export_package`; `static_site` esegue `export_markdown`, `publish_markdown`, `static_site`. Nessuna azione pertinente → `SKIPPED`, exit `0`, avviso `No approved action authorizes this target` su standard error.
+3. Rilettura del bundle in memoria e nuovo confronto dei digest con la ricevuta (`Approved publishing input changed`, exit `2`, se un file è cambiato nel frattempo).
+4. Scrittura nella destinazione: `[publishing].archive_dir` (default `dist/packages/`) o `[publishing].static_site_dir` (default `dist/published/`). Destinazione esistente o non ammessa → exit `1`, nulla sovrascritto.
+
+Esempio di anteprima (archivio):
+
+```json
+{
+  "details": {
+    "archive_members": ["content/posts/post_01_valid.md", "dist/social/post_01/manifest.json", "...", "evidence/post_01/approvals/gate2.json", "publish_manifest.json"],
+    "bundle_digest": "v1:053d060912c4...",
+    "planned_actions": ["archive"]
+  },
+  "executed_actions": [],
+  "published_files": ["dist/packages/post_01.tar.gz"],
+  "status": "DRY_RUN",
+  "target": "dist_archive"
+}
+```
+
+**Attenzione.** Con le destinazioni predefinite il file pubblicato finisce in `[paths].dist`, che fa parte del bundle del Gate 2: dopo la prima esecuzione la ricevuta diventa `stale` e un secondo `publish` esce con exit `2`. Se il Direttore autorizza sia `archive` sia `export_markdown`, configurate `archive_dir` e `static_site_dir` fuori da `dist/`. Regole d'uso: §5.9. Guida completa: [`publishing.md`](publishing.md).
+
+### 6.12 `install-skill` e `--version`
 
 ```text
 editorial install-skill <target_dir> [--force]
@@ -1370,7 +1520,7 @@ editorial --version
 
 Esempi e dettagli: §2.4 e §2.7. Destinazioni per harness: §10.2.
 
-### 6.11 Esempi di integrazione negli script
+### 6.13 Esempi di integrazione negli script
 
 Fermare uno script quando una bozza ha `BLOCK`:
 
@@ -2356,7 +2506,65 @@ La ricevuta dimostrativa della sandbox autorizza invece `publish` («Approvo Gat
 
 **Pulizia.** Cancellate la copia `../prova_gate` al termine.
 
-### 9.6 Riepilogo del tutorial
+### 9.6 Passo 5 — Audio F5, pubblicazione ed esportazione
+
+**Pubblicazione sulla sandbox intatta.** La ricevuta dimostrativa autorizza solo `publish`, un'azione generica che nessun adapter locale esegue:
+
+```bash
+editorial publish post_01_valid --config $CFG
+# No approved action authorizes this target        (su standard error)
+# SKIPPED: dist_archive                             (exit 0, nessun file scritto)
+editorial publish post_01_valid --config $CFG --target static_site --dry-run --json
+# "status": "SKIPPED", "executed_actions": [], "published_files": []
+```
+
+È il comportamento voluto: `editorial publish` crea un archivio solo se il Direttore ha scritto `archive`, ed esporta per il sito statico solo se ha scritto `export_markdown`.
+
+**Audio F5 su una copia.** Lavorate su una copia fuori dal repository:
+
+```bash
+cp -r examples/sample_blog ../prova_audio
+export CFG4=../prova_audio/editorial.toml
+# in ../prova_audio/editorial.toml:  F5 = true
+
+editorial build-audio post_01_valid --config $CFG                 # sandbox intatta
+# Error: Phase F5 is disabled in editorial.toml                   (exit 1, nessuna scrittura)
+
+editorial build-audio post_01_valid --dry-run --json --config $CFG4
+# "status": "DRY_RUN", "provider": "script_only",
+# "script_file": "dist/audio/post_01/podcast_script.md"           (exit 0, nessuna scrittura)
+
+editorial build-audio post_01_valid --config $CFG4
+# BUILT: script_only
+# dist/audio/post_01/podcast_script.md                            (exit 0)
+```
+
+Aprite `dist/audio/post_01/podcast_script.md` nella copia: due segmenti, uno per fonte (`python-docs-cmdline` e `sandbox-benchmark-log`), ciascun claim seguito dal suo `Riferimento:`. Nessuna frase che non sia in `factcheck.json`.
+
+Con `--provider notebooklm` e senza la variabile `EDITORIAL_AUDIO_ID` il comando risponde `NotebookLM audio: notebook corpus is not configured. Retry or use --provider script_only.` (exit `1`); con `--dry-run` restituisce solo il percorso `dist/audio/post_01/podcast.m4a`, senza credenziali.
+
+**L'audio invalida il Gate 2 già approvato.** Nella copia il copione è un file nuovo in `dist/`:
+
+```bash
+editorial check-gate 2 post_01_valid --config $CFG4
+# Gate 2: stale receipt bundle or distribution kit                (exit 2)
+editorial publish post_01_valid --dry-run --config $CFG4
+# Gate 2: invalid or unreadable bundle                            (exit 2, nessuna scrittura)
+```
+
+Per questo F5 si chiude **prima** del pacchetto Gate 2, e `publish` non procede, nemmeno in anteprima, su un bundle che il Direttore non ha visto.
+
+**Il percorso completo, in un progetto reale.** Catalogo `[gates.gate2].allowed_actions` con `archive`; F4 e F5 completate; pacchetto Gate 2 con copione e kit; risposta del Direttore «Approvo Gate 2 #post_07 azioni: archive»; ricevuta e `check-gate 2` → `RECEIPT_VALID`; poi:
+
+```bash
+editorial publish post_07 --target dist_archive --dry-run --json   # piano, status DRY_RUN
+editorial publish post_07 --target dist_archive --json             # status PUBLISHED
+# published_files: ["dist/packages/post_07.tar.gz"]
+```
+
+**Pulizia.** Cancellate la copia `../prova_audio` al termine.
+
+### 9.7 Riepilogo del tutorial
 
 | Passo | Comando | Esito atteso | Exit |
 |---|---|---|---|
@@ -2371,6 +2579,11 @@ La ricevuta dimostrativa della sandbox autorizza invece `publish` («Approvo Gat
 | Gate 2 | `check-gate 2 post_01_valid` | `RECEIPT_VALID`, `allowed_actions: ["publish"]` | 0 |
 | Gate 1 con evidenza alterata (copia) | `check-gate 1 post_01_valid` | `Gate 1: stale receipt bundle` | 2 |
 | Gate su bozza con `BLOCK` | `check-gate 1 post_02_with_cliches` | `Gate blocked by BLOCK findings: ...` | 2 |
+| Pubblicazione (sandbox) | `publish post_01_valid` | `SKIPPED`: `publish` non autorizza alcun adapter locale | 0 |
+| Audio (sandbox) | `build-audio post_01_valid` | `Phase F5 is disabled`, nessuna scrittura | 1 |
+| Audio (copia con `F5 = true`) | `build-audio post_01_valid` | `BUILT: script_only`, copione in `dist/audio/post_01/` | 0 |
+| Gate 2 dopo l'audio (copia) | `check-gate 2 post_01_valid` | `Gate 2: stale receipt bundle or distribution kit` | 2 |
+| Pubblicazione dopo l'audio (copia) | `publish post_01_valid --dry-run` | `Gate 2: invalid or unreadable bundle` | 2 |
 
 ---
 
@@ -2387,7 +2600,8 @@ skills/editorial-pipeline/
     ├── humanizer_checklist.md            F2b, F4, F5: 10 regole, 27 regex, matrice di precedenza
     ├── factchecking_protocol.md          F1, F3: fonti, locator, sources.json, factcheck.json
     ├── verification-and-rag.md           F1, F3 con NotebookLM: strumenti MCP e verify-facts
-    └── gates_and_evidence.md             Gate 1 e 2: pacchetti, digest, ricevute, invalidazione
+    ├── gates_and_evidence.md             Gate 1 e 2: pacchetti, digest, ricevute, invalidazione
+    └── publishing-and-audio.md           F5 con build-audio, pubblicazione con publish dopo il Gate 2
 ```
 
 L'agente legge la reference indicata **prima** di eseguire la fase corrispondente. La skill si attiva con richieste come «nuovo articolo», «bozza», «fact-check», «verifica fonti», «kit social», «carosello», «podcast», «pubblica», «gate», «correzione».
@@ -2506,6 +2720,8 @@ Non funzionano: «ok», «va bene», «procedi», «sì, pubblica». L'agente de
 - Copiare i claim alla lettera dalla bozza.
 - Fermarsi a ogni gate e terminare il turno.
 - Dichiarare `skipped` le fasi opzionali disattivate.
+- Generare copione e audio F5 prima del pacchetto Gate 2.
+- Eseguire `publish --dry-run` prima di `publish`, e solo con una ricevuta di Gate 2 scritta dopo il messaggio del Direttore.
 
 **Mai**
 
@@ -2602,6 +2818,13 @@ Sì: `[project].language`, testi dei gate e registri sono configurabili. Il mani
 | `Error: RagUnavailableError` | Provider `notebooklm` non utilizzabile: variabile del corpus vuota, `nlm` non installato, sessione scaduta, timeout o risposta non valida | Controllare `EDITORIAL_RAG_ID` e `nlm --version`, ripetere `nlm login`, alzare `[rag].timeout_seconds`, provare `nlm query notebook` a mano; in alternativa usare `provider = "local"` |
 | `Error: Unknown RAG provider` | Nome di adapter RAG non riconosciuto | Usare `local`, `manual`, `none` o `notebooklm` |
 | `Error: Phase F4_visual is disabled in editorial.toml` | `build-visual` con `[phases.optional].F4_visual = false` | Attivare la fase, se la redazione la usa; altrimenti dichiararla `skipped` |
+| `Error: Phase F5 is disabled in editorial.toml` | `build-audio` con `[phases.optional].F5 = false` | Attivare la fase, se la redazione la usa; altrimenti dichiararla `skipped` |
+| `Error: Audio requires current validated draft evidence` | Evidenze della bozza con `BLOCK` (mancanti, `stale`, claim senza fonte) | Rieseguire `verify-facts` e risolvere i `BLOCK` prima di F5 |
+| `Error: Unsupported audio provider` | `[providers.audio].adapter` con un valore dichiarativo (`elevenlabs`, `openai_tts`, …) | Usare `script_only` o `notebooklm`, in `[audio].provider` o con `--provider` |
+| `NotebookLM audio: ... Retry or use --provider script_only.` | `nlm` assente, sessione scaduta, variabile `EDITORIAL_AUDIO_ID` vuota, timeout o generazione non conclusa | Controllare variabile e `nlm login`; riprovare, oppure, se il Direttore è d'accordo, usare `script_only` |
+| `publish` risponde `SKIPPED` | La ricevuta di Gate 2 non contiene un'azione dell'adapter scelto (es. solo `publish`) | Nessun errore: non c'è nulla da eseguire. Un'azione nuova richiede una nuova approvazione del Direttore |
+| `publish` risponde `Gate 2: invalid or unreadable bundle` | Ricevuta assente, non valida o `stale` (anche per una pubblicazione precedente in `dist/`) | Eseguire `check-gate 2` per il motivo preciso; ripresentare il pacchetto Gate 2 se serve |
+| `Error: publishing destination already exists` | Archivio o cartella di esportazione già presenti | Nessuna sovrascrittura: spostare l'output precedente o cambiare cartella in `[publishing]` |
 | `Error: Skill destination already exists; use --force to overwrite` | `install-skill` su una cartella con la skill già installata | Aggiungere `--force` per aggiornarla |
 | `Error: FileNotFoundError` | `editorial.toml` non trovato | Lanciare dalla radice del progetto o passare `--config` |
 | `Error: FileExistsError` su `init` | La cartella di destinazione esiste già | Scegliere un nome nuovo; `init` non sovrascrive |

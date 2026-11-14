@@ -6,7 +6,7 @@ description: >-
   Ciclo a fasi con fact-checking su fonti primarie, revisione anti-cliché e due gate umani
   obbligatori (bozza e pubblicazione): l'agente prepara e verifica, non approva né pubblica mai.
   Trigger: "nuovo articolo", "bozza", "fact-check", "verifica fonti", "kit social", "carosello",
-  "podcast", "pubblica", "gate", "correzione", "editorial-pipeline".
+  "podcast", "audio", "pubblica", "esporta", "archivio", "gate", "correzione", "editorial-pipeline".
 ---
 
 # Editorial Pipeline — skill operativa per agenti
@@ -25,6 +25,7 @@ Leggete la reference indicata **prima** di eseguire la fase corrispondente:
 | `references/factchecking_protocol.md` | F1 e F3: fonti primarie, locator, `sources.json`, `factcheck.json`, confronto con la bozza |
 | `references/verification-and-rag.md` | F1 e F3 con Google NotebookLM: strumenti MCP `notebooklm-mcp`, `verify-facts` con `provider = "notebooklm"`, lettura dei finding remoti, zero-leak |
 | `references/gates_and_evidence.md` | Gate 1 e Gate 2: pacchetti, digest `v1:`, ricevute schema v1 con bundle, `check-gate`, invalidazione |
+| `references/publishing-and-audio.md` | F5 con `build-audio` (provider `script_only` e `notebooklm`) e pubblicazione con `publish` dopo il Gate 2: azioni, adapter `dist_archive` e `static_site`, `--dry-run`, esiti |
 
 Documentazione del progetto ospite (se presente): `docs/author_guide.md`, `docs/humanizer_guide.md`, `docs/transparency_pages.md`, `editorial.toml`, `templates/author_profile.yaml`, `templates/editorial_manifest.yaml`.
 
@@ -91,7 +92,7 @@ Convenzioni:
 - `post_id` deriva dal nome file: `post_07_titolo.md` → `post_07`; altrimenti è il nome file senza estensione. Le unità si cercano anche nelle sottocartelle di `[paths].content`; due file con lo stesso `post_id` sono un errore. `status` e `validate-all` ignorano i file che iniziano con `_` (modelli).
 - **Digest versionato.** Ogni versione di un file è identificata da `v1:<sha256>`, calcolato sul percorso relativo POSIX e sui byte con fine riga normalizzati a LF: lo stesso file ha lo stesso digest su Windows e su Linux. Dettagli in `references/gates_and_evidence.md` §1.
 - Percorsi sempre **relativi**. Nessun identificativo cloud, token o chiave nei file: solo variabili d'ambiente (es. `EDITORIAL_RAG_ID`).
-- Codici di uscita: `0` ok; `1` almeno un `BLOCK` **oppure** errore di input; `2` gate rifiutato da `check-gate`. Se l'output è `Error: …` senza JSON, il problema è di configurazione, di percorso o di provider, non di contenuto: controllate `editorial.toml` ed eseguite `status`.
+- Codici di uscita: `0` ok; `1` almeno un `BLOCK` **oppure** errore di input (anche una fase disattivata); `2` gate rifiutato da `check-gate` o da `publish`. Se l'output è `Error: …` senza JSON, il problema è di configurazione, di percorso o di provider, non di contenuto: controllate `editorial.toml` ed eseguite `status`.
 
 ### Riferimento rapido della CLI
 
@@ -103,7 +104,9 @@ Convenzioni:
 | `editorial-pipeline validate-all [--json]` | F6, pre-release | Come sopra, per tutte le unità | — |
 | `editorial-pipeline verify-facts <post> [--json]` | F3 | Coerenza formale delle evidenze registrate: schema e `post_id`; `draft_digest` di `factcheck.json` e `draft-review.json` uguale al digest corrente; esiti ammessi, `source_key` e locator; fonte `primary` per `grounded_primary`; copie locali dentro il progetto; voci di `[humanizer].required_items` a `pass`; presenza di ogni `text` nella bozza normalizzata | Non interroga alcun corpus, non giudica se la fonte sostiene davvero il claim, non trova le frasi fattuali della bozza prive di claim |
 | `editorial-pipeline build-visual <post> [--dry-run] [--html-only] [--aspect-ratio 4:5\|1:1]` | F4 | Con `[phases.optional].F4_visual = true`, genera il carosello in `[paths].dist/social/<post_id>/` con manifest e SHA-256. `--dry-run` elenca i file senza scrivere nulla; `--html-only` produce solo HTML e manifest, senza Playwright | Con `F4_visual = false` si rifiuta (exit 1), anche in `--dry-run` |
+| `editorial-pipeline build-audio <post> [--provider script_only\|notebooklm] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il copione `podcast_script.md` (`script_only`, offline) o l'audio `podcast.m4a` (`notebooklm`, via `nlm`) in `[paths].dist/audio/<post_id>/`. `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm` | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non revisiona il copione, non approva nulla |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
+| `editorial-pipeline publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown e asset in `dist/published/<post_id>/`. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive |
 
 Stati dei controlli: `OK`, `WARN` (va motivato nel pacchetto), `BLOCK` (impedisce il gate).
 
@@ -130,8 +133,9 @@ F2a  Prima stesura
 F2b  De-aizing e revisione di stile, draft-review.json
 F3   Fact-checking con RAG, factcheck.json, verify-facts senza BLOCK
      ══ GATE 1 — Bozza verificata (Direttore) ══
-F4   Visual & Social   ‖   F5   Podcast / Audio   (in parallelo; F5 facoltativa)
+F4   Visual & Social   ‖   F5   Podcast / Audio, build-audio   (in parallelo; F5 facoltativa)
      ══ GATE 2 — Pubblicazione (Direttore) ══
+     publish: solo le azioni autorizzate (archive, export_markdown)
 F6   Monitoraggio, trasparenza e correzioni
 ```
 
@@ -231,18 +235,25 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
 4. Applicate la checklist anti-cliché ai testi promozionali (sono testi nuovi). Registrate `social-review.json` + prova.
 5. Formule vietate in ogni canale: «zero allucinazioni», «verificato al 100%», «scritto da una persona», «non rilevabile».
 
-**F5 — Podcast / Audio** (solo se `[phases.optional].F5 = true`)
+**F5 — Podcast / Audio** (solo se `[phases.optional].F5 = true`; altrimenti `skipped` nel pacchetto Gate 2). Procedura completa: `references/publishing-and-audio.md` §2.
 
-1. Il copione deriva dalla bozza approvata: nessun claim nuovo. Ogni dato detto a voce ha il suo `claim_id`.
-2. Il copione passa dalla checklist anti-cliché (registrata con la prova social o in una prova dedicata).
-3. Le voci sintetiche si dichiarano come tali nella descrizione della puntata.
+1. Generate il copione dai claim verificati (provider `script_only`, salvo indicazione del Direttore per `notebooklm`):
+   ```bash
+   editorial-pipeline build-audio content/posts/post_07_titolo.md --dry-run --json   # percorso previsto, nessuna scrittura
+   editorial-pipeline build-audio content/posts/post_07_titolo.md --json             # dist/audio/post_07/podcast_script.md
+   ```
+   Il comando si rifiuta se le evidenze hanno `BLOCK`. Con `notebooklm` un errore `NotebookLM audio: …` si riferisce al Direttore: non cambiate provider da soli.
+2. Il copione deriva dalla bozza approvata: nessun claim nuovo. Ogni dato detto a voce ha il suo `claim_id`.
+3. Il copione passa dalla checklist anti-cliché (registrata con la prova social o in una prova dedicata).
+4. Le voci sintetiche si dichiarano come tali nella descrizione della puntata.
+5. Copione e audio stanno in `[paths].dist` e quindi nel bundle del Gate 2: chiudete F5 **prima** del pacchetto Gate 2. Rigenerarli dopo rende la ricevuta `stale`.
 
 **Uscita:** kit completo, manifest del carosello, prova di revisione, tabella dati promozionali → claim; copione audio se previsto.
 
 ### ══ GATE 2 — Pubblicazione ══
 
 1. **Controlli finali.** Rieseguite `validate-draft --json` e `verify-facts --json`: senza `BLOCK` e con lo stesso digest approvato al Gate 1. Per `investigative`: richieste di replica documentate nel testo.
-2. Componete il **pacchetto Gate 2** (`references/gates_and_evidence.md` §3): anteprime e testi integrali del kit, tabella dati promozionali, data e ora di uscita nel fuso del progetto con equivalente UTC, elenco dei file da pubblicare, **azioni proposte**.
+2. Componete il **pacchetto Gate 2** (`references/gates_and_evidence.md` §3): anteprime e testi integrali del kit, copione e audio F5 (o `F5: skipped`), tabella dati promozionali, data e ora di uscita nel fuso del progetto con equivalente UTC, elenco dei file da pubblicare, **azioni proposte**. Per l'esecuzione locale con `publish` proponete `archive` (pacchetto `tar.gz`) e/o `export_markdown` (sito statico), se sono nel catalogo `[gates.gate2].allowed_actions`, con la cartella di destinazione.
 3. Ponete la domanda, ad esempio:
    > Approvi la pubblicazione di #post_07 il 20 novembre 2026 alle 08:00 (Europe/Rome; 07:00 UTC)? Azioni proposte: `publish`, `schedule`. Rispondi «Approvo Gate 2 #post_07 azioni: publish, schedule» indicando solo le azioni che autorizzi.
 4. **Fermatevi e attendete.**
@@ -252,6 +263,21 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
    ```
    Il Gate 2 rivalida anche il Gate 1. Qualsiasi file aggiunto o cambiato in `[paths].dist` dopo la ricevuta, anche di un'altra unità, la rende `stale`.
 6. Eseguite **solo** le azioni elencate nella ricevuta.
+
+### Pubblicazione — dopo il Gate 2
+
+Procedura completa ed esiti: `references/publishing-and-audio.md` §3.
+
+1. Prerequisiti: messaggio del Direttore in questa sessione, ricevuta scritta dopo, `check-gate 2` → `RECEIPT_VALID`.
+2. Scegliete il target dalle azioni della ricevuta: `archive` → `--target dist_archive`; `export_markdown` → `--target static_site`. Se nessuna azione riguarda un adapter, `publish` risponderebbe `SKIPPED`: non c'è nulla da eseguire con la CLI.
+3. Anteprima e poi esecuzione:
+   ```bash
+   editorial-pipeline publish content/posts/post_07_titolo.md --target dist_archive --dry-run --json
+   editorial-pipeline publish content/posts/post_07_titolo.md --target dist_archive --json
+   ```
+4. Exit 2 (`Gate 2: invalid or unreadable bundle`): la ricevuta non vale più per i file correnti. Eseguite `check-gate 2` per il motivo e, se il bundle è cambiato, ripresentate il pacchetto. **Mai** ritoccare `gate2.json` o il catalogo delle azioni.
+5. Una pubblicazione per ricevuta: con le cartelle predefinite (dentro `[paths].dist`) la prima pubblicazione rende `stale` il Gate 2 e un secondo `publish` esce con exit 2.
+6. Riferite `status`, `executed_actions`, `published_files` e `details.bundle_digest`. Caricamenti in rete, invii e programmazioni restano fuori dalla CLI e richiedono la loro azione autorizzata.
 
 ### F6 — Monitoraggio, trasparenza e correzioni
 

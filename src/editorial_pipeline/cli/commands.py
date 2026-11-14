@@ -13,6 +13,17 @@ import yaml
 from pydantic import ValidationError
 
 from editorial_pipeline import __version__
+from editorial_pipeline.adapters.audio import (
+    AudioProvider,
+    AudioUnavailableError,
+    NotebookLMAdapter,
+    ScriptOnlyAdapter,
+)
+from editorial_pipeline.adapters.publish import (
+    DistArchivePublisher,
+    PublishAdapter,
+    StaticSitePublisher,
+)
 from editorial_pipeline.adapters.rag import (
     RagUnavailableError,
     get_rag_provider,
@@ -32,7 +43,7 @@ from editorial_pipeline.application.evidence_verifier import (
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
 from editorial_pipeline.cli.reports import _sanitize, digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
-from editorial_pipeline.config.models import MACRO_RUNTIME_AMMESSE
+from editorial_pipeline.config.models import MACRO_RUNTIME_AMMESSE, AudioConfig
 from editorial_pipeline.domain.gates import (
     RECEIPT_ADAPTER,
     Gate1Receipt,
@@ -294,16 +305,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         "check-gate",
         "verify-facts",
         "build-visual",
+        "build-audio",
+        "publish",
     ):
         p = sub.add_parser(name)
         if name == "check-gate":
             p.add_argument("gate_num", type=int, choices=(1, 2))
-        if name in ("validate-draft", "check-gate", "verify-facts", "build-visual"):
+        if name in (
+            "validate-draft",
+            "check-gate",
+            "verify-facts",
+            "build-visual",
+            "build-audio",
+            "publish",
+        ):
             p.add_argument("post_target")
         if name == "check-gate":
             p.add_argument("--token", help="Deprecated; a formal receipt is always required")
-        if name in ("validate-draft", "validate-all", "verify-facts"):
+        if name in ("validate-draft", "validate-all", "verify-facts", "publish", "build-audio"):
             p.add_argument("--json", action="store_true")
+        if name == "publish":
+            p.add_argument("--target", choices=("dist_archive", "static_site"))
+            p.add_argument("--dry-run", action="store_true")
+        if name == "build-audio":
+            p.add_argument("--provider", choices=("script_only", "notebooklm"))
+            p.add_argument("--dry-run", action="store_true")
         if name == "build-visual":
             p.add_argument("--dry-run", action="store_true")
             p.add_argument("--html-only", action="store_true")
@@ -350,6 +376,96 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         root, config, paths = _config(args.config)
         posts = paths["paths.content"]
+        if args.command == "build-audio":
+            if not config.phases.optional.F5:
+                raise ValueError("Phase F5 is disabled in editorial.toml")
+            post = _discover_posts(posts).get(args.post_target)
+            if post is None:
+                post = _post(args.post_target, root, posts)
+            post_id = _post_id(post)
+            output_dir = paths["paths.dist"] / "audio" / post_id
+            # Gate 2 excludes reports: audio must remain in the bound artifact inventory.
+            reports_dir = paths["paths.reports"]
+            if output_dir.is_relative_to(reports_dir) or reports_dir.is_relative_to(output_dir):
+                raise ValueError("audio output overlaps excluded reports directory")
+            protected = [
+                p for key, p in paths.items() if key not in ("paths.dist", "paths.reports")
+            ]
+            if any(output_dir.is_relative_to(p) or p.is_relative_to(output_dir) for p in protected):
+                raise ValueError("audio output overlaps protected project inputs")
+            evidence = paths["paths.evidence"] / post_id
+            findings = EvidenceVerifier(config, root).verify(post, post_id, evidence)
+            if any(f.state == VerificationState.BLOCK for f in findings):
+                raise ValueError("Audio requires current validated draft evidence")
+            source_records, checks = load_records(evidence)
+            sources = [
+                {
+                    "key": source.key,
+                    "claims": [
+                        {"text": claim.text, "locator": claim.locator}
+                        for claim in checks.claims
+                        if claim.source_key == source.key
+                    ],
+                }
+                for source in source_records.sources
+            ]
+            adapter = args.provider or (
+                config.audio.provider if config.audio else config.providers.audio.adapter
+            )
+            audio_provider: AudioProvider
+            if adapter in ("script_only", "none"):
+                audio_provider = ScriptOnlyAdapter(root)
+            elif adapter == "notebooklm":
+                audio_config = config.audio or AudioConfig()
+                audio_provider = NotebookLMAdapter(
+                    root,
+                    audio_config.corpus_id,
+                    audio_config.corpus_id_env,
+                    audio_config.timeout_seconds,
+                )
+            else:
+                raise ValueError("Unsupported audio provider")
+            audio_result = audio_provider.build(
+                post_id, post.read_text(encoding="utf-8"), sources, output_dir, args.dry_run
+            )
+            if args.json:
+                print(serialize(audio_result.model_dump()))
+            else:
+                print(f"{audio_result.status}: {audio_result.provider}")
+                print(audio_result.script_file or ", ".join(audio_result.audio_files))
+            return 0
+        if args.command == "publish":
+            discovered = _discover_posts(posts)
+            post = discovered.get(args.post_target)
+            if post is None:
+                post = _post(args.post_target, root, posts)
+            try:
+                approved = _check_gate(2, post, root, config, paths)
+            except (OSError, ValueError) as exc:
+                raise GhostApprovalForbiddenError("Gate 2: invalid or unreadable bundle") from exc
+            publish_target = args.target or (
+                config.publishing.target if config.publishing else "dist_archive"
+            )
+            publisher: PublishAdapter = (
+                DistArchivePublisher(root)
+                if publish_target == "dist_archive"
+                else StaticSitePublisher(root)
+            )
+            publish_result = publisher.publish(
+                _post_id(post),
+                post,
+                approved["bundle"]["artifacts"],
+                approved["allowed_actions"],
+                config,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(serialize(publish_result.model_dump()))
+            else:
+                print(f"{publish_result.status}: {publish_result.target}")
+                if publish_result.status == "SKIPPED":
+                    print(publish_result.details["warning"], file=sys.stderr)
+            return 0
         if args.command == "check-gate":
             post = _post(args.post_target, root, posts)
             try:
@@ -463,6 +579,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     except ValueError as exc:
         print(_sanitize(f"Error: {exc}"), file=sys.stderr)
+        return 1
+    except AudioUnavailableError as exc:
+        print(str(exc), file=sys.stderr)
         return 1
     except (OSError, RagUnavailableError, VisualBuildError, yaml.YAMLError) as exc:
         print(f"Error: {type(exc).__name__}", file=sys.stderr)
