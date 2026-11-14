@@ -90,6 +90,9 @@ class NotebookLMAdapter(RagProvider):
             raise RagUnavailableError("NotebookLM returned an invalid JSON response")
         answer = payload.get("answer", payload.get("text", payload.get("content")))
         citations = payload.get("citations", payload.get("sources"))
+        if isinstance(citations, dict):
+            # nlm >= 0.15 maps citation numbers to source identifiers.
+            citations = list(citations.values())
         if not isinstance(answer, str) or (
             citations is not None and not isinstance(citations, list)
         ):
