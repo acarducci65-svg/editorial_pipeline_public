@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from editorial_pipeline.adapters.audio.base import AudioProvider, AudioResult, AudioUnavailableError
 
@@ -19,20 +19,47 @@ def unavailable(reason: str) -> AudioUnavailableError:
     )
 
 
+AudioFormat = Literal["m4a", "mp3"]
+AUDIO_FORMATS: tuple[AudioFormat, ...] = ("m4a", "mp3")
+
+
 class NotebookLMAdapter(AudioProvider):
+    """Google NotebookLM Studio Audio Overview: the editorial standard for podcasts."""
+
     def __init__(
         self,
         project_root: Path,
         corpus_id: str | None = None,
         corpus_id_env: str = "EDITORIAL_AUDIO_ID",
         timeout: float = 60.0,
+        language: str = "it",
+        audio_format: AudioFormat = "m4a",
     ) -> None:
         super().__init__(project_root)
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("NotebookLM timeout must be finite and positive")
+        if not language.isalpha() or not 2 <= len(language) <= 8:
+            raise ValueError("NotebookLM language must be a short alphabetic code")
+        if audio_format not in AUDIO_FORMATS:
+            raise ValueError("NotebookLM audio format must be 'm4a' or 'mp3'")
         self._corpus_id = corpus_id
         self._corpus_id_env = corpus_id_env
         self._timeout = timeout
+        self.language = language
+        self.audio_format: AudioFormat = audio_format
+
+    @property
+    def filename(self) -> str:
+        return f"podcast.{self.audio_format}"
+
+    def preflight(self) -> str:
+        """Return the configured notebook, or raise before any network call."""
+        corpus = self._corpus_id or os.environ.get(self._corpus_id_env)
+        if not corpus or not corpus.strip() or corpus.startswith("-"):
+            raise unavailable("notebook corpus is not configured")
+        if shutil.which("nlm") is None:
+            raise unavailable("CLI 'nlm' is unavailable")
+        return corpus
 
     def _run(self, args: list[str]) -> str:
         try:
@@ -75,19 +102,16 @@ class NotebookLMAdapter(AudioProvider):
         output_dir: Path,
         dry_run: bool = False,
     ) -> AudioResult:
-        path = self.destination(post_id, output_dir, "podcast.m4a")
+        path = self.destination(post_id, output_dir, self.filename)
         result = AudioResult(
             status="DRY_RUN" if dry_run else "BUILT",
             provider="notebooklm",
             audio_files=[self.result_path(path)],
+            details={"language": self.language, "format": self.audio_format},
         )
         if dry_run:
             return result
-        corpus = self._corpus_id or os.environ.get(self._corpus_id_env)
-        if not corpus or not corpus.strip() or corpus.startswith("-"):
-            raise unavailable("notebook corpus is not configured")
-        if shutil.which("nlm") is None:
-            raise unavailable("CLI 'nlm' is unavailable")
+        corpus = self.preflight()
         claims = "\n".join(
             f"{claim['text']} (fonte {source['key']}, {claim['locator']})"
             for source in sources
@@ -98,6 +122,8 @@ class NotebookLMAdapter(AudioProvider):
                 "audio",
                 "create",
                 corpus,
+                "--language",
+                self.language,
                 "--confirm",
                 "--json",
                 "--focus",
@@ -141,7 +167,7 @@ class NotebookLMAdapter(AudioProvider):
         # Download to a temporary file so errors never replace an existing artifact.
         path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix=".audio-", dir=path.parent) as temporary:
-            downloaded = Path(temporary) / "podcast.m4a"
+            downloaded = Path(temporary) / self.filename
             self._run(
                 [
                     "download",
@@ -158,3 +184,7 @@ class NotebookLMAdapter(AudioProvider):
                 raise unavailable("download did not produce an audio file")
             downloaded.replace(path)
         return result
+
+
+# Explicit alias: NotebookLM is the only audio engine fit for publication.
+NotebookLMAudioAdapter = NotebookLMAdapter

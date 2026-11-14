@@ -1,15 +1,25 @@
-"""Local MP3 output via optional edge-tts (Microsoft's online speech service)."""
+"""DEPRECATED local MP3 output via optional edge-tts (Microsoft's online speech service).
+
+Robotic single-voice synthesis is not fit for publication: Google NotebookLM Studio
+(provider ``notebooklm``) is the required editorial standard for podcast production.
+"""
 
 import os
 import re
 import shutil
 import subprocess
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Any
 
 from editorial_pipeline.adapters.audio.base import AudioProvider, AudioResult, AudioUnavailableError
 from editorial_pipeline.cli.reports import _sanitize
+
+TTS_DEPRECATION = (
+    "Local TTS produces sub-standard robotic audio; Google NotebookLM Studio is the "
+    "required editorial standard for podcast production. Use --provider notebooklm."
+)
 
 
 def _spoken_text(text: str) -> str:
@@ -32,9 +42,12 @@ def _spoken_text(text: str) -> str:
 
 
 class LocalTtsAudioProvider(AudioProvider):
+    """Deprecated: kept only for offline previews, never for publication."""
+
     def __init__(
         self, project_root: Path, voice: str = "it-IT-DiegoNeural", rate: str = "+0%"
     ) -> None:
+        warnings.warn(TTS_DEPRECATION, DeprecationWarning, stacklevel=2)
         super().__init__(project_root)
         self.voice = voice
         self.rate = rate
@@ -53,7 +66,7 @@ class LocalTtsAudioProvider(AudioProvider):
                 status="DRY_RUN",
                 provider="tts",
                 audio_files=[self.result_path(dest)],
-                details={"planned_voice": self.voice},
+                details={"planned_voice": self.voice, "deprecated": True},
             )
         engine = shutil.which("edge-tts")
         if engine is None:
@@ -104,5 +117,5 @@ class LocalTtsAudioProvider(AudioProvider):
             status="BUILT",
             provider="tts",
             audio_files=[self.result_path(dest)],
-            details={"voice": self.voice},
+            details={"voice": self.voice, "deprecated": True},
         )
