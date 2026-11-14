@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "gate": 1,
+  "post_id": "post_01",
+  "role": "Direttore",
+  "decision": "approved",
+  "timestamp": "2026-11-12T09:30:00+01:00",
+  "excerpt": "Approvo Gate 1 #post_01",
+  "bundle": {
+    "draft_digest": "v1:71dfac690d4207a4118d7f81d3500c95c134d1325f1ac2b4a928cb2b8edb2913",
+    "sources_digest": "v1:f97f4ccba3c76dbab7c9e2f33be201cedd62e481a8aaaca541115994342bd32e",
+    "factcheck_digest": "v1:1163aa1cef4d088d3241afbc4916f912d4ccdbea30ce2a35a9fc76014730bfbb",
+    "review_digest": "v1:adcb1424ec3aa103546463cc2f220bd4d06e22a231c2f0b23e696e85d7d8237e"
+  }
+}

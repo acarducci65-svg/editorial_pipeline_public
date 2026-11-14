@@ -15,14 +15,16 @@ def digest(path: Path, root: Path) -> str:
     h = hashlib.sha256()
     h.update(relative_path(path, root).encode())
     h.update(b"\0")
-    h.update(path.read_bytes())
-    return h.hexdigest()
+    data = path.read_bytes().replace(b"\r\n", b"\n")
+    h.update(data)
+    return f"v1:{h.hexdigest()}"
 
 
 def _sanitize(value: Any) -> Any:
     if isinstance(value, str):
         value = re.sub(r"(?i)\b[a-z]:[\\/]+[^\s\"?]*", "[redacted]", value)
-        return re.sub(r"(?<![\w:/])/(?!/)[^\s\"?]+", "[redacted]", value)
+        value = re.sub(r'\\\\[^\s\\]+\\[^\s"?]*', "[redacted]", value)
+        return re.sub(r'(?<![\w:/])/(?:home|Users|tmp)/[^\s"?]*', "[redacted]", value)
     if isinstance(value, list):
         return [_sanitize(item) for item in value]
     if isinstance(value, dict):

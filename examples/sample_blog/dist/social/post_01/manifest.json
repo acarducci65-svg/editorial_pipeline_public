@@ -1,0 +1,40 @@
+{
+  "post_id": "post_01",
+  "artifact_type": "carousel_html",
+  "files": [
+    {
+      "path": "post_01/slide_01.html",
+      "kind": "html",
+      "sha256": "c02ad694e53ca95e0ad32a66a76fa1f4feb38e59323057ea746f6e69fa1e2d31"
+    },
+    {
+      "path": "post_01/slide_02.html",
+      "kind": "html",
+      "sha256": "62cdd8219c97b2a932b03bd6bf995bf044220e659087ad87d94ae8b36438b1d6"
+    },
+    {
+      "path": "post_01/slide_03.html",
+      "kind": "html",
+      "sha256": "2e1083667d2e402ccb9a9fb67160d623a419eaab086d6ce457e2c5e5679db68f"
+    },
+    {
+      "path": "post_01/slide_04.html",
+      "kind": "html",
+      "sha256": "0c9789b2be819e9997215e0788bc10a84f980a0c2e4eb7b3eec646901aeb6f55"
+    },
+    {
+      "path": "post_01/slide_05.html",
+      "kind": "html",
+      "sha256": "71dcc5d59852fd4243511aba7966cdcb72983f5860e4db39f5e15341ea2aa4d7"
+    },
+    {
+      "path": "post_01/slide_06.html",
+      "kind": "html",
+      "sha256": "a564635323b7ef1277c25fa6fa2ee0d7928b630aaabe8c624b76ff55f9143977"
+    }
+  ],
+  "digest": "5d52d526e147387ac0c9afa4cf77899963b8cfb9e7b3cf153a0170c122865b8a",
+  "notes": [
+    "Rasterisation disabled: HTML preview only"
+  ]
+}

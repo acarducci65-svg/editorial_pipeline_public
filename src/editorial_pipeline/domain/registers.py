@@ -155,7 +155,8 @@ def load_register(path: Path | str) -> StyleRegister:
     with source.open(encoding="utf-8") as stream:
         data = yaml.safe_load(stream)
     if not isinstance(data, dict):
-        raise TypeError(f"register file {source.name} is not a mapping")
+        # Malformed file content is a user input error, handled by the CLI.
+        raise ValueError("Register YAML must be a mapping")  # noqa: TRY004
     register = StyleRegister.model_validate(data)
     if register.id != source.stem:
         raise ValueError(f"register id {register.id!r} does not match file name {source.name!r}")

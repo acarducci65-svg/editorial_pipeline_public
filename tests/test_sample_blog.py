@@ -1,13 +1,22 @@
 import json
 import re
+import shutil
 from pathlib import Path
 
 import pytest
 import yaml
 
 from editorial_pipeline.application import StyleChecker, aggregate_state
+from editorial_pipeline.cli.commands import main
+from editorial_pipeline.cli.reports import digest
 from editorial_pipeline.config import EditorialConfig, load_config
 from editorial_pipeline.domain import VerificationState
+from editorial_pipeline.domain.gates import (
+    RECEIPT_ADAPTER,
+    Gate1Receipt,
+    Gate2Receipt,
+    GateReceipt,
+)
 
 ROOT = Path("examples/sample_blog")
 POSTS = ROOT / "content" / "posts"
@@ -109,6 +118,13 @@ def test_evidence_matches_posts() -> None:
     assert {c["outcome"] for c in factcheck["claims"]} == {"unsupported"}
 
 
+def test_sample_report_uses_versioned_digests(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["status", "--config", str(ROOT / "editorial.toml")]) == 1
+    posts = json.loads(capsys.readouterr().out)["posts"]
+    assert len(posts) == 2
+    assert all(re.fullmatch(r"v1:[0-9a-f]{64}", post["digest"]) for post in posts)
+
+
 _LEAK_PATTERNS = {
     "absolute_windows_path": re.compile(r"\b[A-Za-z]:[\\/]"),
     "absolute_posix_home": re.compile(r"/(?:home|Users)/"),
@@ -127,3 +143,63 @@ def test_zero_leak() -> None:
             assert not pattern.search(text), (name, path.name)
         for domain in _EMAIL.findall(text):
             assert domain in {"example.org", "blog.example.org", "example.com"}, path.name
+
+
+CONFIG = str(ROOT / "editorial.toml")
+
+
+@pytest.mark.parametrize("command", ["validate-draft", "verify-facts"])
+def test_valid_post_has_zero_warn_and_block(
+    command: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main([command, "post_01_valid.md", "--config", CONFIG]) == 0
+    report = json.loads(capsys.readouterr().out)
+    findings = report["posts"][0]["findings"] if "posts" in report else report["findings"]
+    assert {f["state"] for f in findings} <= {"OK"}
+
+
+def test_sample_evidence_is_bound_to_current_draft() -> None:
+    folder = ROOT / "evidence/post_01"
+    current = digest(POSTS / "post_01_valid.md", ROOT)
+    factcheck = json.loads((folder / "factcheck.json").read_text(encoding="utf-8"))
+    review = json.loads((folder / "draft-review.json").read_text(encoding="utf-8"))
+    assert factcheck["draft_digest"] == review["draft_digest"] == current
+    assert {c["outcome"] for c in factcheck["claims"]} <= {
+        "grounded_primary",
+        "verified_external",
+    }
+    config = load_config(ROOT / "editorial.toml")
+    assert review["items"] == dict.fromkeys(config.humanizer.required_items, "pass")
+    sources = json.loads((folder / "sources.json").read_text(encoding="utf-8"))
+    primary = {s["key"] for s in sources["sources"] if s["primary"]}
+    grounded = {c["source_key"] for c in factcheck["claims"] if c["outcome"] == "grounded_primary"}
+    assert grounded and grounded <= primary
+
+
+@pytest.mark.parametrize("gate,model", [(1, Gate1Receipt), (2, Gate2Receipt)])
+def test_sample_receipts_follow_schema_v1(gate: int, model: type[GateReceipt]) -> None:
+    path = ROOT / f"evidence/post_01/approvals/gate{gate}.json"
+    receipt = RECEIPT_ADAPTER.validate_json(path.read_text(encoding="utf-8"))
+    assert isinstance(receipt, model)
+    assert receipt.schema_version == 1 and receipt.post_id == "post_01"
+
+
+@pytest.mark.parametrize("gate", [1, 2])
+def test_sample_receipts_are_valid(gate: int, capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["check-gate", str(gate), "post_01_valid", "--config", CONFIG]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "RECEIPT_VALID" and result["gate"] == gate
+
+
+def test_edited_draft_invalidates_sample_receipt(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project)
+    draft = project / "content/posts/post_01_valid.md"
+    draft.write_text(draft.read_text(encoding="utf-8") + "\nRiga aggiunta.\n", encoding="utf-8")
+    config = str(project / "editorial.toml")
+    assert main(["verify-facts", "post_01_valid", "--config", config]) == 1
+    codes = {f["code"] for f in json.loads(capsys.readouterr().out)["findings"]}
+    assert {"rag.stale_factcheck", "humanizer.stale_review"} <= codes
+    assert main(["check-gate", "1", "post_01_valid", "--config", config]) == 2
