@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "editorial-pipeline"
-version = "0.1.0.dev0"
+version = "0.2.0"
 description = "A human-governed editorial pipeline"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,7 +43,7 @@ editorial = "editorial_pipeline.__main__:main"
 editorial-pipeline = "editorial_pipeline.__main__:main"
 
 [tool.hatch.build.targets.sdist]
-include = ["/src/editorial_pipeline", "/tests", "/README.md", "/LICENSE", "/pyproject.toml", "/templates", "/editorial.example.toml", "/examples", "/skills"]
+include = ["/src/editorial_pipeline", "/tests", "/README.md", "/CHANGELOG.md", "/LICENSE", "/pyproject.toml", "/templates", "/editorial.example.toml", "/examples", "/skills"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/editorial_pipeline"]

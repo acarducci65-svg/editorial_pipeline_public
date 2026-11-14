@@ -1,6 +1,6 @@
 # Editorial Pipeline — Manuale ufficiale di configurazione e uso
 
-> **Versione del manuale:** 1.2.0 · **Data:** 14 novembre 2026 · **Software:** `0.1.0.dev0` · **Licenza:** Apache 2.0
+> **Versione del manuale:** 1.3.0 · **Data:** 14 novembre 2026 · **Software:** 0.2.0 · **Licenza:** Apache 2.0
 >
 > Framework open source per la redazione aumentata: libreria Python, CLI `editorial` / `editorial-pipeline` e skill per agenti AI (Antigravity IDE, Claude Code, Codex CLI). La pipeline fa verificare i fatti su fonti primarie, sottopone i testi a una revisione anti-cliché e lascia a una persona le due decisioni che contano: approvare la bozza e approvare la pubblicazione.
 
@@ -197,7 +197,7 @@ Versione installata (stessa risposta per entrambi i comandi):
 
 ```bash
 $ editorial --version
-editorial-pipeline 0.1.0-dev
+editorial-pipeline 0.2.0
 ```
 
 Dalla radice del repository del framework, la sandbox inclusa offre un controllo immediato:
