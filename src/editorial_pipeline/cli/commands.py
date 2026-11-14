@@ -5,6 +5,7 @@ import re
 import shutil
 import sys
 import warnings
+import webbrowser
 from collections.abc import Sequence
 from importlib import resources
 from pathlib import Path
@@ -44,6 +45,7 @@ from editorial_pipeline.application.evidence_verifier import (
     load_records,
 )
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
+from editorial_pipeline.application.web_hub import generate_web_hub, serve_console
 from editorial_pipeline.cli.reports import _sanitize, digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
 from editorial_pipeline.config.models import MACRO_RUNTIME_AMMESSE, AudioConfig
@@ -301,6 +303,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     install = sub.add_parser("install-skill", help="Install the editorial-pipeline agent skill")
     install.add_argument("target_dir", help="Agent skills directory receiving editorial-pipeline/")
     install.add_argument("--force", action="store_true", help="Overwrite an existing skill")
+    view = sub.add_parser("view", help="Open the offline editorial console")
+    view.add_argument("post_id")
+    view.add_argument("--serve", action="store_true", help="Serve on localhost until Ctrl+C")
+    view.add_argument("--port", type=int, default=8000, help="Local port; 0 selects a free port")
+    view.add_argument("--no-browser", action="store_true")
+    view.add_argument("--config", default="editorial.toml")
     for name in (
         "status",
         "validate-draft",
@@ -347,6 +355,54 @@ def main(argv: Sequence[str] | None = None) -> int:
         p.add_argument("--config", default="editorial.toml")
     args = parser.parse_args(argv)
     try:
+        if args.command == "view":
+            if not 0 <= args.port <= 65535:
+                raise ValueError("port must be between 0 and 65535")
+            view_root = Path(args.config).resolve().parent
+            view_paths = None
+            author, register, receipts_dir = "", "", "approvals"
+            if Path(args.config).is_file():
+                view_root, view_config, view_paths = _config(args.config)
+                register = Path(view_config.register_.active).stem
+                receipts_dir = view_config.gates.receipts_dir
+                profile = view_paths["author.profile"]
+                try:
+                    profile_text = profile.read_text(encoding="utf-8-sig")
+                    profile_lines = profile_text.splitlines()
+                    if profile_lines and profile_lines[0].strip() == "---":
+                        end = next(
+                            index
+                            for index in range(1, len(profile_lines))
+                            if profile_lines[index].strip() == "---"
+                        )
+                        profile_text = "\n".join(profile_lines[1:end])
+                    profile_data = yaml.safe_load(profile_text)
+                    if isinstance(profile_data, dict):
+                        profile_author = profile_data.get("author")
+                        if isinstance(profile_author, dict):
+                            profile_author = profile_author.get("display_name", "")
+                        if isinstance(profile_author, str):
+                            author = str(profile_author)
+                except Exception:  # noqa: BLE001 - optional metadata must fail softly.
+                    # Optional author metadata must never prevent opening the console.
+                    author = ""
+            elif args.config != "editorial.toml":
+                raise ValueError("Configuration file not found")
+            console = generate_web_hub(
+                view_root,
+                args.post_id,
+                view_paths,
+                author=author,
+                register=register,
+                receipts_dir=receipts_dir,
+            )
+            if args.serve:
+                serve_console(view_root, console, port=args.port, open_browser=not args.no_browser)
+            else:
+                print(f"Editorial Hub: {console.relative_to(view_root).as_posix()}")
+                if not args.no_browser:
+                    webbrowser.open(console.as_uri())
+            return 0
         if args.command == "install-skill":
             skill = resources.files("editorial_pipeline").joinpath("_skills/editorial-pipeline")
             if not skill.is_dir():
