@@ -380,6 +380,10 @@ def test_remote_corpus_precedence(
         ("Partially supported", ["source"], VerificationState.WARN),
         ("Uncertain evidence", ["source"], VerificationState.WARN),
         ("", ["source"], VerificationState.WARN),
+        # nlm >= 0.15 maps citation numbers to source identifiers.
+        ("Supported", {"1": "source"}, VerificationState.OK),
+        ("Supported", {}, VerificationState.BLOCK),
+        ("Non supportato dalle fonti", {"1": "source"}, VerificationState.BLOCK),
     ],
 )
 def test_remote_classification(
