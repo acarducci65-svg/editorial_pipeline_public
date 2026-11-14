@@ -4,6 +4,7 @@ import argparse
 import re
 import shutil
 import sys
+import warnings
 from collections.abc import Sequence
 from importlib import resources
 from pathlib import Path
@@ -14,6 +15,7 @@ from pydantic import ValidationError
 
 from editorial_pipeline import __version__
 from editorial_pipeline.adapters.audio import (
+    TTS_DEPRECATION,
     AudioProvider,
     AudioUnavailableError,
     LocalTtsAudioProvider,
@@ -329,7 +331,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             p.add_argument("--target", choices=("dist_archive", "static_site"))
             p.add_argument("--dry-run", action="store_true")
         if name == "build-audio":
-            p.add_argument("--provider", choices=("script_only", "notebooklm", "tts"))
+            p.add_argument(
+                "--provider",
+                choices=("notebooklm", "script_only", "tts"),
+                help="notebooklm (recommended, editorial standard), script_only, "
+                "or tts (deprecated: sub-standard robotic audio)",
+            )
+            p.add_argument("--format", dest="audio_format", choices=("m4a", "mp3"), default="m4a")
+            p.add_argument("--language", default="it", help="NotebookLM audio language")
             p.add_argument("--dry-run", action="store_true")
         if name == "build-visual":
             p.add_argument("--dry-run", action="store_true")
@@ -417,15 +426,29 @@ def main(argv: Sequence[str] | None = None) -> int:
             if adapter in ("script_only", "none"):
                 audio_provider = ScriptOnlyAdapter(root)
             elif adapter == "tts":
-                audio_provider = LocalTtsAudioProvider(root)
+                print(f"Warning: DEPRECATED provider 'tts'. {TTS_DEPRECATION}", file=sys.stderr)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", DeprecationWarning)
+                    audio_provider = LocalTtsAudioProvider(root)
             elif adapter == "notebooklm":
                 audio_config = config.audio or AudioConfig()
-                audio_provider = NotebookLMAdapter(
+                notebooklm = NotebookLMAdapter(
                     root,
                     audio_config.corpus_id,
                     audio_config.corpus_id_env,
                     audio_config.timeout_seconds,
+                    language=args.language,
+                    audio_format=args.audio_format,
                 )
+                audio_provider = notebooklm
+                if args.provider is None and not args.dry_run:
+                    # Configured default: without nlm/notebook fall back safely to a script,
+                    # never to sub-standard synthetic audio. Explicit --provider stays strict.
+                    try:
+                        notebooklm.preflight()
+                    except AudioUnavailableError as exc:
+                        print(f"Warning: {exc} Falling back to script_only.", file=sys.stderr)
+                        audio_provider = ScriptOnlyAdapter(root)
             else:
                 raise ValueError("Unsupported audio provider")
             audio_result = audio_provider.build(

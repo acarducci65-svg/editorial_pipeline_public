@@ -2,6 +2,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import pytest
@@ -10,14 +11,29 @@ from editorial_pipeline.cli.commands import main
 from tests.test_cli import ROOT, _refresh_evidence, _write_gate_receipt
 from tests.test_publish import snapshot
 
+if TYPE_CHECKING:
+    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
+
+
+def _tts(root: Path, *args: str) -> "LocalTtsAudioProvider":
+    """Build the deprecated TTS provider, asserting the deprecation warning."""
+    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
+
+    with pytest.warns(DeprecationWarning, match="NotebookLM Studio is the required"):
+        return LocalTtsAudioProvider(root, *args)
+
 
 def test_tts_cli_dry_run(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
     before = snapshot(project)
     assert run(project, "--provider", "tts", "--dry-run", "--json") == 0
-    result = json.loads(capsys.readouterr().out)
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
     assert result["status"] == "DRY_RUN"
     assert result["audio_files"] == ["dist/audio/post_01/podcast.mp3"]
     assert result["details"]["planned_voice"] == "it-IT-DiegoNeural"
+    assert result["details"]["deprecated"] is True
+    assert "DEPRECATED provider 'tts'" in captured.err
+    assert "sub-standard robotic audio" in captured.err
     assert snapshot(project) == before
 
 
@@ -25,8 +41,6 @@ def test_tts_cli_dry_run(project: Path, capsys: pytest.CaptureFixture[str]) -> N
 def test_tts_synthesizes_narration(
     project: Path, monkeypatch: pytest.MonkeyPatch, existing_script: bool
 ) -> None:
-    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
-
     output = project / "dist/audio/post_01"
     if existing_script:
         output.mkdir(parents=True)
@@ -54,14 +68,14 @@ def test_tts_synthesizes_narration(
         return subprocess.CompletedProcess(args, 0, "", "")
 
     monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", execute)
-    result = LocalTtsAudioProvider(project, "it-IT-ElsaNeural", "-10%").build(
+    result = _tts(project, "it-IT-ElsaNeural", "-10%").build(
         "post_01",
         "# Titolo\nUna **bozza**.",
         [{"key": "source", "claims": [{"text": "Evidenza verificata."}]}],
         output,
     )
     assert result.status == "BUILT" and result.provider == "tts"
-    assert result.details == {"voice": "it-IT-ElsaNeural"}
+    assert result.details == {"voice": "it-IT-ElsaNeural", "deprecated": True}
     assert result.audio_files == ["dist/audio/post_01/podcast.mp3"]
     assert (project / result.audio_files[0]).read_bytes() == b"mock mp3"
     assert sorted(p.name for p in output.iterdir()) == (
@@ -76,7 +90,7 @@ def test_tts_errors_are_safe(
     failure: str,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from editorial_pipeline.adapters.audio import AudioUnavailableError, LocalTtsAudioProvider
+    from editorial_pipeline.adapters.audio import AudioUnavailableError
 
     output = project / "dist/audio/post_01"
     output.mkdir(parents=True)
@@ -102,7 +116,7 @@ def test_tts_errors_are_safe(
     mocked = Mock(side_effect=execute)
     monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", mocked)
     with pytest.raises(AudioUnavailableError) as exc:
-        LocalTtsAudioProvider(project).build("post_01", "Narration", [], output)
+        _tts(project).build("post_01", "Narration", [], output)
     assert private not in str(exc.value)
     assert audio.read_bytes() == b"previous audio"
     assert [p.name for p in output.iterdir()] == ["podcast.mp3"]
@@ -115,7 +129,6 @@ def test_tts_errors_are_safe(
 def test_tts_dry_run_does_not_read_or_load_engine(
     project: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
 
     before = snapshot(project)
     with monkeypatch.context() as context:
@@ -124,22 +137,18 @@ def test_tts_dry_run_does_not_read_or_load_engine(
             "editorial_pipeline.adapters.audio.tts.shutil.which",
             Mock(side_effect=AssertionError("unexpected engine lookup")),
         )
-        result = LocalTtsAudioProvider(project).build(
-            "post", "Draft", [], project / "dist/audio/post", dry_run=True
-        )
+        result = _tts(project).build("post", "Draft", [], project / "dist/audio/post", dry_run=True)
     assert result.status == "DRY_RUN"
     assert snapshot(project) == before
 
 
 def test_tts_rejects_empty_narration(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from editorial_pipeline.adapters.audio import AudioUnavailableError, LocalTtsAudioProvider
+    from editorial_pipeline.adapters.audio import AudioUnavailableError
 
     monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.shutil.which", lambda _: "edge-tts")
     before = snapshot(project)
     with pytest.raises(AudioUnavailableError, match="non-empty"):
-        LocalTtsAudioProvider(project).build(
-            "post", "# Heading\n[Pausa]", [], project / "dist/post"
-        )
+        _tts(project).build("post", "# Heading\n[Pausa]", [], project / "dist/post")
     assert snapshot(project) == before
 
 
@@ -160,8 +169,6 @@ def test_tts_cli_build(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 def test_tts_cleans_markdown_and_frontmatter(
     project: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
-
     monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.shutil.which", lambda _: "edge-tts")
 
     def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
@@ -170,7 +177,7 @@ def test_tts_cleans_markdown_and_frontmatter(
         return subprocess.CompletedProcess(args, 0, "", "")
 
     monkeypatch.setattr("editorial_pipeline.adapters.audio.tts.subprocess.run", execute)
-    LocalTtsAudioProvider(project).build(
+    _tts(project).build(
         "post",
         "---\ntitle: Metadata\n---\n# Heading\n- Primo *punto*\n"
         "1. Secondo `punto`\n> Citazione\n```\nnota tecnica\n```",
@@ -270,6 +277,7 @@ def test_notebooklm_build(
         assert kwargs["cwd"] == project.resolve()
         if args[1:3] == ["audio", "create"]:
             assert args[3] == "sandbox-corpus"
+            assert args[4:6] == ["--language", "it"]
             assert "--confirm" in args and "--json" in args
             return subprocess.CompletedProcess(args, 0, '{"artifact_id": "sandbox-audio"}', "")
         if args[1:3] == ["studio", "status"]:
@@ -626,7 +634,9 @@ def test_audio_section_passes_runtime_options(
             audio_files=["dist/audio/post_01/podcast.m4a"],
         )
         assert run(project, "--dry-run") == 0
-    adapter.assert_called_once_with(project.resolve(), None, "TEST_AUDIO_CORPUS", 12.0)
+    adapter.assert_called_once_with(
+        project.resolve(), None, "TEST_AUDIO_CORPUS", 12.0, language="it", audio_format="m4a"
+    )
     passed_sources = adapter.return_value.build.call_args.args[2]
     assert len(passed_sources) == 2
     assert sum(len(source["claims"]) for source in passed_sources) == 3
@@ -645,3 +655,158 @@ def test_audio_symlink_escape_is_rejected(project: Path) -> None:
     with pytest.raises(ValueError, match="symlinks"):
         ScriptOnlyAdapter(project).build("post", "", [], destination / "post")
     assert snapshot(project) == before
+
+
+# --- T-052: NotebookLM as the exclusive publication-grade audio engine ---------------
+
+
+@pytest.mark.parametrize(("audio_format", "language"), [("m4a", "it"), ("mp3", "en")])
+def test_notebooklm_audio_adapter_creates_and_downloads(
+    project: Path, monkeypatch: pytest.MonkeyPatch, audio_format: str, language: str
+) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter, NotebookLMAudioAdapter
+
+    assert NotebookLMAudioAdapter is NotebookLMAdapter
+    monkeypatch.setattr(
+        "editorial_pipeline.adapters.audio.notebooklm.shutil.which", lambda _: "nlm"
+    )
+    calls: list[list[str]] = []
+
+    def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert kwargs["shell"] is False
+        calls.append(args)
+        if args[1:3] == ["audio", "create"]:
+            return subprocess.CompletedProcess(args, 0, '{"artifact_id": "sandbox-audio"}', "")
+        if args[1:3] == ["studio", "status"]:
+            response = {"artifacts": [{"artifact_id": "sandbox-audio", "status": "completed"}]}
+            return subprocess.CompletedProcess(args, 0, json.dumps(response), "")
+        destination = args[args.index("--output") + 1]
+        assert destination.endswith(f"podcast.{audio_format}")
+        (project / destination).write_bytes(b"two-voice podcast")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.notebooklm.subprocess.run", execute)
+    adapter = NotebookLMAudioAdapter(
+        project,
+        corpus_id="sandbox-corpus",
+        language=language,
+        audio_format=audio_format,  # type: ignore[arg-type]
+    )
+    output = project / "dist/audio/post_01"
+    result = adapter.build(
+        "post_01",
+        "Draft",
+        [{"key": "src", "claims": [{"text": "Fatto verificato.", "locator": "p. 1"}]}],
+        output,
+    )
+    create = calls[0]
+    assert create[1:4] == ["audio", "create", "sandbox-corpus"]
+    assert create[4:7] == ["--language", language, "--confirm"]
+    assert "Fatto verificato. (fonte src, p. 1)" in create[-1]
+    assert [call[1:3] for call in calls] == [
+        ["audio", "create"],
+        ["studio", "status"],
+        ["download", "audio"],
+    ]
+    assert result.status == "BUILT" and result.provider == "notebooklm"
+    assert result.audio_files == [f"dist/audio/post_01/podcast.{audio_format}"]
+    assert result.details == {"language": language, "format": audio_format}
+    assert (project / result.audio_files[0]).read_bytes() == b"two-voice podcast"
+    assert [p.name for p in output.iterdir()] == [f"podcast.{audio_format}"]
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"language": "it;rm"}, "language"),
+        ({"language": ""}, "language"),
+        ({"language": "-x"}, "language"),
+        ({"audio_format": "wav"}, "format"),
+    ],
+)
+def test_notebooklm_rejects_invalid_options(
+    project: Path, kwargs: dict[str, str], match: str
+) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    with pytest.raises(ValueError, match=match):
+        NotebookLMAdapter(project, **kwargs)  # type: ignore[arg-type]
+
+
+def test_cli_mp3_format_dry_run(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    before = snapshot(project)
+    options = ("--provider", "notebooklm", "--format", "mp3", "--language", "en")
+    assert run(project, *options, "--dry-run", "--json") == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["audio_files"] == ["dist/audio/post_01/podcast.mp3"]
+    assert result["details"] == {"language": "en", "format": "mp3"}
+    assert snapshot(project) == before
+
+
+def test_tts_constructor_emits_deprecation(project: Path) -> None:
+    from editorial_pipeline.adapters.audio import TTS_DEPRECATION
+
+    assert "sub-standard robotic audio" in TTS_DEPRECATION
+    assert "Google NotebookLM Studio is the required editorial standard" in TTS_DEPRECATION
+    _tts(project)
+
+
+def test_cli_provider_choices_prefer_notebooklm(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        main(["build-audio", "--help"])
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "{notebooklm,script_only,tts}" in help_text
+    assert "recommended" in help_text and "deprecated" in help_text
+
+
+def _configure_notebooklm(project: Path) -> None:
+    config = project / "editorial.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8") + '\n[audio]\nprovider = "notebooklm"\n',
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.parametrize("missing", ["nlm", "corpus"])
+def test_configured_notebooklm_falls_back_to_script(
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    missing: str,
+) -> None:
+    _configure_notebooklm(project)
+    if missing == "corpus":
+        monkeypatch.delenv("EDITORIAL_AUDIO_ID", raising=False)
+    else:
+        monkeypatch.setenv("EDITORIAL_AUDIO_ID", "sandbox-corpus")
+    monkeypatch.setattr(
+        "editorial_pipeline.adapters.audio.notebooklm.shutil.which",
+        lambda _: None if missing == "nlm" else "nlm",
+    )
+    mocked = Mock(side_effect=AssertionError("fallback must stay offline"))
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.notebooklm.subprocess.run", mocked)
+    assert run(project, "--json") == 0
+    output = capsys.readouterr()
+    result = json.loads(output.out)
+    assert result["provider"] == "script_only" and result["status"] == "BUILT"
+    assert "Falling back to script_only" in output.err
+    assert "sandbox-corpus" not in output.err and str(project) not in output.err
+    assert not list((project / "dist").rglob("*.mp3"))
+    mocked.assert_not_called()
+
+
+def test_configured_notebooklm_builds_when_available(
+    project: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from unittest.mock import patch
+
+    from editorial_pipeline.adapters.audio import AudioResult
+
+    _configure_notebooklm(project)
+    with patch("editorial_pipeline.cli.commands.NotebookLMAdapter") as adapter:
+        adapter.return_value.build.return_value = AudioResult(
+            status="BUILT", provider="notebooklm", audio_files=["dist/audio/post_01/podcast.m4a"]
+        )
+        assert run(project, "--json") == 0
+    adapter.return_value.preflight.assert_called_once_with()
+    assert json.loads(capsys.readouterr().out)["provider"] == "notebooklm"
