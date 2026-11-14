@@ -1,0 +1,127 @@
+# =============================================================================
+# Registro: tech_blog — Blog tecnico e documentazione
+# =============================================================================
+#
+# Per post tecnici, tutorial, note di rilascio, analisi di strumenti e
+# architetture. Codice ammesso; marketing no.
+# Formato comune dei campi: vedi intestazione di academic_essay.yaml.
+# =============================================================================
+
+schema_version: 1
+
+register:
+  id: "tech_blog"
+  name: "Blog tecnico"
+  language: "it"
+  description: >-
+    Registro diretto e verificabile. Ogni affermazione su prestazioni,
+    compatibilità o comportamento ha una versione, un comando riproducibile o
+    un link a documentazione, issue o changelog. Nomi tecnici senza aggettivi.
+
+content_specs:
+  typical_length_words: [800, 2000]
+  reading_speed_wpm: 200                        # Più lento: codice e tabelle
+  max_heading_depth: 3
+  allowed_markdown: ["bold", "italic", "links", "lists", "blockquote", "tables", "footnotes", "code_inline", "code_fence"]
+  forbidden_markdown: []
+  code_fence_requires_language: true            # ```python, ```bash...
+  forbidden_placeholders: ["TODO", "TBD", "FIXME", "XXX", "lorem ipsum"]
+
+humanizer_rules:
+
+  empty_emphasis:
+    forbidden_expressions:
+      - { text: "game changer", suggestion: "Dire cosa cambia, con una misura." }
+      - { text: "rivoluzionario", suggestion: "Dire cosa fa di diverso, rispetto a cosa." }
+      - { text: "potentissimo", suggestion: "Metriche, versione, condizioni del test." }
+      - { text: "potente strumento", suggestion: "Nome dello strumento e cosa fa." }
+      - { text: "blazing fast", suggestion: "Tempi misurati, hardware, dataset." }
+      - { text: "velocissimo", suggestion: "Tempi misurati, hardware, dataset." }
+      - { text: "all'avanguardia", suggestion: "Versione e funzionalità specifica." }
+      - { text: "state of the art", suggestion: "Rispetto a quale benchmark, con quale risultato." }
+      - { text: "best in class", suggestion: "Confronto esplicito con alternative nominate." }
+      - { text: "seamless", suggestion: "Descrivere i passi di integrazione." }
+      - { text: "senza soluzione di continuità", suggestion: "Descrivere i passi di integrazione." }
+      - { text: "robusto e scalabile", suggestion: "Limiti testati: carico, errori gestiti." }
+    forbidden_patterns:
+      - { pattern: '\b(incredibilmente|estremamente|super) (veloce|potente|semplice|facile)\b', suggestion: "Un numero o un esempio al posto dell'avverbio." }
+
+  chatbot_tics:
+    forbidden_expressions:
+      - { text: "immergiamoci", suggestion: "Partire dal problema o dal primo comando." }
+      - { text: "let's dive in", suggestion: "Partire dal problema o dal primo comando." }
+      - { text: "in questo articolo esploreremo", suggestion: "Dire subito cosa si ottiene alla fine." }
+      - { text: "senza ulteriori indugi", suggestion: "Togliere." }
+      - { text: "come tutti sappiamo", suggestion: "Togliere o citare la fonte." }
+      - { text: "in conclusione", suggestion: "Chiudere con il risultato o il passo successivo." }
+      - { text: "spero che questo articolo ti sia stato utile", suggestion: "Chiudere con link a codice o documentazione." }
+      - { text: "buon coding", suggestion: "Togliere." }
+      - { text: "è semplicissimo", suggestion: "Mostrare i passi; il lettore giudica." }
+      - { text: "basta semplicemente", suggestion: "Elencare i passi reali." }
+
+  negative_parallelism:
+    patterns_described: ["non è solo X, è Y", "non X, ma Y"]
+    detection_patterns:
+      - '\bnon è solo [^.;:]{1,60}[,;:] (è|ma) '
+    max_per_1000_words: 1.0
+    justification_required: true
+    rule: "Ammesso per distinguere comportamenti documentati (es. differenze tra versioni)."
+
+  isolated_lines:
+    max_words_standalone: 5
+    forbidden_closers: ["Facile.", "Fatto.", "Magia.", "Boom."]
+    exceptions:
+      - context: "output di comando o messaggio di errore citato"
+        max_consecutive: 10
+
+  invented_autobiography:
+    spy_verbs_first_person_present: ["ho scoperto", "mi sono accorto", "lavoro da anni"]
+    allowed_contexts:
+      - "walkthrough di codice con prima persona plurale (\"ora aggiungiamo\")"
+      - "racconto di debug autentico, registrato nelle evidenze dall'autore"
+    preferred_forms: ["prima persona plurale del tutorial", "imperativo", "forma impersonale"]
+
+  decorative_bold:
+    max_per_80_words: 1.0
+    allowed_uses: ["avvertenza di sicurezza o perdita dati", "prima definizione di un termine"]
+    forbidden_uses: ["comandi e variabili (usare code_inline)", "frasi intere"]
+
+  vague_attribution:
+    forbidden_expressions:
+      - { text: "molti sviluppatori pensano", suggestion: "Fonte: sondaggio, issue, discussione linkata." }
+      - { text: "è risaputo che", suggestion: "Link alla documentazione." }
+      - { text: "secondo i benchmark", suggestion: "Quale benchmark, versione, link." }
+      - { text: "gli esperti consigliano", suggestion: "Chi, dove (documentazione ufficiale, RFC)." }
+    required_specificity: ["versione del software", "link a documentazione, issue o commit", "condizioni del benchmark"]
+
+  register_specific:
+    - id: "TB-01"
+      rule: "Ogni blocco di codice è stato eseguito sulla versione dichiarata; l'esito è nelle evidenze."
+      evidence: "prova testuale"
+    - id: "TB-02"
+      rule: "Affermazioni di performance riportano hardware, dataset, numero di ripetizioni."
+      evidence: "prova testuale"
+    - id: "TB-03"
+      rule: "Nessun segreto, token, host interno o percorso assoluto negli esempi."
+      evidence: "linter + prova testuale"
+    - id: "TB-04"
+      rule: "Le API deprecate sono segnalate con la versione di deprecazione."
+      evidence: "prova testuale"
+
+review_metrics:
+  - { metric: "forbidden_expression_count", threshold: 0, severity: "error" }
+  - { metric: "vague_attribution_count", threshold: 0, severity: "error" }
+  - { metric: "code_fence_without_language", threshold: 0, severity: "warning" }
+  - { metric: "negative_parallelism_per_1000_words", threshold: 1.0, severity: "warning" }
+  - { metric: "bold_per_80_words", threshold: 1.0, severity: "warning" }
+
+checklist_mapping:
+  "1. Enfasi vuota e marketing": "empty_emphasis"
+  "2. Tic da chatbot e da tutorial": "empty_emphasis"
+  "3. Strutture binarie forzate": "negative_parallelism"
+  "4. Righe isolate a effetto": "isolated_lines"
+  "5. Esperienze inventate": "invented_autobiography"
+  "6. Grassetto sobrio": "decorative_bold"
+  "7. Attribuzioni puntuali": "vague_attribution"
+  "8. Riproducibilità (TB-01..TB-04)": "evidence_path"
+  "9. Voce dell'autore": "evidence_path"

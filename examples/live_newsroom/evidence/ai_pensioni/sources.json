@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "post_id": "ai_pensioni",
+  "sandbox": false,
+  "phase": "F1",
+  "note": "Inventario F1. Fonti reali e pubbliche; le citazioni letterali sono registrate in factcheck.json. Il rapporto OCSE Employment Outlook 2023 previsto dalla traccia non era consultabile dall'ambiente di lavoro (accesso automatico rifiutato dal sito): il dato sull'esposizione dell'occupazione all'AI è tratto dall'analisi del Fondo monetario internazionale. T-047 (2026-11-14): aggiunte su richiesta del Direttore le fonti italiane INPS (XXIII Rapporto annuale, Relazione del Presidente), Banca d'Italia (QEF 878 e QEF 1005) e Itinerari Previdenziali (comunicato sul XIII Rapporto) per il rapporto attivi/pensionati. Una proiezione del rapporto attivi/pensionati verso la parità 1:1 non è stata trovata in fonti primarie consultabili e non compare nel testo. Per Itinerari Previdenziali il PDF integrale del rapporto non era scaricabile dall'ambiente di lavoro: le citazioni provengono dal comunicato stampa ufficiale pubblicato dallo stesso Centro Studi.",
+  "sources": [
+    {
+      "key": "imf-2024-ai-global-economy",
+      "type": "institutional_analysis",
+      "title": "AI Will Transform the Global Economy. Let's Make Sure It Benefits Humanity.",
+      "author": "Kristalina Georgieva (International Monetary Fund)",
+      "publisher": "International Monetary Fund, IMF Blog",
+      "published": "2024-01-14",
+      "url": "https://www.imf.org/en/Blogs/Articles/2024/01/14/ai-will-transform-the-global-economy-lets-make-sure-it-benefits-humanity",
+      "related": "Cazzaniga M. et al., Gen-AI: Artificial Intelligence and the Future of Work, IMF Staff Discussion Note SDN/2024/001",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "institutional",
+        "labour_market",
+        "ai_exposure"
+      ]
+    },
+    {
+      "key": "acemoglu-manera-restrepo-2020",
+      "type": "working_paper",
+      "title": "Does the US Tax Code Favor Automation?",
+      "author": "Daron Acemoglu, Andrea Manera, Pascual Restrepo",
+      "publisher": "National Bureau of Economic Research, Working Paper 27052 (pubblicato in Brookings Papers on Economic Activity, 2020(1), pp. 231-300)",
+      "published": "2020-04",
+      "url": "https://www.nber.org/papers/w27052",
+      "doi": "10.3386/w27052",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "peer_reviewed",
+        "taxation",
+        "automation"
+      ]
+    },
+    {
+      "key": "ec-2024-ageing-report",
+      "type": "institutional_report",
+      "title": "2024 Ageing Report. Economic and Budgetary Projections for the EU Member States (2022-2070)",
+      "author": "European Commission, Directorate-General for Economic and Financial Affairs; Economic Policy Committee (Ageing Working Group)",
+      "publisher": "European Economy Institutional Paper 279",
+      "published": "2024-04",
+      "url": "https://economy-finance.ec.europa.eu/publications/2024-ageing-report-economic-and-budgetary-projections-eu-member-states-2022-2070_en",
+      "doi": "10.2765/022983",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "institutional",
+        "pensions",
+        "pay_as_you_go",
+        "demography"
+      ]
+    },
+    {
+      "key": "inps-2024-xxiii-rapporto-relazione",
+      "type": "institutional_report",
+      "title": "XXIII Rapporto annuale. Relazione del Presidente",
+      "author": "Istituto Nazionale della Previdenza Sociale (INPS), Presidente dell'Istituto",
+      "publisher": "INPS, Rapporto annuale, settembre 2024",
+      "published": "2024-09-24",
+      "url": "https://www.inps.it/content/dam/inps-site/pdf/dati-analisi-bilanci/rapporti-annuali/xxiii-rapporto-annuale/RELAZIONE_DEL_PRESIDENTE_WEB_2.pdf",
+      "description": "Relazione introduttiva al XXIII Rapporto annuale INPS: dati di bilancio 2023 (entrate contributive, trasferimenti dalla fiscalità generale, prestazioni), numero di pensionati e assicurati, passaggio al calcolo contributivo, proiezione della quota di over 65 al 2050.",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "institutional",
+        "pensions",
+        "pay_as_you_go",
+        "demography",
+        "italy"
+      ]
+    },
+    {
+      "key": "bankitalia-2024-qef-878",
+      "type": "institutional_research",
+      "title": "An assessment of occupational exposure to artificial intelligence in Italy (Una valutazione dell'esposizione del mercato del lavoro all'intelligenza artificiale in Italia)",
+      "author": "Antonio Dalla Zuanna, Davide Dottori, Elena Gentili, Salvatore Lattanzio (Banca d'Italia)",
+      "publisher": "Banca d'Italia, Questioni di Economia e Finanza (Occasional Papers) n. 878",
+      "published": "2024-10",
+      "url": "https://www.bancaditalia.it/pubblicazioni/qef/2024-0878/index.html",
+      "pdf": "https://www.bancaditalia.it/pubblicazioni/qef/2024-0878/QEF_878_24.pdf",
+      "doi": "10.32057/0.QEF.2024.878",
+      "description": "Misura l'esposizione all'AI delle occupazioni italiane (dati della rilevazione sulle forze di lavoro 2023) distinguendo complementarietà e sostituibilità; analizza la mobilità tra occupazioni e i differenziali salariali. Testo integrale in inglese, abstract anche in italiano.",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "institutional",
+        "labour_market",
+        "ai_exposure",
+        "italy"
+      ]
+    },
+    {
+      "key": "bankitalia-2026-qef-1005",
+      "type": "institutional_research",
+      "title": "L'impatto economico dell'adozione dell'intelligenza artificiale: evidenza dalle imprese italiane",
+      "author": "Tiziano Ropele, Alex Tagliabracci (Banca d'Italia)",
+      "publisher": "Banca d'Italia, Questioni di Economia e Finanza (Occasional Papers) n. 1005",
+      "published": "2026-03",
+      "url": "https://www.bancaditalia.it/pubblicazioni/qef/2026-1005/index.html",
+      "pdf": "https://www.bancaditalia.it/pubblicazioni/qef/2026-1005/QEF_1005_26.pdf",
+      "description": "Diffusione dell'AI tra le imprese italiane con almeno 50 addetti (industria e servizi privati non finanziari) ed effetti su produttività, redditività, composizione dell'occupazione e prezzi. Citazioni tratte dall'abstract italiano pubblicato sulla pagina della collana; il PDF integrale non è stato consultato.",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "institutional",
+        "labour_market",
+        "ai_adoption",
+        "italy"
+      ]
+    },
+    {
+      "key": "itinerari-previdenziali-2026-xiii-rapporto",
+      "type": "research_center_press_release",
+      "title": "Il sistema pensionistico italiano è (ancora) sostenibile. Comunicato stampa sul Tredicesimo Rapporto «Il Bilancio del Sistema Previdenziale italiano»",
+      "author": "Centro Studi e Ricerche Itinerari Previdenziali",
+      "publisher": "Itinerari Previdenziali (rapporto presentato alla Camera dei Deputati)",
+      "published": "2026-01-14",
+      "url": "https://www.itinerariprevidenziali.it/comunicati-stampa/sistema-pensionistico-sostenibile/",
+      "related": "https://www.itinerariprevidenziali.it/ricerca/tredicesimo-rapporto-bilancio-sistema-previdenziale/",
+      "description": "Comunicato ufficiale degli autori del XIII Rapporto (dati 2024): rapporto attivi/pensionati 1,4758, soglia di sicurezza 1,5, rapporto 1,77 escludendo i soli assistiti. Fonte primaria per il calcolo del rapporto, che è elaborazione del Centro Studi.",
+      "accessed": "2026-11-14",
+      "primary": true,
+      "local_copy": null,
+      "tags": [
+        "research_center",
+        "pensions",
+        "demography",
+        "italy"
+      ]
+    }
+  ]
+}

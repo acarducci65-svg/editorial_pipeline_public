@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "gate": 1,
+  "post_id": "ai_pensioni",
+  "role": "Direttore",
+  "decision": "approved",
+  "timestamp": "2026-11-14T19:55:26.380566+00:00",
+  "excerpt": "Approvato per verifica e produzione visuale",
+  "bundle": {
+    "draft_digest": "v1:1c413b756ba7804d64f9400aaad32be5868224b53fe4da786c56257e56439fa8",
+    "sources_digest": "v1:d380747a0b768c5f50661088955f00bcc5d64e7b19677a77d23a373810d56fd0",
+    "factcheck_digest": "v1:ad0cbaca38cd941f6e88d8c8bd3020b4c6b45e0ab4de13fe715bd55c24e152cf",
+    "review_digest": "v1:3030816fa4d436a0c9ca9b83a503912daf4e7c54db669d47d3224d4b0f9b0a11"
+  }
+}

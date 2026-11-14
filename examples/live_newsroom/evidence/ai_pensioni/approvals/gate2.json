@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "gate": 2,
+  "post_id": "ai_pensioni",
+  "role": "Direttore",
+  "decision": "approved",
+  "timestamp": "2026-11-14T20:10:44.883275+00:00",
+  "excerpt": "Autorizzo la pubblicazione e l'archiviazione del post\nAzioni autorizzate: [\"archive\", \"export_markdown\"].",
+  "bundle": {
+    "draft_digest": "v1:1c413b756ba7804d64f9400aaad32be5868224b53fe4da786c56257e56439fa8",
+    "gate1_digest": "v1:6be5fb6afc1c07657a83f7e47a2fc031296aeb1d9ffcd5df13eb7d57d5d97d00",
+    "artifacts": {
+      "dist/audio/ai_pensioni/podcast_script.md": "v1:e1c2a86573fd3136e47383f3bb9dff7f332506c0fe8e393d41bbd15aa4fe702d",
+      "dist/social/ai_pensioni/manifest.json": "v1:56db9834b6c023cbc15107f1980a1003c511a15387d5de78a852e1a933b75920",
+      "dist/social/ai_pensioni/slide_01.html": "v1:3aef97716898f628982437b6e7100f85cd479e1eb13100a4225d6ab30d98694e",
+      "dist/social/ai_pensioni/slide_02.html": "v1:a1295b472abf3c3f7aae19d9e3f278ab6db49be7473c21919d6c6e2e1b848c42",
+      "dist/social/ai_pensioni/slide_03.html": "v1:9575cf6c9ca4f9809e897d6ff7df37a0e34e50b11a429bc5a3c09d3b11bc075d",
+      "dist/social/ai_pensioni/slide_04.html": "v1:e782ca074e7420107b19849c7c7bb2d1b68674613ef9b7b3aaba8327ff66254b",
+      "dist/social/ai_pensioni/slide_05.html": "v1:b7e7bbb91218f390b63d4cbca005e0b9a2c831797078ed22f4a1f138055c59e7",
+      "dist/social/ai_pensioni/slide_06.html": "v1:9a09db7e7fd3b42aea45377e12b7b43821ed8c1d47bc524dd6b663148dc93a68",
+      "dist/social/ai_pensioni/slide_07.html": "v1:63c09c6334f8cd217b42d294010f999f3377310c0a92525ee39465dee7279b76",
+      "dist/social/ai_pensioni/slide_08.html": "v1:7bd72e0e8d4f52bfaad806e33154da0dd28d7227ccb5ed9b3bddb41fcf1ef192"
+    }
+  },
+  "allowed_actions": [
+    "archive",
+    "export_markdown"
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "schema_version": 1,
+  "post_id": "ai_pensioni",
+  "sandbox": false,
+  "phase": "F3",
+  "verifier": "Assistente di verifica (modello linguistico) sui testi delle fonti consultati il 2026-11-14 (C18-C33 aggiunti con T-047 su testi INPS e Banca d'Italia estratti dai documenti originali); esito da confermare al Gate 1",
+  "draft_digest": "v1:1c413b756ba7804d64f9400aaad32be5868224b53fe4da786c56257e56439fa8",
+  "claims": [
+    {
+      "id": "C01",
+      "text": "i sistemi legati al lavoro sono di norma finanziati con contributi obbligatori di lavoratori e datori di lavoro",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Part I, cap. 1, sez. 1.2 Typology of public pension schemes, p. 19",
+      "quote": "Employment-related systems are usually financed from compulsory contributions by workers and employers.",
+      "promotable": true
+    },
+    {
+      "id": "C02",
+      "text": "la maggior parte dei sistemi pensionistici pubblici funziona a ripartizione: i contributi di oggi pagano le pensioni di oggi",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Part I, cap. 1, sez. 1.2 Typology of public pension schemes, p. 19",
+      "quote": "Most public pension schemes operate on a pay-as-you-go (PAYG) basis, whereby current contributions fund current benefits.",
+      "promotable": true
+    },
+    {
+      "id": "C03",
+      "text": "Lo Stato interviene spesso con trasferimenti dalla fiscalità generale per coprire i disavanzi",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Part I, cap. 1, sez. 1.2 Typology of public pension schemes, p. 19",
+      "quote": "However, public authorities often participate in the financing of employment-related schemes. This could take the form of a fixed appropriation from general government revenues, a set contribution rate or a subsidy to cover deficits within the pension system.",
+      "promotable": true
+    },
+    {
+      "id": "C04",
+      "text": "l'indice di dipendenza degli anziani nell'Unione europea era al 36 per cento nel 2022 e salirebbe al 59 per cento nel 2070",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Executive Summary, sez. 2.1 Demographic and macroeconomic developments, p. 3",
+      "quote": "From about 29% in 2010 in the EU, it rose to 36% in 2022 and would rise further to 59% in 2070, with most of the increase expected already by 2045.",
+      "promotable": true
+    },
+    {
+      "id": "C05",
+      "text": "la forza lavoro dell'Unione si ridurrebbe del 12 per cento, 25 milioni di persone, tra il 2022 e il 2070",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Executive Summary, sez. 2.1 Demographic and macroeconomic developments, p. 4",
+      "quote": "As a result, the number of people in the labour force is projected to decrease by 12% (25 million people) between 2022 and 2070 in the EU or 0.3% annually.",
+      "promotable": true
+    },
+    {
+      "id": "C06",
+      "text": "per ogni dieci anziani inattivi ci sarebbero 14 occupati nel 2070, contro i 22 del 2022",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Executive Summary, sez. 2.1 Demographic and macroeconomic developments, p. 4",
+      "quote": "This means that for every ten inactive people above 65, there will be 14 employed people in 2070, down from 22 in 2022 and 16 in 2045.",
+      "promotable": true
+    },
+    {
+      "id": "C07",
+      "text": "quasi il 40 per cento dell'occupazione mondiale è esposto all'intelligenza artificiale",
+      "outcome": "grounded_primary",
+      "source_key": "imf-2024-ai-global-economy",
+      "locator": "sezione Reshaping the Nature of Work, primo elenco puntato",
+      "quote": "almost 40 percent of global employment is exposed to AI.",
+      "promotable": true
+    },
+    {
+      "id": "C08",
+      "text": "la quota sale a circa il 60 per cento dei posti di lavoro",
+      "outcome": "grounded_primary",
+      "source_key": "imf-2024-ai-global-economy",
+      "locator": "sezione Reshaping the Nature of Work, voce sulle economie avanzate",
+      "quote": "about 60 percent of jobs may be impacted by AI.",
+      "promotable": true
+    },
+    {
+      "id": "C09",
+      "text": "Per l'altra metà le applicazioni di AI potrebbero svolgere compiti chiave oggi affidati a persone, con meno domanda di lavoro, salari più bassi e meno assunzioni",
+      "outcome": "grounded_primary",
+      "source_key": "imf-2024-ai-global-economy",
+      "locator": "sezione Reshaping the Nature of Work, voce sulle economie avanzate",
+      "quote": "Roughly half the exposed jobs may benefit from AI integration, enhancing productivity. For the other half, AI applications may execute key tasks currently performed by humans, which could lower labor demand, leading to lower wages and reduced hiring.",
+      "promotable": true
+    },
+    {
+      "id": "C10",
+      "text": "i guadagni di produttività delle imprese che adottano l'AI faranno probabilmente salire i rendimenti del capitale",
+      "outcome": "grounded_primary",
+      "source_key": "imf-2024-ai-global-economy",
+      "locator": "paragrafo sulla disuguaglianza di reddito e ricchezza",
+      "quote": "Gains in productivity from firms that adopt AI will likely boost capital returns, which may also favor high earners.",
+      "promotable": true
+    },
+    {
+      "id": "C11",
+      "text": "raccomanda reti di protezione sociale complete e programmi di riqualificazione per i lavoratori vulnerabili",
+      "outcome": "grounded_primary",
+      "source_key": "imf-2024-ai-global-economy",
+      "locator": "paragrafo conclusivo sulle politiche per una transizione inclusiva",
+      "quote": "establish comprehensive social safety nets and offer retraining programs for vulnerable workers.",
+      "promotable": true
+    },
+    {
+      "id": "C12",
+      "text": "il sistema fiscale statunitense è sbilanciato contro il lavoro e a favore del capitale, e lo è diventato di più negli ultimi anni",
+      "outcome": "grounded_primary",
+      "source_key": "acemoglu-manera-restrepo-2020",
+      "locator": "Abstract, prima frase",
+      "quote": "We argue that the US tax system is biased against labor and in favor of capital and has become more so in recent years.",
+      "promotable": true
+    },
+    {
+      "id": "C13",
+      "text": "passare a una tassazione ottimale di capitale e lavoro aumenterebbe l'occupazione del 4,02 per cento",
+      "outcome": "grounded_primary",
+      "source_key": "acemoglu-manera-restrepo-2020",
+      "locator": "Abstract, terza frase",
+      "quote": "Moving from the US tax system in the 2010s to optimal taxation of capital and labor would raise employment by 4.02% and the labor share by 0.78 percentage points, and restore the optimal level of automation.",
+      "promotable": true
+    },
+    {
+      "id": "C14",
+      "text": "le attività automatizzate marginali non portano grandi guadagni di produttività ma spiazzano i lavoratori",
+      "outcome": "grounded_primary",
+      "source_key": "acemoglu-manera-restrepo-2020",
+      "locator": "Abstract, quinta frase",
+      "quote": "This is because marginal automated tasks do not bring much productivity gains but displace workers, reducing employment below its socially optimal level.",
+      "promotable": true
+    },
+    {
+      "id": "C15",
+      "text": "quando una riforma fiscale completa non è praticabile, un'imposta aggiuntiva sull'automazione può aumentare l'efficienza riducendo l'automazione che non produce guadagni reali",
+      "outcome": "grounded_primary",
+      "source_key": "acemoglu-manera-restrepo-2020",
+      "locator": "Abstract, quarta e quinta frase",
+      "quote": "If moving to optimal taxes is infeasible, more modest reforms can still increase employment by 1.14–1.96%, but in this case efficiency can be increased by imposing an additional automation tax to reduce the equilibrium level of automation.",
+      "promotable": true
+    },
+    {
+      "id": "C16",
+      "text": "ridurre le tasse sul lavoro, o combinare tasse più basse sul capitale con un'imposta sull'automazione, può far crescere l'occupazione molto più dei tagli uniformi",
+      "outcome": "grounded_primary",
+      "source_key": "acemoglu-manera-restrepo-2020",
+      "locator": "Abstract, ultima frase",
+      "quote": "We additionally show that reducing labor taxes or combining lower capital taxes with automation taxes can increase employment much more than the uniform reductions in capital taxes enacted between 2000 and 2018.",
+      "promotable": true
+    },
+    {
+      "id": "C17",
+      "text": "il rapporto tra pensione media e salario medio scenderebbe dal 43 per cento del 2022 al 36 per cento del 2070",
+      "outcome": "grounded_primary",
+      "source_key": "ec-2024-ageing-report",
+      "locator": "Executive Summary, paragrafo sul benefit ratio, p. 6",
+      "quote": "The baseline projection, conducted at unchanged policy, results in a decline in the benefit ratio in nearly all countries, going from 43% on average in the EU in 2022 to 36% in 2070 (see Graph 3).",
+      "promotable": true
+    },
+    {
+      "id": "C18",
+      "text": "tutti i giovani fruiranno di un sistema pensionistico interamente contributivo",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, sez. «La centralità dei giovani», p. 9",
+      "quote": "Indipendentemente dalla loro condizione occupazionale, tutti i giovani fruiranno di un sistema pensionistico interamente contributivo, per cui informarli del suo funzionamento non solo è utile, ma realizza un diritto-dovere dello Stato, così come espresso dal secondo comma dell’articolo 3 della Costituzione.",
+      "promotable": true
+    },
+    {
+      "id": "C19",
+      "text": "Nel 2023 l'INPS ha accertato 269 miliardi di euro di entrate contributive e quasi 165 miliardi di trasferimenti correnti dalla fiscalità generale",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, sez. «L’INPS come hub del welfare», p. 4",
+      "quote": "I dati di bilancio sono ancora più espliciti: nel 2023 il totale delle entrate accertate dall’Istituto è stato pari a 536 miliardi di euro, di cui 269 miliardi sono costituiti da entrate contributive (+5,1% rispetto al 2022) e quasi 165 miliardi da trasferimenti correnti dalla fiscalità generale (+3,3% rispetto al 2022).",
+      "promotable": true
+    },
+    {
+      "id": "C20",
+      "text": "La spesa complessiva lorda per le pensioni è stata di circa 347 miliardi",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, sez. «Gli anziani, una risorsa per il Paese», p. 10",
+      "quote": "Il numero di pensionati è sostanzialmente stabile, intorno ai 16 milioni, con una spesa complessiva lorda per le pensioni pari a circa 347 miliardi di euro.",
+      "promotable": true
+    },
+    {
+      "id": "C21",
+      "text": "per circa 16 milioni di pensionati",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, sez. «Gli anziani, una risorsa per il Paese», p. 10",
+      "quote": "Il numero di pensionati è sostanzialmente stabile, intorno ai 16 milioni, con una spesa complessiva lorda per le pensioni pari a circa 347 miliardi di euro.",
+      "promotable": true
+    },
+    {
+      "id": "C22",
+      "text": "lo ha stimato a 1,4758 per il 2024",
+      "outcome": "grounded_primary",
+      "source_key": "itinerari-previdenziali-2026-xiii-rapporto",
+      "locator": "Comunicato stampa del 14 gennaio 2026, introduzione (terzo paragrafo); il valore è ripetuto nella sez. «Mercato del lavoro e rapporto attivi/pensionati»",
+      "quote": "Nel frattempo, il rapporto attivi/pensionati raggiunge quota 1,4758: è il miglior dato mai rilevato nella serie storica della pubblicazione.",
+      "promotable": true
+    },
+    {
+      "id": "C23",
+      "text": "resta comunque sotto la soglia di 1,5 che gli stessi autori indicano come necessaria per la stabilità di medio-lungo termine della previdenza obbligatoria",
+      "outcome": "grounded_primary",
+      "source_key": "itinerari-previdenziali-2026-xiii-rapporto",
+      "locator": "Comunicato stampa del 14 gennaio 2026, sez. «Mercato del lavoro e rapporto attivi/pensionati»",
+      "quote": "Benché ancora al di sotto di quell’1,5 indicato nelle precedenti edizioni come “soglia di sicurezza” necessaria per la stabilità di medio-lungo termine della nostra previdenza obbligatoria, si tratta del miglior dato di sempre tra quelli registrati dal Rapporto.",
+      "promotable": true
+    },
+    {
+      "id": "C24",
+      "text": "i pensionati scendono da 16,3 a 13,5 milioni e il rapporto sale a 1,77",
+      "outcome": "grounded_primary",
+      "source_key": "itinerari-previdenziali-2026-xiii-rapporto",
+      "locator": "Comunicato stampa del 14 gennaio 2026, sez. «Mercato del lavoro e rapporto attivi/pensionati»",
+      "quote": "Laddove si tenesse invece conto dei soli percettori di trattamenti previdenziali “puri” e non delle persone assistite, il numero dei pensionati scenderebbe da 16,3 a 13,5 milioni, portando il rapporto attivi/pensionati a un ottimo 1,77, livello molto buono per la sostenibilità finanziaria di medio-lungo termine del sistema.",
+      "promotable": true
+    },
+    {
+      "id": "C25",
+      "text": "nel 2023 gli assicurati hanno raggiunto il record di 26,6 milioni, 21,8 milioni dei quali lavoratori dipendenti",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, sez. «L’INPS come hub del welfare», p. 5",
+      "quote": "Ed è proprio nel mercato del lavoro che l’Istituto svolge un’altra funzione fondamentale: i lavoratori rappresentano, infatti, i suoi principali utenti, tanto che nel 2023 si è registrato il numero record di 26,6 milioni di assicurati. L’incremento degli assicurati, che continua anche nei primi mesi del 2024, è sostenuto soprattutto dall’aumento dei lavoratori dipendenti, che hanno raggiunto i 21,8 milioni (1,2 milioni in più rispetto al 2019).",
+      "promotable": true
+    },
+    {
+      "id": "C26",
+      "text": "nel 2050 i cittadini con 65 anni e più potrebbero rappresentare fino al 35 per cento della popolazione",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, sez. «Gli anziani, una risorsa per il Paese», p. 10",
+      "quote": "Nel 2050 i cittadini con 65 anni e più potrebbero rappresentare fino al 35% della popolazione nazionale e questo determina la necessità di ripensare l’attuale sistema di welfare.",
+      "promotable": true
+    },
+    {
+      "id": "C27",
+      "text": "l'assicurazione delle risorse necessarie al sistema previdenziale è minacciata dalle sfide derivanti dai cambiamenti demografici in corso",
+      "outcome": "grounded_primary",
+      "source_key": "inps-2024-xxiii-rapporto-relazione",
+      "locator": "Relazione del Presidente, p. 4, paragrafo d'apertura della pagina",
+      "quote": "Ciò avviene in un contesto caratterizzato da radicali mutamenti sociali e del lavoro, in cui i bisogni di welfare sono cambiati, anche a seguito dell’aumentata aspettativa di vita, e in cui l’assicurazione delle risorse necessarie al sistema previdenziale è minacciata dalle sfide derivanti dai cambiamenti demografici in corso.",
+      "promotable": true
+    },
+    {
+      "id": "C28",
+      "text": "circa 15 milioni dei 22 milioni di occupati risultano mediamente o molto esposti all'AI, e poco meno di 9 milioni ricadono nel gruppo ad alta esposizione",
+      "outcome": "grounded_primary",
+      "source_key": "bankitalia-2024-qef-878",
+      "locator": "Sez. 6 Potential exposure of the Italian labour market to AI technology, paragrafo «Overall and sectoral exposure», p. 15",
+      "quote": "Approximately 15 million out of the 22 million of workers are either middle or highly exposed, with slightly below 9 million falling in the highly exposed group alone.",
+      "promotable": true
+    },
+    {
+      "id": "C29",
+      "text": "i settori dei trasporti e delle comunicazioni e la finanza, che comprende tutto il sistema bancario, mostrano l'impatto più forte in termini di sostituibilità",
+      "outcome": "grounded_primary",
+      "source_key": "bankitalia-2024-qef-878",
+      "locator": "Sez. 6, paragrafo «Overall and sectoral exposure», pp. 15-16",
+      "quote": "A much stronger impact in terms of substitutability is instead evident in the transport and communication sector and in finance, which includes all the banking system.",
+      "promotable": true
+    },
+    {
+      "id": "C30",
+      "text": "Chi lascia un'occupazione molto esposta e sostituibile tende a spostarsi verso lavori meno esposti, dove le retribuzioni sono in genere più basse",
+      "outcome": "grounded_primary",
+      "source_key": "bankitalia-2024-qef-878",
+      "locator": "Abstract in italiano, pagina della pubblicazione su bancaditalia.it, secondo capoverso",
+      "quote": "La mobilità tra occupazioni è attualmente bassa e i lavoratori in occupazioni più esposte e sostituibili si spostano principalmente verso quelle meno esposte, in cui tuttavia le retribuzioni sono generalmente inferiori.",
+      "promotable": true
+    },
+    {
+      "id": "C31",
+      "text": "nel 2023 usava l'AI il 5 per cento delle imprese italiane, contro circa l'8 per cento di quelle europee",
+      "outcome": "grounded_primary",
+      "source_key": "bankitalia-2024-qef-878",
+      "locator": "Sez. 1 Introduction, primo paragrafo, p. 5",
+      "quote": "The adoption of Artificial Intelligence (AI) technologies by firms in European countries is not yet widespread: according to the Digital Economy and Society Index developed by the European Commission, only about 8 percent of European firms used AI in 2023. In Italy this share was even lower, at 5 percent.",
+      "promotable": true
+    },
+    {
+      "id": "C32",
+      "text": "nel 2024 poco più del 10 per cento delle imprese dichiarava di utilizzare l'IA",
+      "outcome": "grounded_primary",
+      "source_key": "bankitalia-2026-qef-1005",
+      "locator": "Abstract in italiano, pagina della pubblicazione su bancaditalia.it, secondo capoverso",
+      "quote": "Nel 2024 poco più del 10 per cento delle imprese dichiarava di utilizzare l'IA, mentre circa un terzo ne prevedeva l'adozione entro i due anni successivi.",
+      "promotable": true
+    },
+    {
+      "id": "C33",
+      "text": "l'adozione aumenta la produttività del lavoro e la redditività e determina una riallocazione dell'occupazione verso profili più qualificati, senza effetti negativi sull'occupazione complessiva",
+      "outcome": "grounded_primary",
+      "source_key": "bankitalia-2026-qef-1005",
+      "locator": "Abstract in italiano, pagina della pubblicazione su bancaditalia.it, secondo capoverso",
+      "quote": "L'analisi indica che l'IA aumenta la produttività del lavoro e la redditività e determina una riallocazione dell'occupazione verso profili più qualificati, senza effetti negativi sull'occupazione complessiva.",
+      "promotable": true
+    }
+  ],
+  "summary": {
+    "total": 33,
+    "blocking": 0,
+    "promotable": 33
+  }
+}
