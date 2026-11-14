@@ -24,7 +24,11 @@ from editorial_pipeline.adapters.visual import (
     VisualBuildError,
     get_visual_builder,
 )
-from editorial_pipeline.application.evidence_verifier import EvidenceVerifier
+from editorial_pipeline.application.evidence_verifier import (
+    EvidenceError,
+    EvidenceVerifier,
+    load_records,
+)
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
 from editorial_pipeline.cli.reports import _sanitize, digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
@@ -361,7 +365,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             post_id = _post_id(post)
             if args.command == "verify-facts":
                 evidence = paths["paths.evidence"] / post_id
-                adapter = config.providers.rag.adapter
+                adapter = (
+                    config.rag.provider if config.rag is not None else config.providers.rag.adapter
+                )
                 if adapter in ("local", "manual"):
                     findings = EvidenceVerifier(config, root).verify(post, post_id, evidence)
                 elif adapter == "none":
@@ -375,7 +381,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else:
                     provider = get_rag_provider(adapter, config, root)
                     findings = EvidenceVerifier(config, root).verify(post, post_id, evidence)
-                    findings.extend(provider.verify([], evidence))
+                    try:
+                        _, checks = load_records(evidence)
+                    except EvidenceError:
+                        pass  # EvidenceVerifier already emitted a blocking schema finding.
+                    else:
+                        findings.extend(
+                            provider.verify([claim.text for claim in checks.claims], evidence)
+                        )
                 print(
                     serialize(
                         {

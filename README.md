@@ -19,7 +19,8 @@ agent can cross on its own.
 
 > **Status: pre-alpha (`0.1.0.dev0`).** The core, the CLI and the local adapters work and
 > are tested. The package is not yet published on PyPI and interfaces may still change.
-> The `notebooklm` RAG adapter is **not implemented** (see [RAG adapters](#rag-adapters)).
+> The `notebooklm` RAG adapter is **optional**: it needs the external `nlm` CLI from
+> `notebooklm-mcp-cli` and a Google NotebookLM notebook (see [RAG adapters](#rag-adapters)).
 
 ## Why
 
@@ -80,6 +81,9 @@ python -m pip install ./editorial_pipeline_public
 # optional extras: carousels (Jinja2 + Playwright) and audio
 python -m pip install "./editorial_pipeline_public[social]"
 playwright install chromium
+
+# optional: NotebookLM fact-checking (provides nlm; the rag extra needs Python >= 3.11)
+uv tool install notebooklm-mcp-cli      # or: python -m pip install "./editorial_pipeline_public[rag]"
 
 editorial --version          # same as: editorial-pipeline --version
 editorial --help
@@ -218,16 +222,41 @@ to use it. Regenerating a carousel after Gate 2 makes the Gate 2 receipt stale.
 
 ## RAG adapters
 
-`verify-facts` chooses its behaviour from `[providers.rag].adapter`:
+`verify-facts` chooses its behaviour from `[rag].provider` (optional section) or, when
+`[rag]` is absent, from `[providers.rag].adapter`:
 
 | Adapter | Status | What it does |
 | --- | --- | --- |
 | `local` (also `manual`) | **Implemented, offline** | Checks the formal consistency of the *registered* evidence: schemas and `post_id`; `draft_digest` of `factcheck.json` and `draft-review.json` equal to the current draft; every claim with an allowed outcome, an existing source and a locator; `grounded_primary` only on primary sources; no circular sources; local copies inside the project; every claim found in the draft; every F2b item `pass`. It does **not** search or read the sources and does not judge whether a claim is true. |
 | `none` | Implemented | Always returns `BLOCK` (`rag.unavailable`): evidence cannot be verified. |
-| `notebooklm` | **Not implemented** | Runs the local checks, then fails with `RagUnavailableError` (exit 1). No remote verification is performed. |
+| `notebooklm` | **Implemented, optional, online** | Runs the local checks, then asks a Google NotebookLM notebook about each claim through `nlm query notebook --json` and adds one `rag.claim` finding per claim: no citations or a denial → `BLOCK`, hedged answer → `WARN`, cited answer → `OK`. Reports never copy claim text or model answers. If `nlm` is missing, the session has expired or the notebook is not configured, it stops with `RagUnavailableError` (exit 1). |
 
 Finding the passage that supports a claim is research work for the agent or the person;
 the local adapter then checks that what was recorded is coherent.
+
+NotebookLM works at two levels. Agents whose harness exposes the `notebooklm-mcp` server
+can use `notebook_query`, `source_add` and related tools in F1 (source inventory) and F3
+(fact-checking) to find passages, which they still record with source and locator in
+`sources.json` and `factcheck.json`. The CLI level is configured like this:
+
+```sh
+uv tool install notebooklm-mcp-cli
+nlm login                                   # done by the account owner
+nlm auth storage set protected
+export EDITORIAL_RAG_ID="<notebook id or nlm alias>"   # never in a versioned file
+```
+
+```toml
+[rag]
+provider = "notebooklm"
+corpus_id_env = "EDITORIAL_RAG_ID"   # name of the variable, not the id
+timeout_seconds = 60                 # per claim query
+```
+
+Claim text is sent to Google: keep `local` for drafts that must not leave the machine.
+Remote findings are automated checks. They never approve Gate 1 or Gate 2, never sign
+receipts and never replace the Director's message in chat. Full guide:
+[`docs/rag_factcheck.md`](docs/rag_factcheck.md).
 
 ## Documentation
 
@@ -236,7 +265,7 @@ the local adapter then checks that what was recorded is coherent.
 | [**`docs/manuale_configurazione_e_uso.md`**](docs/manuale_configurazione_e_uso.md) · [**PDF (A4)**](docs/manuale_configurazione_e_uso.pdf) | **Official complete user & configuration manual** (Markdown and A4 PDF, Italian) |
 | [`docs/architecture.md`](docs/architecture.md) | Ports & Adapters layout, components, gates and human sovereignty |
 | [`docs/configuration.md`](docs/configuration.md) | Full reference of `editorial.toml`, path validation, registers and templates |
-| [`docs/rag_factcheck.md`](docs/rag_factcheck.md) | `RagProvider` port, local and NotebookLM adapters, evidence format |
+| [`docs/rag_factcheck.md`](docs/rag_factcheck.md) | `RagProvider` port, local and NotebookLM adapters (MCP and `nlm` CLI levels, setup), evidence format |
 | [`docs/author_guide.md`](docs/author_guide.md) | Guide for the director: what the system does, what it asks, how to approve |
 | [`docs/humanizer_guide.md`](docs/humanizer_guide.md) | De-AI-ing checklist and style review evidence |
 | [`docs/transparency_pages.md`](docs/transparency_pages.md) | Specs for the `/metodo/`, `/correzioni/`, `/per-chi-scrive/` transparency pages and SSG/CMS integration |
@@ -288,7 +317,8 @@ vincolanti** che nessun agente può attraversare da solo.
 
 > **Stato: pre-alpha (`0.1.0.dev0`).** Nucleo, CLI e adapter locali funzionano e sono
 > testati. Il pacchetto non è ancora pubblicato su PyPI e le interfacce possono cambiare.
-> L'adapter RAG `notebooklm` **non è implementato**.
+> L'adapter RAG `notebooklm` è **opzionale**: richiede la CLI esterna `nlm`
+> (`notebooklm-mcp-cli`) e un taccuino Google NotebookLM.
 
 ### Perché
 
@@ -380,7 +410,15 @@ Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input · `2` gate 
   rasterizzazione Playwright.
 - Adapter RAG: `local` (e `manual`) verifica offline la **coerenza formale delle evidenze
   registrate**, senza leggere le fonti né giudicare la verità dei claim; `none` restituisce
-  sempre `BLOCK`; `notebooklm` **non è implementato** e termina con `RagUnavailableError`.
+  sempre `BLOCK`; `notebooklm` esegue i controlli locali e poi interroga un taccuino Google
+  NotebookLM con `nlm query notebook`, aggiungendo un finding `OK`/`WARN`/`BLOCK` per claim.
+  Si attiva con `[rag] provider = "notebooklm"` e `corpus_id_env = "EDITORIAL_RAG_ID"`, dopo
+  `uv tool install notebooklm-mcp-cli` e `nlm login`; l'identificativo (o un alias `nlm`) del
+  taccuino sta solo nella variabile d'ambiente. Se `nlm` manca o la sessione è scaduta termina
+  con `RagUnavailableError` (exit 1). Gli agenti con il server MCP `notebooklm-mcp` possono
+  usarlo in F1 e F3 per trovare i passaggi, che registrano comunque in `sources.json` e
+  `factcheck.json`. I finding remoti non approvano mai il Gate 1 né il Gate 2: decide il
+  Direttore in chat. Guida: [`docs/rag_factcheck.md`](docs/rag_factcheck.md).
 
 ### Documentazione
 

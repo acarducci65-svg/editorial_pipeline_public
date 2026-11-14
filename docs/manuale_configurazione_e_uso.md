@@ -97,7 +97,7 @@ flowchart LR
 | **domain** | `Post`, `Finding`, `ChecklistState`, `EvidenceBundle`, `GateDecision`, `Gate1Receipt` / `Gate2Receipt` (schema chiuso delle ricevute con bundle di digest `v1:`), `HumanApproval`, `StyleRegister`, `VerificationState` (`OK`, `WARN`, `BLOCK`) |
 | **config** | `EditorialConfig` (schema Pydantic v2, campi extra rifiutati), `load_config`, `resolve_paths`, `validate_operative` |
 | **application** | `StyleChecker` (finding deterministici su espressioni e pattern del registro), `EvidenceVerifier` (coerenza di `sources.json`, `factcheck.json` e `draft-review.json` con la bozza), `aggregate_state` (precedenza `BLOCK` > `WARN` > `OK`) |
-| **adapters** | `RagProvider` con `LocalRagProvider` (offline, operativo) e `NotebookLMAdapter` (**non implementato**); `VisualBuilder` con `PlaywrightVisualBuilder` |
+| **adapters** | `RagProvider` con `LocalRagProvider` (offline, operativo) e `NotebookLMAdapter` (opzionale, interroga Google NotebookLM tramite la CLI `nlm`); `VisualBuilder` con `PlaywrightVisualBuilder` |
 | **cli** | `init`, `install-skill`, `status`, `validate-draft`, `validate-all`, `verify-facts`, `build-visual`, `check-gate` |
 
 ### 1.3 I 6 principi di trasparenza (TP1–TP6)
@@ -147,6 +147,7 @@ Dipendenze di base, installate sempre: `pydantic>=2,<3`, `pyyaml>=6`, e `tomli>=
 | `social` | `jinja2`, `playwright` | Fase F4: generazione del carosello HTML (Jinja2 è indispensabile) e rasterizzazione PNG/PDF (Playwright) |
 | `audio` | `mutagen` | Fase F5: metadati dei file audio |
 | `all` | `social` + `audio` | Installazione completa per l'uso editoriale |
+| `rag` | `notebooklm-mcp-cli` (eseguibili `nlm` e `notebooklm-mcp`; solo Python ≥ 3.11) | Fact-checking con `provider = "notebooklm"` (§8.6). In alternativa: `uv tool install notebooklm-mcp-cli` |
 | `dev` | `pytest`, `pytest-cov`, `ruff`, `mypy`, `types-pyyaml`, `tomli`, `jinja2` | Sviluppo e contributi al framework |
 
 ### 2.3 Installazione dal sorgente
@@ -410,11 +411,27 @@ Ogni provider dichiara un adapter. `manual` significa che il passo lo esegue una
 |---|---|---|
 | `providers.drafting` | `adapter`, `model_label` | `manual`, `anthropic`, `openai`, `gemini`, `local`; `model_label` è il nome dichiarato nelle pagine pubbliche |
 | `providers.humanizer` | `adapter`, `separate_pass_required` | `separate_pass_required = true` impone un passaggio distinto dalla stesura |
-| `providers.rag` | `adapter`, `corpus_id_env`, `max_claims_per_turn` | `local` o `manual` (verifica offline), `none` (sempre `BLOCK`), `notebooklm` (**non implementato**); `corpus_id_env` è il **nome** di una variabile d'ambiente (es. `EDITORIAL_RAG_ID`), mai l'identificativo stesso |
+| `providers.rag` | `adapter`, `corpus_id_env`, `max_claims_per_turn` | `local` o `manual` (verifica offline), `none` (sempre `BLOCK`), `notebooklm` (verifica remota via `nlm`, §8.6); `corpus_id_env` è il **nome** di una variabile d'ambiente (es. `EDITORIAL_RAG_ID`), mai l'identificativo stesso |
 | `providers.audio` | `adapter` | `none`, `notebooklm`, `elevenlabs`, `openai_tts`, `local` |
 | `providers.visual` | `adapter` | `none`, `playwright`, `canva` |
 
-**Attenzione.** `verify-facts` legge `[providers.rag].adapter` e si comporta di conseguenza (§8.6). Le altre chiavi `adapter` sono dichiarative: `build-visual`, per esempio, usa sempre Playwright qualunque sia `[providers.visual].adapter`; ciò che ne governa l'esecuzione è `[phases.optional].F4_visual`. Dichiarate comunque il valore reale: finisce nelle pagine di trasparenza.
+**Attenzione.** `verify-facts` legge `[providers.rag].adapter`, oppure `[rag].provider` se la sezione `[rag]` è presente, e si comporta di conseguenza (§8.6). Le altre chiavi `adapter` sono dichiarative: `build-visual`, per esempio, usa sempre Playwright qualunque sia `[providers.visual].adapter`; ciò che ne governa l'esecuzione è `[phases.optional].F4_visual`. Dichiarate comunque il valore reale: finisce nelle pagine di trasparenza.
+
+#### `[rag]` — Provider di fact-checking (facoltativa)
+
+| Chiave | Default | Note |
+|---|---|---|
+| `provider` | `"local"` | `local`, `manual`, `none`, `notebooklm`. Se la sezione è presente prevale su `[providers.rag].adapter` |
+| `corpus_id_env` | `"EDITORIAL_RAG_ID"` | **Nome** della variabile d'ambiente che contiene l'identificativo (o l'alias `nlm`) del taccuino |
+| `corpus_id` | assente | Ha la precedenza sulla variabile. Non va valorizzata nei file versionati (zero-leak) |
+| `timeout_seconds` | `60` | Timeout di ogni singola interrogazione di `nlm`; numero finito maggiore di zero |
+
+```toml
+[rag]
+provider = "notebooklm"
+corpus_id_env = "EDITORIAL_RAG_ID"
+timeout_seconds = 60
+```
 
 #### `[factcheck]` — Regole di verifica
 
@@ -728,7 +745,7 @@ evidence: "evidence/post_07"
 | | |
 |---|---|
 | **Obiettivo** | Ogni claim della bozza ha un esito, una fonte e un locator prima del Gate 1 |
-| **Attività** | Estrazione dei claim dalla bozza dopo F2b; interrogazione del corpus (al massimo `max_claims_per_turn` per messaggio); assegnazione dell'esito; correzione della bozza; confronto manuale claim ↔ bozza; `verify-facts` |
+| **Attività** | Estrazione dei claim dalla bozza dopo F2b; interrogazione del corpus (al massimo `max_claims_per_turn` per messaggio), anche con gli strumenti MCP di NotebookLM (`notebook_query`); assegnazione dell'esito; correzione della bozza; confronto manuale claim ↔ bozza; `verify-facts` (con `provider = "notebooklm"` aggiunge un controllo remoto per claim) |
 | **Output** | `evidence/<post_id>/factcheck.json` con `draft_digest` uguale al digest corrente |
 | **Esito richiesto** | `validate-draft` e `verify-facts` senza `BLOCK` sullo stesso digest. Se F3 modifica la bozza, anche `draft-review.json` va aggiornato: il suo `draft_digest` deve coincidere con la bozza finale |
 
@@ -1223,13 +1240,13 @@ Stesso controllo di `validate-draft` su tutte le unità sotto `[paths].content` 
 editorial-pipeline verify-facts <post> [--json] [--config editorial.toml]
 ```
 
-Legge `evidence/<post_id>/sources.json`, `factcheck.json` e `draft-review.json` e ne verifica la coerenza con la bozza corrente. Il comportamento dipende da `[providers.rag].adapter`:
+Legge `evidence/<post_id>/sources.json`, `factcheck.json` e `draft-review.json` e ne verifica la coerenza con la bozza corrente. Il comportamento dipende da `[rag].provider` o, se la sezione `[rag]` manca, da `[providers.rag].adapter`:
 
 | Adapter | Comportamento |
 |---|---|
 | `local`, `manual` | Verifica offline completa descritta sotto |
 | `none` | Un solo finding `rag.unavailable` → `BLOCK`: senza RAG le evidenze non si possono verificare |
-| `notebooklm` | Esegue la verifica locale, poi termina con `Error: RagUnavailableError` (exit `1`): **la verifica remota non è implementata** |
+| `notebooklm` | Esegue la verifica locale, poi interroga il taccuino NotebookLM con `nlm query notebook`, una domanda per claim, e aggiunge un finding `rag.claim` per claim (`Claim N: ...`, `OK`/`WARN`/`BLOCK`). Se `nlm` manca, la sessione è scaduta o il corpus non è configurato: `Error: RagUnavailableError` (exit `1`), senza report (§8.6) |
 
 Finding prodotti (dettagli al §8.4):
 
@@ -2005,13 +2022,46 @@ Casi particolari:
 
 | | `local` / `manual` (`LocalRagProvider`, `EvidenceVerifier`) | `notebooklm` (`NotebookLMAdapter`) | `none` |
 |---|---|---|---|
-| Stato | **Implementato**, operativo | **Non implementato** | Implementato |
-| Rete | Nessuna (offline-first) | Richiederebbe la CLI `nlm` | Nessuna |
-| Che cosa fa | Verifica la coerenza formale delle evidenze registrate (`sources.json`, `factcheck.json`, `draft-review.json`) con la bozza corrente, secondo le regole del §8.4 | `verify-facts` esegue prima la verifica locale; poi l'adapter controlla configurazione e disponibilità di `nlm` e solleva comunque `RagUnavailableError` (`Error: RagUnavailableError`, exit `1`) | Restituisce sempre `rag.unavailable` → `BLOCK` |
-| Che cosa non fa | Non cerca, non legge le fonti, non fa inferenza, non giudica la verità dei claim | Nessuna verifica remota | — |
-| Configurazione | `[providers.rag].adapter = "local"` | Identificativo del corpus letto dalla variabile d'ambiente indicata in `corpus_id_env` | `[providers.rag].adapter = "none"` |
+| Stato | **Implementato**, operativo | **Implementato**, opzionale | Implementato |
+| Rete | Nessuna (offline-first) | Sì: Google NotebookLM tramite la CLI `nlm` (`notebooklm-mcp-cli`) | Nessuna |
+| Che cosa fa | Verifica la coerenza formale delle evidenze registrate (`sources.json`, `factcheck.json`, `draft-review.json`) con la bozza corrente, secondo le regole del §8.4 | Esegue la verifica locale; poi, per ogni claim di `factcheck.json`, lancia `nlm query notebook <taccuino> "<domanda>" --json --timeout <s>` e classifica la risposta: nessuna citazione o smentita → `BLOCK`; citazioni con risposta incerta → `WARN`; citazioni senza smentita né incertezza → `OK` | Restituisce sempre `rag.unavailable` → `BLOCK` |
+| Che cosa non fa | Non cerca, non legge le fonti, non fa inferenza, non giudica la verità dei claim | Non legge il passaggio al posto vostro: la classificazione è lessicale. Non copia nel report il testo dei claim né le risposte del modello. Non scrive `factcheck.json` | — |
+| Configurazione | `[rag].provider = "local"` (o `[providers.rag].adapter`) | `[rag].provider = "notebooklm"` + identificativo o alias del taccuino nella variabile indicata da `corpus_id_env` | `provider = "none"` |
 
-Fino a quando un adapter remoto non sarà implementato, configurate `local`: è l'unico che permette di superare `verify-facts` e i gate.
+`local` resta la scelta predefinita e l'unica completamente offline. `notebooklm` aggiunge un secondo controllo, non sostituisce le evidenze registrate: un claim senza esito, fonte e locator in `factcheck.json` è `BLOCK` anche se il taccuino lo conferma.
+
+#### NotebookLM a due livelli
+
+| Livello | Chi lo usa | Strumento | Fasi | Risultato |
+|---|---|---|---|---|
+| **Agente** | L'agente redattore, nel suo harness | Server MCP `notebooklm-mcp`: `notebook_list`, `notebook_get`, `source_add`, `source_describe`, `source_get_content`, `notebook_query` | F1 (inventario delle fonti), F3 (ricerca del passaggio per ogni claim) | Passaggi e locator che l'agente controlla sulla fonte e registra in `sources.json` e `factcheck.json` |
+| **CLI** | `editorial verify-facts` | Eseguibile `nlm` (`nlm query notebook`) | F3, prima del Gate 1 | Un finding `rag.claim` remoto per claim, accanto ai finding locali |
+
+La risposta di NotebookLM è un indizio per trovare il passaggio, non una prova: l'agente legge il passaggio nella fonte primaria e ne scrive il locator preciso (§8.3).
+
+#### Installazione, accesso e configurazione
+
+```bash
+uv tool install notebooklm-mcp-cli        # eseguibili nlm e notebooklm-mcp nel PATH
+# oppure, dal sorgente: pip install "./editorial_pipeline_public[rag]"   (Python >= 3.11)
+nlm login                                 # accesso Google, eseguito dalla persona titolare dell'account
+nlm auth storage set protected            # credenziali conservate in modalità protetta
+nlm alias set redazione-corpus "<identificativo del taccuino>"   # facoltativo
+export EDITORIAL_RAG_ID="redazione-corpus"   # oppure l'identificativo; PowerShell: $env:EDITORIAL_RAG_ID = "..."
+```
+
+```toml
+[rag]
+provider = "notebooklm"
+corpus_id_env = "EDITORIAL_RAG_ID"
+timeout_seconds = 60
+```
+
+Ogni claim è un'interrogazione separata: con molti claim o taccuini ricchi di fonti alzate `timeout_seconds`. Il testo dei claim viene inviato a Google: per bozze riservate restate su `local`.
+
+Cause di `Error: RagUnavailableError` (exit `1`, nessun report): variabile del corpus vuota, `nlm` assente dal `PATH`, sessione scaduta (ripetere `nlm login`), timeout, uscita non nulla di `nlm`, risposta JSON non valida. L'errore originale di `nlm` non viene mostrato perché potrebbe contenere credenziali o identificativi: per la diagnosi lanciate `nlm` a mano.
+
+**Sovranità umana.** I finding remoti sono controlli automatici come quelli locali: non approvano il Gate 1, non generano né firmano ricevute, non sostituiscono la frase del Direttore in chat. `check-gate` riesegue solo i controlli locali e valida ricevute umane. Guida completa: `docs/rag_factcheck.md`.
 
 Entrambi implementano la porta `RagProvider`:
 
@@ -2023,7 +2073,7 @@ class RagProvider(ABC):
 
 Un adapter personalizzato (un indice vettoriale locale, un motore di ricerca interno) si scrive implementando questi due metodi e restituendo un `Finding` per claim con stato `OK`, `WARN` o `BLOCK`. La CLI non permette ancora di selezionarlo (un nome di adapter sconosciuto produce `Error: Unknown RAG provider`): va invocato dalla libreria Python.
 
-**Il lavoro di ricerca nel corpus** (trovare il passaggio che sostiene un claim) lo fa l'agente, con gli strumenti del proprio harness: lettura delle copie locali in `[paths].sources`, un notebook RAG remoto, una ricerca web documentata. Il provider locale verifica poi che l'esito registrato sia coerente.
+**Il lavoro di ricerca nel corpus** (trovare il passaggio che sostiene un claim) lo fa l'agente, con gli strumenti del proprio harness: lettura delle copie locali in `[paths].sources`, il server MCP di NotebookLM, una ricerca web documentata. `verify-facts` controlla poi che l'esito registrato sia coerente e, con `notebooklm`, aggiunge il riscontro remoto.
 
 **Identificativi cloud.** Gli identificativi di corpus, notebook o conversazioni remote non si scrivono mai in `editorial.toml`, nelle evidenze o nelle ricevute. Si leggono da una variabile d'ambiente:
 
@@ -2336,6 +2386,7 @@ skills/editorial-pipeline/
 └── references/
     ├── humanizer_checklist.md            F2b, F4, F5: 10 regole, 27 regex, matrice di precedenza
     ├── factchecking_protocol.md          F1, F3: fonti, locator, sources.json, factcheck.json
+    ├── verification-and-rag.md           F1, F3 con NotebookLM: strumenti MCP e verify-facts
     └── gates_and_evidence.md             Gate 1 e 2: pacchetti, digest, ricevute, invalidazione
 ```
 
@@ -2519,7 +2570,7 @@ Sì. `factcheck.json` fa parte del bundle del Gate 1: qualsiasi modifica, anche 
 Perché il digest `v1:` normalizza i fine riga CRLF in LF prima del calcolo (§5.2).
 
 **Posso usare NotebookLM per la verifica dei fatti?**
-Come strumento di ricerca dell'agente sì, documentando i passaggi trovati in `factcheck.json`. Come adapter della CLI no: `notebooklm` non è implementato e `verify-facts` termina con `RagUnavailableError`. Configurate `[providers.rag].adapter = "local"`.
+Sì, a due livelli. Come strumento di ricerca dell'agente, tramite il server MCP `notebooklm-mcp`, in F1 e F3, documentando i passaggi trovati in `sources.json` e `factcheck.json`. Come controllo della CLI, con `[rag] provider = "notebooklm"`: `verify-facts` interroga il taccuino con `nlm` e aggiunge un finding per claim. Servono `notebooklm-mcp-cli`, `nlm login` e l'identificativo (o alias) del taccuino in `EDITORIAL_RAG_ID` (§8.6). In nessuno dei due casi NotebookLM approva il Gate 1.
 
 **Un report `OK` vuol dire che il testo è corretto?**
 No. Vuol dire che le evidenze sono coerenti tra loro e che il linter non ha trovato forme vietate.
@@ -2534,7 +2585,7 @@ Sì, ma `draft-review.json` e `social-review.json` diventano `stale` e con loro 
 Sì. Ogni modifica cambia il digest; nessuna modifica è troppo piccola.
 
 **Dove scrivo l'identificativo del mio notebook RAG?**
-In una variabile d'ambiente, il cui nome è indicato in `[providers.rag].corpus_id_env`. Mai in un file versionato.
+In una variabile d'ambiente, il cui nome è indicato in `[rag].corpus_id_env` (o `[providers.rag].corpus_id_env`). Con NotebookLM potete mettere nella variabile un alias creato con `nlm alias set`. Mai in un file versionato.
 
 **Posso usare il framework in inglese?**
 Sì: `[project].language`, testi dei gate e registri sono configurabili. Il manifesto include `deprecated_phrases_en` e il profilo `forbidden_descriptors_en`.
@@ -2548,7 +2599,7 @@ Sì: `[project].language`, testi dei gate e registri sono configurabili. Il mani
 | `rag.schema` (`BLOCK`) su `verify-facts` | `sources.json` o `factcheck.json` assenti o malformati, `post_id` diverso da quello dell'unità, `claims` vuoto, identificatori duplicati, tipi errati (es. `"primary": "true"`) | Allineare `post_id` (es. `post_07` per `post_07_titolo.md`); almeno un claim con `claim_id`, `text` e `outcome`; booleani JSON veri |
 | `rag.stale_factcheck` o `humanizer.stale_review` (`BLOCK`) | La bozza è cambiata dopo F3 o dopo F2b | Ripetere la verifica o la revisione sulle parti cambiate, poi aggiornare `draft_digest` |
 | `humanizer.review` (`BLOCK`) | `draft-review.json` mancante, `post_id` diverso o una voce di `required_items` non `pass` | Completare la revisione F2b e registrarla (§7.7) |
-| `Error: RagUnavailableError` | `[providers.rag].adapter = "notebooklm"`: adapter non implementato | Usare `adapter = "local"` |
+| `Error: RagUnavailableError` | Provider `notebooklm` non utilizzabile: variabile del corpus vuota, `nlm` non installato, sessione scaduta, timeout o risposta non valida | Controllare `EDITORIAL_RAG_ID` e `nlm --version`, ripetere `nlm login`, alzare `[rag].timeout_seconds`, provare `nlm query notebook` a mano; in alternativa usare `provider = "local"` |
 | `Error: Unknown RAG provider` | Nome di adapter RAG non riconosciuto | Usare `local`, `manual`, `none` o `notebooklm` |
 | `Error: Phase F4_visual is disabled in editorial.toml` | `build-visual` con `[phases.optional].F4_visual = false` | Attivare la fase, se la redazione la usa; altrimenti dichiararla `skipped` |
 | `Error: Skill destination already exists; use --force to overwrite` | `install-skill` su una cartella con la skill già installata | Aggiungere `--force` per aggiornarla |

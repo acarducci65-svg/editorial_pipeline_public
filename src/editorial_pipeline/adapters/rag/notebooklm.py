@@ -1,26 +1,120 @@
-"""Optional NotebookLM adapter; no remote operation is assumed."""
+"""Optional NotebookLM fact checking through the nlm CLI."""
 
+import json
+import math
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 from editorial_pipeline.adapters.rag.base import RagProvider, RagUnavailableError
-from editorial_pipeline.domain.models import Finding
+from editorial_pipeline.domain.models import Finding, VerificationState
 
 
 class NotebookLMAdapter(RagProvider):
     def __init__(
-        self, corpus_id: str | None = None, corpus_id_env: str = "EDITORIAL_RAG_ID"
+        self,
+        corpus_id: str | None = None,
+        corpus_id_env: str = "EDITORIAL_RAG_ID",
+        timeout: float = 60.0,
+        cli_path: str = "nlm",
     ) -> None:
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("NotebookLM timeout must be finite and positive")
         self._corpus_id = corpus_id
         self._corpus_id_env = corpus_id_env
+        self._timeout = timeout
+        self._cli_path = cli_path
 
     def capabilities(self) -> set[str]:
         return {"fact_check"}
 
     def verify(self, claims: list[str], evidence_path: Path) -> list[Finding]:
-        if not (self._corpus_id or os.environ.get(self._corpus_id_env)):
+        if not claims:
+            return []
+        corpus = self._corpus_id or os.environ.get(self._corpus_id_env)
+        if not corpus or not corpus.strip():
             raise RagUnavailableError("RAG corpus is not configured")
-        if shutil.which("nlm") is None:
-            raise RagUnavailableError("NotebookLM CLI is unavailable")
-        raise RagUnavailableError("NotebookLM verification is not implemented")
+        if shutil.which(self._cli_path) is None:
+            raise RagUnavailableError("NotebookLM CLI ('nlm') is unavailable")
+        findings = []
+        for index, claim in enumerate(claims, 1):
+            question = f"Verifica se la seguente affermazione e' supportata dalle fonti: '{claim}'"
+            args = [
+                self._cli_path,
+                "query",
+                "notebook",
+                corpus,
+                question,
+                "--json",
+                "--timeout",
+                str(self._timeout),
+            ]
+            try:
+                result = subprocess.run(
+                    args,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=self._timeout + 10,
+                    shell=False,
+                )
+            except subprocess.TimeoutExpired:
+                raise RagUnavailableError(
+                    f"NotebookLM query timed out after {self._timeout}s"
+                ) from None
+            except OSError:
+                raise RagUnavailableError("NotebookLM CLI could not be executed") from None
+            except UnicodeError:
+                raise RagUnavailableError("NotebookLM returned an invalid text response") from None
+            if result.returncode != 0:
+                if any(word in result.stderr.casefold() for word in ("login", "auth", "cookie")):
+                    raise RagUnavailableError(
+                        "NotebookLM authentication required (run 'nlm login')"
+                    )
+                # stderr may contain credentials, corpus IDs and host paths. Discard it.
+                raise RagUnavailableError(
+                    f"NotebookLM query failed: CLI exit code {result.returncode}"
+                )
+            findings.append(self._finding(result.stdout, index))
+        return findings
+
+    @staticmethod
+    def _finding(output: str, index: int) -> Finding:
+        try:
+            payload = json.loads(output)
+        except ValueError:
+            raise RagUnavailableError("NotebookLM returned an invalid JSON response") from None
+        if not isinstance(payload, dict):
+            raise RagUnavailableError("NotebookLM returned an invalid JSON response")
+        answer = payload.get("answer", payload.get("text", payload.get("content")))
+        citations = payload.get("citations", payload.get("sources"))
+        if not isinstance(answer, str) or (
+            citations is not None and not isinstance(citations, list)
+        ):
+            raise RagUnavailableError("NotebookLM returned an invalid JSON response")
+        normalized = answer.casefold()
+        negative = (
+            "not supported",
+            "unsupported",
+            "no evidence",
+            "not enough information",
+            "cannot verify",
+            "insufficient evidence",
+            "contradict",
+            "non supportat",
+            "non e supportat",
+            "non è supportat",
+            "nessuna evidenza",
+            "non ci sono prove",
+        )
+        uncertain = ("partial", "uncertain", "inconclusive", "parzial", "incert", "may be")
+        if not citations or not any(citations) or any(phrase in normalized for phrase in negative):
+            state, reason = VerificationState.BLOCK, "not supported by notebook sources"
+        elif not answer.strip() or any(phrase in normalized for phrase in uncertain):
+            state, reason = VerificationState.WARN, "requires review of notebook evidence"
+        else:
+            state, reason = VerificationState.OK, "supported by notebook sources"
+        # Do not copy untrusted model output or potentially private claims into reports.
+        return Finding("rag.claim", f"Claim {index}: {reason}", state)

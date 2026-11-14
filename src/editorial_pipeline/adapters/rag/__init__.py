@@ -19,6 +19,12 @@ def get_rag_provider(
     if name == "local":
         return LocalRagProvider(config, root)
     if name == "notebooklm":
+        if config is not None and config.rag is not None:
+            return NotebookLMAdapter(
+                corpus_id=config.rag.corpus_id,
+                corpus_id_env=config.rag.corpus_id_env,
+                timeout=config.rag.timeout_seconds,
+            )
         env = config.providers.rag.corpus_id_env if config is not None else "EDITORIAL_RAG_ID"
         return NotebookLMAdapter(corpus_id_env=env)
     raise ValueError("Unknown RAG provider")

@@ -24,6 +24,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+rag = ["notebooklm-mcp-cli; python_version >= '3.11'"]
 social = ["jinja2>=3.1", "playwright>=1.40"]
 audio = ["mutagen>=1.47"]
 all = ["jinja2>=3.1", "playwright>=1.40", "mutagen>=1.47"]
