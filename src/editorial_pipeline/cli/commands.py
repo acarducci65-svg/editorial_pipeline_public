@@ -24,6 +24,7 @@ from editorial_pipeline.adapters.audio import (
     ScriptOnlyAdapter,
 )
 from editorial_pipeline.adapters.publish import (
+    AuthorWebsitePublisher,
     DistArchivePublisher,
     PublishAdapter,
     StaticSitePublisher,
@@ -348,7 +349,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if name in ("validate-draft", "validate-all", "verify-facts", "publish", "build-audio"):
             p.add_argument("--json", action="store_true")
         if name == "publish":
-            p.add_argument("--target", choices=("dist_archive", "static_site"))
+            p.add_argument("--target", choices=("dist_archive", "static_site", "author_website"))
             p.add_argument("--dry-run", action="store_true")
         if name == "build-audio":
             p.add_argument(
@@ -549,11 +550,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             publish_target = args.target or (
                 config.publishing.target if config.publishing else "dist_archive"
             )
-            publisher: PublishAdapter = (
-                DistArchivePublisher(root)
-                if publish_target == "dist_archive"
-                else StaticSitePublisher(root)
-            )
+            publishers: dict[str, type[PublishAdapter]] = {
+                "dist_archive": DistArchivePublisher,
+                "static_site": StaticSitePublisher,
+                "author_website": AuthorWebsitePublisher,
+            }
+            publisher = publishers[publish_target](root)
             publish_result = publisher.publish(
                 _post_id(post),
                 post,

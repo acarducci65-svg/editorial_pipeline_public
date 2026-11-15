@@ -110,9 +110,10 @@ Ogni correzione si fa **prima** del pacchetto Gate 2. Rieseguire `build-audio` s
 |---|---|---|
 | `archive` (alias `dist_archive`, `export_package`) | `dist_archive` | `<archive_dir>/<post_id>.tar.gz` (default `dist/packages/`): bozza, `gate1.json`, `gate2.json`, tutti gli artefatti del bundle, `publish_manifest.json` con `bundle_digest` e SHA-256 dei file |
 | `export_markdown` (alias `publish_markdown`, `static_site`) | `static_site` | `<static_site_dir>/<post_id>/` (default `dist/published/`): Markdown della bozza e asset visivi (immagini, PDF, HTML, CSS). Copione e audio non sono inclusi |
+| `author_website` (alias `publish_author_website`, `export_author_site`) | `author_website` | `<author_website_dir>/<post_id>/` (default `dist/author_site/`): `index.html` long-form per il sito personale dell'autore e `assets/` con slide, PDF e podcast approvati. Il copione non è incluso |
 | `publish`, `schedule`, `sync`, altre | nessuno | `SKIPPED`, exit 0, nessuna scrittura. Sono azioni da eseguire fuori dalla CLI, con i loro strumenti, solo se autorizzate |
 
-Nel pacchetto Gate 2, se il catalogo le prevede, proponete le azioni locali per nome (`archive`, `export_markdown`) e indicate target e cartella di destinazione. Il Direttore sceglie; voi copiate.
+Nel pacchetto Gate 2, se il catalogo le prevede, proponete le azioni locali per nome (`archive`, `export_markdown`, `author_website`) e indicate target e cartella di destinazione. Il Direttore sceglie; voi copiate.
 
 ### 3.2 Esecuzione
 
@@ -144,6 +145,29 @@ Nel pacchetto Gate 2, se il catalogo le prevede, proponete le azioni locali per 
 ### 3.4 Una pubblicazione per ricevuta
 
 Le destinazioni predefinite sono dentro `[paths].dist`, che fa parte del bundle del Gate 2: dopo la prima pubblicazione la ricevuta diventa `stale` e un secondo `publish` esce con exit 2. Se il Direttore autorizza sia `archive` sia `export_markdown`, le due strade sono: cartelle di `[publishing]` fuori da `dist/` (decisione di configurazione del Direttore), oppure un nuovo pacchetto Gate 2 dopo la prima pubblicazione. Non rigenerate la ricevuta da soli.
+
+### 3.5 Canale «sito personale dell'autore» (`author_website`)
+
+Per chi pubblica anche su un sito proprio (portfolio, blog personale) oltre che sul sito della redazione.
+
+1. **Catalogo.** Il Direttore aggiunge `author_website` a `[gates.gate2].allowed_actions`. Facoltativo: `[publishing].target = "author_website"` e `author_website_dir = "<cartella>"`. Una cartella fuori da `[paths].dist` evita che l'export renda `stale` la ricevuta (§3.4).
+2. **Gate 2.** Proponete l'azione per nome nel pacchetto; il Direttore la scrive nella frase di approvazione.
+3. **Esecuzione.**
+   ```bash
+   editorial publish <post_id> --target author_website --dry-run --json
+   editorial publish <post_id> --target author_website --json
+   ```
+4. **Contenuto dell'export.** `index.html` è generato dal template `templates/publish/author_website_article.html.jinja2`. Se esiste, ha la precedenza la copia del progetto in `[paths].templates/publish/`. La pagina contiene:
+   - testata con nome dell'autore (`display_name` del profilo YAML, oppure `author` nel front matter della pagina Markdown) e bio breve;
+   - titolo, sommario, data e tempo di lettura;
+   - indice laterale fisso su desktop, con evidenza della sezione corrente;
+   - player del podcast, se `podcast.m4a`/`.mp3` è nel bundle;
+   - carosello sfogliabile (frecce e tastiera) con le slide approvate, iframe in `sandbox`, e link al PDF;
+   - sezione «Chi scrive» e collegamenti alle pagine di trasparenza (`[transparency]`) su `[project].base_url`;
+   - colophon con il `bundle_digest` del Gate 2.
+
+   La pagina è offline-first: niente CDN, font remoti o tracker. I colori vengono da `[theme]`, il carattere del corpo da `font_family`.
+5. **Pubblicazione in rete.** La CLI non carica nulla. Copiare la cartella sul server o sull'hosting del sito personale è un'operazione umana, fuori dalla CLI.
 
 ## 4. Checklist rapida
 

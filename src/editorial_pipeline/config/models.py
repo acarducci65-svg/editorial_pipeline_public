@@ -173,9 +173,10 @@ class RagConfig(Schema):
 
 
 class PublishingConfig(Schema):
-    target: Literal["dist_archive", "static_site"] = "dist_archive"
+    target: Literal["dist_archive", "static_site", "author_website"] = "dist_archive"
     archive_dir: RelativePath | None = None
     static_site_dir: RelativePath | None = None
+    author_website_dir: RelativePath | None = None
 
 
 class AudioConfig(Schema):
