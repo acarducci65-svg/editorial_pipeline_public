@@ -531,21 +531,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 1/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 1/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -561,7 +568,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -571,67 +578,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -639,43 +679,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide cover&#34; id=&#34;slide-1&#34; aria-label=&#34;1 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;01 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;div class=&#34;rule&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
-      &lt;h1&gt;AI e pensioni: chi paga?&lt;/h1&gt;
-      &lt;p class=&#34;subtitle&#34;&gt;Evidenze e domande aperte&lt;/p&gt;
+      &lt;span class=&#34;tag&#34;&gt;Scorri · 8 slide&lt;/span&gt;
+      &lt;h1&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI?&lt;/h1&gt;
+      &lt;p class=&#34;subtitle&#34;&gt;Il nodo fiscale del lavoro automatizzato&lt;/p&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Il nodo fiscale del lavoro automatizzato&lt;/p&gt;
+        &lt;p&gt;Le pensioni pubbliche si reggono su un&amp;#39;ipotesi: la ricchezza di un paese passa, in buona parte, dai salari. L&amp;#39;intelligenza artificiale la mette in discussione.&lt;/p&gt;
       &lt;/div&gt;
-      &lt;blockquote class=&#34;highlight&#34;&gt;Demografia, salari e produttività&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 12.5%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -688,21 +775,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 2/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 2/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -718,7 +812,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -728,67 +822,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -796,41 +923,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-2&#34; aria-label=&#34;2 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;02 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;Le pensioni passano dal lavoro&lt;/h1&gt;
+      &lt;h1&gt;Un patto che passa dalla busta paga&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Nei sistemi a ripartizione, i contributi di oggi pagano le pensioni di oggi. Lo Stato integra le risorse con la fiscalità generale.&lt;/p&gt;
-        &lt;p&gt;Fonte: Commissione europea, Ageing Report 2024 [3].&lt;/p&gt;
+        &lt;p&gt;Nella maggior parte dei sistemi pubblici europei i contributi di oggi pagano le pensioni di oggi: è la ripartizione.&lt;/p&gt;
+        &lt;p&gt;Fonte: Commissione europea, Rapporto sull&amp;#39;invecchiamento 2024 [3].&lt;/p&gt;
       &lt;/div&gt;
+      &lt;blockquote class=&#34;highlight&#34;&gt;Nel 2070 ci sarebbero 14 occupati ogni 10 anziani inattivi, contro 22 nel 2022.&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 25.0%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -843,21 +1019,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 3/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 3/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -873,7 +1056,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -883,67 +1066,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -951,41 +1167,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-3&#34; aria-label=&#34;3 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;03 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;Esposizione non significa perdita&lt;/h1&gt;
+      &lt;h1&gt;Quanto lavoro è esposto all&amp;#39;AI&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Secondo il FMI, circa il 40% dell’occupazione mondiale è esposto all’AI; nelle economie avanzate la quota sale al 60%. L’AI può affiancare il lavoro oppure sostituirne alcuni compiti.&lt;/p&gt;
-        &lt;p&gt;Fonte: FMI, 2024 [1].&lt;/p&gt;
+        &lt;p&gt;Esposizione non vuol dire sostituzione: per circa metà dei lavori esposti l&amp;#39;AI aumenta la produttività, per l&amp;#39;altra metà può ridurre domanda di lavoro e salari.&lt;/p&gt;
+        &lt;p&gt;Fonte: Fondo monetario internazionale [1].&lt;/p&gt;
       &lt;/div&gt;
+      &lt;blockquote class=&#34;highlight&#34;&gt;Quasi il 40% dell&amp;#39;occupazione mondiale, circa il 60% nelle economie avanzate.&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 37.5%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -998,21 +1263,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 4/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 4/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -1028,7 +1300,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -1038,67 +1310,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -1106,41 +1411,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-4&#34; aria-label=&#34;4 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;04 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;Anche il fisco orienta le scelte&lt;/h1&gt;
+      &lt;h1&gt;Un fisco che premia la macchina&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Uno studio sugli Stati Uniti rileva un vantaggio fiscale del capitale rispetto al lavoro. Alcune automazioni possono convenire anche senza grandi guadagni di produttività.&lt;/p&gt;
-        &lt;p&gt;Fonte: Acemoglu, Manera e Restrepo, 2020 [2].&lt;/p&gt;
+        &lt;p&gt;Per Acemoglu, Manera e Restrepo il fisco statunitense è sbilanciato contro il lavoro e a favore del capitale: alcune automazioni convengono per le tasse, non per la tecnologia.&lt;/p&gt;
+        &lt;p&gt;Fonte: NBER Working Paper 27052, 2020 [2].&lt;/p&gt;
       &lt;/div&gt;
+      &lt;blockquote class=&#34;highlight&#34;&gt;Con una tassazione ottimale, nel loro modello l&amp;#39;occupazione salirebbe del 4,02%.&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 50.0%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -1153,21 +1507,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 5/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 5/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -1183,7 +1544,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -1193,67 +1554,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -1261,41 +1655,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-5&#34; aria-label=&#34;5 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;05 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;Italia: la pressione demografica&lt;/h1&gt;
+      &lt;h1&gt;Il laboratorio italiano&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Nel 2023 l’INPS registra 269 miliardi di entrate contributive e quasi 165 miliardi di trasferimenti dalla fiscalità generale. Nel 2050 gli over 65 potrebbero arrivare al 35% della popolazione.&lt;/p&gt;
-        &lt;p&gt;Fonte: INPS, Relazione 2024 [4].&lt;/p&gt;
+        &lt;p&gt;Nel 2023 l&amp;#39;INPS ha accertato 269 miliardi di entrate contributive e quasi 165 miliardi di trasferimenti dalla fiscalità generale [4].&lt;/p&gt;
+        &lt;p&gt;Il rapporto occupati/pensionati è sotto la soglia di stabilità di 1,5 (Itinerari Previdenziali [7]).&lt;/p&gt;
       &lt;/div&gt;
+      &lt;blockquote class=&#34;highlight&#34;&gt;1,47 lavoratori per ogni pensionato nel 2024: poco meno di tre ogni due.&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 62.5%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -1308,21 +1751,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 6/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 6/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -1338,7 +1788,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -1348,67 +1798,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -1416,41 +1899,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-6&#34; aria-label=&#34;6 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;06 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;Le proposte da valutare&lt;/h1&gt;
+      &lt;h1&gt;Quanta Italia è esposta&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Ridurre il carico fiscale sul lavoro e rivedere gli incentivi all’automazione sono opzioni discusse nella ricerca. Non sono ricette già validate per il sistema italiano.&lt;/p&gt;
-        &lt;p&gt;Fonte: studio sul fisco statunitense [2]; valutazione editoriale nell’articolo.&lt;/p&gt;
+        &lt;p&gt;Banca d&amp;#39;Italia, QEF n. 878: circa 15 milioni di occupati su 22 sono mediamente o molto esposti all&amp;#39;AI [5].&lt;/p&gt;
+        &lt;p&gt;QEF n. 1005: nel 2024 poco più del 10% delle imprese con almeno 50 addetti usava l&amp;#39;IA, senza perdite nette di posti [6].&lt;/p&gt;
       &lt;/div&gt;
+      &lt;blockquote class=&#34;highlight&#34;&gt;La domanda aperta: quanta di quella produttività arriverà nelle buste paga.&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 75.0%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -1463,21 +1995,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 7/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 7/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -1493,7 +2032,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -1503,67 +2042,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -1571,41 +2143,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-7&#34; aria-label=&#34;7 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;07 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;I dati italiani invitano alla cautela&lt;/h1&gt;
+      &lt;h1&gt;Tre strade sul tavolo&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;Uno studio della Banca d’Italia del 2026 sulle imprese con almeno 50 addetti rileva più produttività senza effetti negativi sull’occupazione complessiva. Resta aperta la domanda su quanta produttività arriverà ai salari.&lt;/p&gt;
-        &lt;p&gt;Fonte: QEF 1005 [6]; domanda editoriale.&lt;/p&gt;
+        &lt;p&gt;1 · Robot tax mirata sull&amp;#39;automazione che non produce guadagni reali [2].&lt;/p&gt;
+        &lt;p&gt;2 · Spostare il carico dal lavoro al capitale, con più fiscalità generale [2].&lt;/p&gt;
+        &lt;p&gt;3 · Ripensare il welfare: fondi sovrani, reti di protezione, riqualificazione [1].&lt;/p&gt;
       &lt;/div&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
-      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&amp;rarr;&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;span class=&#34;&#34;&gt;&lt;/span&gt;&lt;/span&gt;
+      &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;Continua &amp;rarr;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 87.5%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -1618,21 +2239,28 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
 &lt;meta charset=&#34;utf-8&#34;&gt;
 &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
 &lt;meta name=&#34;generator&#34; content=&#34;editorial-pipeline&#34;&gt;
-&lt;title&gt;AI e pensioni: il nodo fiscale — 8/8&lt;/title&gt;
+&lt;title&gt;Chi pagherà le pensioni nell&amp;#39;era dell&amp;#39;AI? — 8/8&lt;/title&gt;
 &lt;style&gt;
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Palatino, &#34;Book Antiqua&#34;, Georgia, &#34;Times New Roman&#34;, serif;
-    --sans: system-ui, -apple-system, &#34;Segoe UI&#34;, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme&#39;s own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: &#34;Inter&#34;, &#34;Segoe UI Variable Display&#34;, &#34;Segoe UI&#34;, system-ui, -apple-system, Roboto, &#34;Helvetica Neue&#34;, Arial, &#34;Noto Sans&#34;, sans-serif;
+    --serif: &#34;Source Serif 4&#34;, &#34;Iowan Old Style&#34;, &#34;Palatino Linotype&#34;, Georgia, serif;
+    --body: var(--sans);
+    --mono: &#34;JetBrains Mono&#34;, &#34;Cascadia Mono&#34;, &#34;SF Mono&#34;, Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -1648,7 +2276,7 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -1658,67 +2286,100 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: &#34;&#34;;
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: &#34;&#34;;
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -1726,42 +2387,90 @@ Fonti: FMI, analisi del 14 gennaio 2024; INPS, XXIII Rapporto annuale, Relazione
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: &#34;&#34;;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;section class=&#34;slide&#34; id=&#34;slide-8&#34; aria-label=&#34;8 / 8&#34;&gt;
   &lt;div class=&#34;frame&#34;&gt;
-    &lt;header class=&#34;kicker&#34;&gt;
-      &lt;span class=&#34;series&#34;&gt;AI e pensioni: il nodo fiscale&lt;/span&gt;
+    &lt;header class=&#34;topbar&#34;&gt;
+      &lt;span class=&#34;brand&#34;&gt;Inchiesta speciale · Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
       &lt;span class=&#34;count&#34;&gt;08 / 08&lt;/span&gt;
     &lt;/header&gt;
     &lt;main class=&#34;body&#34;&gt;
-      &lt;h1&gt;Leggi le fonti, valuta le proposte&lt;/h1&gt;
+      &lt;h1&gt;Fonti verificate, firma umana&lt;/h1&gt;
       &lt;div class=&#34;text&#34;&gt;
-        &lt;p&gt;FMI [1] · Acemoglu e coautori [2] · Commissione europea [3] · INPS [4] · Banca d’Italia [5–6] · Itinerari Previdenziali [7].&lt;/p&gt;
-        &lt;p&gt;Riferimenti completi e limiti nell’articolo ai_pensioni.&lt;/p&gt;
-        &lt;p&gt;Kit in attesa del Gate 2 umano: pubblicazione non autorizzata.&lt;/p&gt;
+        &lt;p&gt;33 affermazioni riscontrate su fonti primarie: FMI [1] · Acemoglu, Manera, Restrepo [2] · Commissione europea [3] · INPS [4] · Banca d&amp;#39;Italia [5–6] · Itinerari Previdenziali [7].&lt;/p&gt;
+        &lt;p&gt;Revisione stilistica contro le formule automatiche e approvazione del Direttore.&lt;/p&gt;
       &lt;/div&gt;
+      &lt;blockquote class=&#34;highlight&#34;&gt;Metodo, fonti e registro errori: pagine /metodo/ e /correzioni/ del sito.&lt;/blockquote&gt;
     &lt;/main&gt;
     &lt;footer class=&#34;footer&#34;&gt;
-      &lt;span class=&#34;author&#34;&gt;Osservatorio Algoritmi &amp;amp; Welfare&lt;/span&gt;
+      &lt;span class=&#34;steps&#34; aria-hidden=&#34;true&#34;&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;done&#34;&gt;&lt;/span&gt;&lt;span class=&#34;now&#34;&gt;&lt;/span&gt;&lt;/span&gt;
       &lt;span class=&#34;next&#34; aria-hidden=&#34;true&#34;&gt;&lt;/span&gt;
     &lt;/footer&gt;
   &lt;/div&gt;
-  &lt;div class=&#34;progress&#34; style=&#34;width: 100.0%&#34; aria-hidden=&#34;true&#34;&gt;&lt;/div&gt;
 &lt;/section&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -2081,7 +2790,7 @@ La domanda del titolo, allora, è prima di tutto politica. Se una parte crescent
     <h3>Testo e kit social</h3>
     <ul><li><span class="path">content/posts/ai_pensioni.md</span><span class="size">16,3 KB</span><a href="../../content/posts/ai_pensioni.md" download>Scarica</a></li></ul>
     <h3>Social e carosello</h3>
-    <ul><li><span class="path">dist/social/ai_pensioni/deck.pdf</span><span class="size">347,4 KB</span><a href="../social/ai_pensioni/deck.pdf" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/instagram.txt</span><span class="size">1,4 KB</span><a href="../social/ai_pensioni/instagram.txt" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/linkedin.txt</span><span class="size">2,0 KB</span><a href="../social/ai_pensioni/linkedin.txt" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/manifest.json</span><span class="size">1,5 KB</span><a href="../social/ai_pensioni/manifest.json" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/newsletter.txt</span><span class="size">3,0 KB</span><a href="../social/ai_pensioni/newsletter.txt" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_01.html</span><span class="size">4,5 KB</span><a href="../social/ai_pensioni/slide_01.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_02.html</span><span class="size">4,5 KB</span><a href="../social/ai_pensioni/slide_02.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_03.html</span><span class="size">4,5 KB</span><a href="../social/ai_pensioni/slide_03.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_04.html</span><span class="size">4,5 KB</span><a href="../social/ai_pensioni/slide_04.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_05.html</span><span class="size">4,5 KB</span><a href="../social/ai_pensioni/slide_05.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_06.html</span><span class="size">4,5 KB</span><a href="../social/ai_pensioni/slide_06.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_07.html</span><span class="size">4,6 KB</span><a href="../social/ai_pensioni/slide_07.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_08.html</span><span class="size">4,6 KB</span><a href="../social/ai_pensioni/slide_08.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/twitter.txt</span><span class="size">1,3 KB</span><a href="../social/ai_pensioni/twitter.txt" download>Scarica</a></li></ul>
+    <ul><li><span class="path">dist/social/ai_pensioni/deck.pdf</span><span class="size">177,7 KB</span><a href="../social/ai_pensioni/deck.pdf" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/instagram.txt</span><span class="size">1,4 KB</span><a href="../social/ai_pensioni/instagram.txt" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/linkedin.txt</span><span class="size">2,0 KB</span><a href="../social/ai_pensioni/linkedin.txt" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/manifest.json</span><span class="size">1,5 KB</span><a href="../social/ai_pensioni/manifest.json" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/newsletter.txt</span><span class="size">3,0 KB</span><a href="../social/ai_pensioni/newsletter.txt" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_01.html</span><span class="size">7,4 KB</span><a href="../social/ai_pensioni/slide_01.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_02.html</span><span class="size">7,4 KB</span><a href="../social/ai_pensioni/slide_02.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_03.html</span><span class="size">7,4 KB</span><a href="../social/ai_pensioni/slide_03.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_04.html</span><span class="size">7,4 KB</span><a href="../social/ai_pensioni/slide_04.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_05.html</span><span class="size">7,5 KB</span><a href="../social/ai_pensioni/slide_05.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_06.html</span><span class="size">7,5 KB</span><a href="../social/ai_pensioni/slide_06.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_07.html</span><span class="size">7,4 KB</span><a href="../social/ai_pensioni/slide_07.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/slide_08.html</span><span class="size">7,5 KB</span><a href="../social/ai_pensioni/slide_08.html" download>Scarica</a></li><li><span class="path">dist/social/ai_pensioni/twitter.txt</span><span class="size">1,3 KB</span><a href="../social/ai_pensioni/twitter.txt" download>Scarica</a></li></ul>
     <h3>Audio</h3>
     <ul><li><span class="path">dist/audio/ai_pensioni/podcast.m4a</span><span class="size">13,7 MB</span><a href="../audio/ai_pensioni/podcast.m4a" download>Scarica</a></li><li><span class="path">dist/audio/ai_pensioni/podcast_script.md</span><span class="size">8,0 KB</span><a href="../audio/ai_pensioni/podcast_script.md" download>Scarica</a></li></ul>
     <h3>Fonti, verifiche e ricevute</h3>

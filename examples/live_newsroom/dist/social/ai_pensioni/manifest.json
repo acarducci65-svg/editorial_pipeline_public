@@ -5,45 +5,45 @@
     {
       "path": "ai_pensioni/slide_01.html",
       "kind": "html",
-      "sha256": "48d6d646ecdec4d3ebd5ef5119f7372347ad06045aa19bb57dd4db12eb5137e7"
+      "sha256": "c8ec024fe6c708526f3a879ef6a42e5d6abd962ca204579779746c675940edf5"
     },
     {
       "path": "ai_pensioni/slide_02.html",
       "kind": "html",
-      "sha256": "1dcd4670f152c007aefd8f744a8b1bdefb96fcdb2a3c67ad8c656a637eeb21b8"
+      "sha256": "126bbd915eec2d028df8e80e3845236c742d73af299b94ee0af1e4a6408db178"
     },
     {
       "path": "ai_pensioni/slide_03.html",
       "kind": "html",
-      "sha256": "96613a1a2f8418fc1dc599f0f7f0e154c54da85efb69eca6585d99e7b7915069"
+      "sha256": "d57596d7ec05a599cd4720a8eda72711892b1b3586b7fcf3e3b9fce63ac84b8b"
     },
     {
       "path": "ai_pensioni/slide_04.html",
       "kind": "html",
-      "sha256": "4f92c98650e240f8822acc52107fc501aa86462241355aef336c44aa23c8ddf1"
+      "sha256": "6f6ca7d4a9aeab9354364570c3b0eff6ce3e74544600e738a7c8110fc401ace4"
     },
     {
       "path": "ai_pensioni/slide_05.html",
       "kind": "html",
-      "sha256": "5409ecde167ab8bdd5950ec5cefad40e1473557c794b762fad8fa04d39c4b8c7"
+      "sha256": "6d6972cd9d30562602779829a1f16020cad4a9a4f6dd3f0db3d57ac7655458de"
     },
     {
       "path": "ai_pensioni/slide_06.html",
       "kind": "html",
-      "sha256": "698b8a8e044e7d9a46c696df2777b07851e0b5b5f5431f1c384eccbf2cc5ba55"
+      "sha256": "2d7c045e50dbed8321637d12bdb0c220ec45293d1d4e658f4d491c4b8956e550"
     },
     {
       "path": "ai_pensioni/slide_07.html",
       "kind": "html",
-      "sha256": "870a3117fd6692fff53f7fe322e5ecd02873e603bdef7ef5a7064ae6d2038637"
+      "sha256": "32fbf1b7a61599e937cdd89075f07a02ba9fa3ae8f52262bc381bc4734b2381d"
     },
     {
       "path": "ai_pensioni/slide_08.html",
       "kind": "html",
-      "sha256": "f969f448a7bbd75c3d5928337e16dad50f9ed07e4470fa6015d0dd82f07275d5"
+      "sha256": "10e6b7cdfa38843e535acceeba475a7a3b33ba53dc6a22c8ac5e99a98c654137"
     }
   ],
-  "digest": "09d3b99c45bb4c0ba74c21efea0258136cf09cc228436b92cc57d423309826ba",
+  "digest": "34c5880fb8e917d09ec17613d6b9232ea77c831ad3c1591511b8271dd7a886b1",
   "notes": [
     "Rasterisation disabled: HTML preview only"
   ]

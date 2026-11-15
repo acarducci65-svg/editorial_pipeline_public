@@ -1,0 +1,276 @@
+{#-
+  Author website article — Editorial Pipeline (Apache-2.0).
+
+  Long-form reading page for the author's personal site / portfolio.
+  Offline-first: inline CSS and a tiny inline script, system fonts only,
+  no CDN, tracker or remote asset. Every asset path is relative to the
+  exported folder (assets/...), so the folder can be deployed as-is.
+
+  Context (from AuthorWebsitePublisher):
+    lang, site, base_url, post_id, title, subtitle, date, reading_minutes
+    author        {name, bio}
+    article       pre-escaped HTML from render_markdown (safe)
+    toc           list[{id, text}]  level-2 headings
+    audio         relative path of the podcast ("" when absent), audio_type
+    slides        list[{src, kind: "html" | "image"}]
+    deck          relative path of the PDF deck ("" when absent)
+    transparency  list[{label, href}]
+    contact       corrections e-mail
+    theme         accent_color, background_color, ink_color, font_family
+    bundle_digest Gate 2 bundle digest of the approved kit
+-#}
+{%- set accent = theme.get('accent_color', '#2563eb') -%}
+{%- set bg = theme.get('background_color', '#f8fafc') -%}
+{%- set ink = theme.get('ink_color', '#0f172a') -%}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="editorial-pipeline">
+<meta name="author" content="{{ author.name or site }}">
+{%- if subtitle %}
+<meta name="description" content="{{ subtitle }}">
+{%- endif %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ title }}">
+<title>{{ title }} — {{ author.name or site }}</title>
+<style>
+  :root {
+    --bg: {{ bg }};
+    --ink: {{ ink }};
+    --accent: {{ accent }};
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 68%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 8%, #ffffff);
+    --sans: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Charter, Georgia, serif;
+    --read: {{ 'var(--serif)' if theme.get('font_family') == 'serif' else 'var(--sans)' }};
+    --measure: 68ch;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 2rem; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-underline-offset: 0.18em; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .skip { position: absolute; left: -999px; }
+  .skip:focus { left: 1rem; top: 1rem; background: var(--surface); padding: 0.5rem 1rem; z-index: 10; }
+
+  /* Masthead: the author's identity, not the newsroom's. */
+  .masthead { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .masthead .wrap { max-width: 1180px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .masthead .name { font-weight: 700; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+  .masthead nav a { color: var(--muted); text-decoration: none; font-size: 0.92rem; margin-left: 1.2rem; }
+  .masthead nav a:hover { color: var(--accent); }
+  /* On phones the same links stay reachable in the Trasparenza section. */
+  @media (max-width: 560px) { .masthead nav { display: none; } }
+
+  /* Hero */
+  .hero { max-width: 1180px; margin: 0 auto; padding: 4.5rem 1.5rem 2.5rem; }
+  .hero .eyebrow { font-size: 0.82rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(2.2rem, 4.6vw, 3.7rem); line-height: 1.06; letter-spacing: -0.03em; margin: 0.8rem 0 1.1rem; max-width: 22ch; text-wrap: balance; }
+  .hero .dek { font-family: var(--serif); font-size: clamp(1.15rem, 1.8vw, 1.4rem); line-height: 1.5; color: var(--muted); max-width: 56ch; margin: 0; }
+  .byline { display: flex; align-items: center; gap: 0.9rem; margin-top: 2rem; padding-top: 1.4rem; border-top: 1px solid var(--line); max-width: 56ch; }
+  .avatar { flex: none; width: 3rem; height: 3rem; border-radius: 50%; background: var(--ink); color: #ffffff; display: grid; place-items: center; font-weight: 700; }
+  .byline .who { font-weight: 650; }
+  .byline .meta { font-size: 0.88rem; color: var(--muted); }
+
+  /* Reading layout: lateral TOC + measure-limited column. */
+  .layout { max-width: 1180px; margin: 0 auto; padding: 1rem 1.5rem 4rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3rem; }
+  @media (min-width: 1024px) { .layout { grid-template-columns: 15rem minmax(0, 1fr); } }
+  .toc { font-size: 0.9rem; }
+  @media (min-width: 1024px) { .toc { position: sticky; top: 2rem; align-self: start; max-height: calc(100vh - 4rem); overflow: auto; } }
+  .toc h2 { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+  .toc li a { display: block; padding: 0.35rem 0 0.35rem 1rem; margin-left: -2px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; line-height: 1.35; }
+  .toc li a:hover, .toc li a[aria-current="true"] { color: var(--ink); border-left-color: var(--accent); }
+  .toc .extras { margin-top: 1.4rem; display: grid; gap: 0.4rem; }
+
+  .content { min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem 1.4rem; margin: 0 0 2.4rem; max-width: var(--measure); }
+  .card h2 { font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; }
+  .card audio { width: 100%; }
+  .card p { margin: 0.6rem 0 0; font-size: 0.88rem; color: var(--muted); }
+
+  article { font-family: var(--read); font-size: 1.16rem; line-height: 1.72; max-width: var(--measure); }
+  article h2, article h3, article h4 { font-family: var(--sans); line-height: 1.2; letter-spacing: -0.015em; }
+  article h2 { font-size: 1.7rem; margin: 3rem 0 1rem; }
+  article h3 { font-size: 1.28rem; margin: 2.2rem 0 0.8rem; }
+  article p { margin: 0 0 1.25rem; hyphens: auto; }
+  article blockquote { margin: 2rem 0; padding: 0.4rem 0 0.4rem 1.4rem; border-left: 4px solid var(--accent); font-size: 1.28rem; color: var(--ink); }
+  article ol, article ul { padding-left: 1.4rem; }
+  article li { margin-bottom: 0.5rem; }
+  article code, article pre { font-size: 0.9em; }
+  article pre { overflow: auto; background: var(--surface); border: 1px solid var(--line); padding: 1rem; border-radius: 10px; }
+  article hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
+  article sup.cites { font-family: var(--sans); font-size: 0.68em; line-height: 0; }
+  article sup.cites a { text-decoration: none; }
+
+  /* Carousel: the approved slides, browsable in place. */
+  .carousel { max-width: var(--measure); margin: 3.5rem 0; }
+  .carousel h2 { font-size: 1.3rem; margin: 0 0 1rem; }
+  .stage { position: relative; aspect-ratio: 4 / 5; max-width: 30rem; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+  .stage > * { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; object-fit: contain; }
+  .stage > .on { display: block; }
+  .controls { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.9rem; max-width: 30rem; }
+  .controls button { font: inherit; font-weight: 600; padding: 0.5rem 0.95rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .controls button:hover { border-color: var(--accent); color: var(--accent); }
+  .controls .pos { font-variant-numeric: tabular-nums; color: var(--muted); margin-right: auto; }
+
+  /* About + transparency */
+  .about { max-width: var(--measure); margin-top: 3.5rem; padding: 1.6rem; border-radius: 14px; background: var(--accent-soft); border: 1px solid color-mix(in oklab, var(--accent) 20%, #ffffff); }
+  .about h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+  .about p { margin: 0; line-height: 1.6; }
+  .trust { max-width: var(--measure); margin-top: 2rem; font-size: 0.92rem; color: var(--muted); }
+  .trust ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; }
+  .colophon { border-top: 1px solid var(--line); padding: 2rem 1.5rem 3rem; text-align: center; font-size: 0.82rem; color: var(--muted); }
+  .colophon code { font-size: 0.78rem; overflow-wrap: anywhere; }
+  @media print { .toc, .controls, .masthead nav, .skip { display: none; } .layout { display: block; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#articolo">Vai all'articolo</a>
+<header class="masthead">
+  <div class="wrap">
+    <a class="name" href="{{ base_url }}/">{{ author.name or site }}</a>
+    <nav aria-label="Sito">
+      {%- for link in transparency %}
+      <a href="{{ link.href }}">{{ link.label }}</a>
+      {%- endfor %}
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">{{ site }}</div>
+  <h1>{{ title }}</h1>
+  {%- if subtitle %}
+  <p class="dek">{{ subtitle }}</p>
+  {%- endif %}
+  <div class="byline">
+    <span class="avatar" aria-hidden="true">{{ (author.name or site)[:1] }}</span>
+    <div>
+      <div class="who">{{ author.name or site }}</div>
+      <div class="meta">{% if date %}<time datetime="{{ date }}">{{ date }}</time> · {% endif %}{{ reading_minutes }} min di lettura</div>
+    </div>
+  </div>
+</section>
+
+<div class="layout">
+  <aside class="toc" aria-label="Indice">
+    {%- if toc %}
+    <h2>In questo articolo</h2>
+    <ol>
+      {%- for item in toc %}
+      <li><a href="#{{ item.id }}">{{ item.text }}</a></li>
+      {%- endfor %}
+    </ol>
+    {%- endif %}
+    <div class="extras">
+      {%- if audio %}<a href="#ascolta">Ascolta il podcast</a>{% endif %}
+      {%- if slides %}<a href="#carosello">Sfoglia il carosello</a>{% endif %}
+      <a href="#trasparenza">Come è stato verificato</a>
+    </div>
+  </aside>
+
+  <main class="content" id="articolo">
+    {%- if audio %}
+    <section class="card" id="ascolta" aria-labelledby="ascolta-titolo">
+      <h2 id="ascolta-titolo">Ascolta</h2>
+      <audio controls preload="none">
+        <source src="{{ audio }}" type="{{ audio_type }}">
+        <a href="{{ audio }}">Scarica l'audio</a>
+      </audio>
+      <p>Conversazione audio costruita sulle stesse fonti verificate dell'articolo.</p>
+    </section>
+    {%- endif %}
+
+    <article>
+{{ article | safe }}
+    </article>
+
+    {%- if slides %}
+    <section class="carousel" id="carosello" aria-roledescription="carosello" aria-labelledby="carosello-titolo">
+      <h2 id="carosello-titolo">In {{ slides | length }} slide</h2>
+      <div class="stage" data-stage>
+        {%- for slide in slides %}
+        {%- if slide.kind == 'html' %}
+        <iframe class="{{ 'on' if loop.first else '' }}" src="{{ slide.src }}" title="Slide {{ loop.index }} di {{ slides | length }}" loading="lazy" sandbox></iframe>
+        {%- else %}
+        <img class="{{ 'on' if loop.first else '' }}" src="{{ slide.src }}" alt="Slide {{ loop.index }} di {{ slides | length }}" loading="lazy">
+        {%- endif %}
+        {%- endfor %}
+      </div>
+      <div class="controls">
+        <span class="pos" aria-live="polite" data-pos>1 / {{ slides | length }}</span>
+        <button type="button" data-step="-1" aria-label="Slide precedente">&larr;</button>
+        <button type="button" data-step="1" aria-label="Slide successiva">&rarr;</button>
+        {%- if deck %}<a href="{{ deck }}" download>PDF</a>{% endif %}
+      </div>
+    </section>
+    {%- endif %}
+
+    {%- if author.bio %}
+    <section class="about" aria-labelledby="autore-titolo">
+      <h2 id="autore-titolo">Chi scrive</h2>
+      <p>{{ author.bio }}</p>
+    </section>
+    {%- endif %}
+
+    <section class="trust" id="trasparenza" aria-labelledby="trasparenza-titolo">
+      <h2 id="trasparenza-titolo">Trasparenza</h2>
+      <p>Ogni affermazione è stata riscontrata sulle fonti elencate; il testo è stato rivisto e approvato da una persona prima della pubblicazione.{% if contact %} Segnalazioni e correzioni: <a href="mailto:{{ contact }}">{{ contact }}</a>.{% endif %}</p>
+      <ul>
+        {%- for link in transparency %}
+        <li><a href="{{ link.href }}">{{ link.label }}</a></li>
+        {%- endfor %}
+      </ul>
+    </section>
+  </main>
+</div>
+
+<footer class="colophon">
+  {{ site }} · Kit approvato al Gate 2 · <code>{{ bundle_digest }}</code>
+</footer>
+{%- if slides or toc %}
+<script>
+(function () {
+  var stage = document.querySelector("[data-stage]");
+  if (stage) {
+    var items = stage.children, pos = document.querySelector("[data-pos]"), i = 0;
+    var show = function (n) {
+      items[i].classList.remove("on");
+      i = (n + items.length) % items.length;
+      items[i].classList.add("on");
+      pos.textContent = (i + 1) + " / " + items.length;
+    };
+    document.querySelectorAll("[data-step]").forEach(function (b) {
+      b.addEventListener("click", function () { show(i + Number(b.dataset.step)); });
+    });
+    stage.parentElement.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") show(i + 1);
+      if (e.key === "ArrowLeft") show(i - 1);
+    });
+  }
+  var links = document.querySelectorAll(".toc ol a");
+  if (links.length && "IntersectionObserver" in window) {
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.setAttribute("aria-current", a.getAttribute("href") === "#" + entry.target.id ? "true" : "false");
+        });
+      });
+    }, { rootMargin: "0px 0px -70% 0px" });
+    links.forEach(function (a) {
+      var target = document.getElementById(a.getAttribute("href").slice(1));
+      if (target) seen.observe(target);
+    });
+  }
+})();
+</script>
+{%- endif %}
+</body>
+</html>

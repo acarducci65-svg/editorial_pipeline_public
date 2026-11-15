@@ -4,21 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="editorial-pipeline">
-<title>AI e pensioni: il nodo fiscale — 4/8</title>
+<title>Chi pagherà le pensioni nell&#39;era dell&#39;AI? — 4/8</title>
 <style>
   :root {
-    --paper: #f6f3ee;
-    --ink: #1f2328;
-    --muted: #5b6168;
-    --rule: #d9d3c7;
-    --accent: #8f3b2b;
-    --accent-soft: #efe4dc;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    /* Derived tones stay in the theme's own hue family. */
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 70%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+    --accent-line: color-mix(in oklab, var(--accent) 28%, #ffffff);
+    --on-ink: #ffffff;
+    --on-ink-muted: color-mix(in oklab, #ffffff 74%, var(--ink));
+    --sans: "Inter", "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --body: var(--sans);
+    --mono: "JetBrains Mono", "Cascadia Mono", "SF Mono", Consolas, ui-monospace, monospace;
   }
   @page { size: 1080px 1350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--paper); color: var(--ink); }
+  html, body { background: var(--bg); color: var(--ink); }
   body {
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
@@ -34,7 +41,7 @@
     aspect-ratio: 1080 / 1350;
     margin: 0 auto;
     overflow: hidden;
-    background: var(--paper);
+    background: var(--bg);
     break-after: page;
     page-break-after: always;
   }
@@ -44,67 +51,100 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding: 96px 96px 88px;
-    padding: 8.9cqw 8.9cqw 8.1cqw;
+    padding: 88px 92px 80px;
+    padding: 8.1cqw 8.5cqw 7.4cqw;
   }
-  .kicker {
+  .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 32px;
-    padding-bottom: 28px;
-    padding-bottom: 2.6cqw;
-    border-bottom: 2px solid var(--rule);
-    font-size: 26px;
-    font-size: 2.4cqw;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 600;
     color: var(--muted);
   }
-  .kicker .series { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kicker .count { font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px; gap: 4.1cqw; }
-  h1 {
-    font-family: var(--serif);
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand::before {
+    content: "";
+    flex: none;
+    width: 0.62em;
+    height: 0.62em;
+    border-radius: 0.16em;
+    background: var(--accent);
+  }
+  .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 76px;
-    font-size: 7cqw;
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-content: safe center;
+    gap: 40px;
+    gap: 3.7cqw;
+    min-height: 0;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 750;
+    font-size: 72px;
+    font-size: 6.7cqw;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     text-wrap: balance;
     overflow-wrap: break-word;
   }
-  .subtitle {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.35;
-    color: var(--muted);
-  }
   .text p {
-    font-size: 40px;
-    font-size: 3.7cqw;
-    line-height: 1.5;
-    max-width: 34ch;
+    font-family: var(--body);
+    font-size: 39px;
+    font-size: 3.6cqw;
+    line-height: 1.48;
+    max-width: 32ch;
+    color: color-mix(in oklab, var(--ink) 88%, var(--bg));
     hyphens: auto;
     overflow-wrap: break-word;
   }
-  .text p + p { margin-top: 0.8em; }
+  .text p + p { margin-top: 0.75em; }
   .highlight {
-    padding: 32px 40px;
-    padding: 3cqw 3.7cqw;
-    border-left: 8px solid var(--accent);
+    position: relative;
+    padding: 34px 40px 36px 104px;
+    padding: 3.1cqw 3.7cqw 3.3cqw 9.6cqw;
+    border: 2px solid var(--accent-line);
+    border-radius: 28px;
+    border-radius: 2.6cqw;
     background: var(--accent-soft);
-    font-family: var(--serif);
-    font-size: 44px;
-    font-size: 4.1cqw;
-    line-height: 1.35;
+    font-size: 40px;
+    font-size: 3.7cqw;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .cover h1 { font-size: 96px; font-size: 8.9cqw; line-height: 1.06; }
-  .cover .body { justify-content: flex-end; padding-bottom: 4cqw; }
-  .cover .rule { width: 18%; height: 8px; background: var(--accent); }
+  .highlight::before {
+    content: "";
+    position: absolute;
+    left: 3.7cqw;
+    top: 3.6cqw;
+    width: 3.4cqw;
+    height: 3.4cqw;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 0.9cqw var(--accent-soft);
+  }
   .footer {
     display: flex;
     justify-content: space-between;
@@ -112,41 +152,90 @@
     gap: 32px;
     padding-top: 28px;
     padding-top: 2.6cqw;
-    font-size: 26px;
-    font-size: 2.4cqw;
+    border-top: 2px solid var(--line);
+    font-size: 24px;
+    font-size: 2.2cqw;
     color: var(--muted);
   }
-  .footer .author { font-weight: 600; color: var(--ink); }
-  .progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 12px;
-    height: 1.1cqw;
-    background: var(--accent);
+  .steps { display: flex; gap: 0.5cqw; align-items: center; }
+  .steps span {
+    width: 1.6cqw;
+    height: 0.7cqw;
+    border-radius: 999px;
+    background: var(--line);
   }
+  .steps span.done { background: color-mix(in oklab, var(--accent) 40%, #ffffff); }
+  .steps span.now { width: 4.4cqw; background: var(--accent); }
+  .next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  /* Cover: the one committed surface of the deck. */
+  .cover { background: var(--ink); color: var(--on-ink); }
+  .cover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in oklab, #ffffff 13%, var(--ink)) 1.5px, transparent 1.6px);
+    background-size: 3.4cqw 3.4cqw;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+  }
+  .cover .topbar, .cover .footer { color: var(--on-ink-muted); }
+  .cover .count { color: #ffffff; }
+  .cover .footer { border-top-color: color-mix(in oklab, #ffffff 16%, var(--ink)); }
+  .cover .body { justify-content: flex-end; padding-bottom: 3.2cqw; }
+  .cover h1 { font-size: 88px; font-size: 8.2cqw; line-height: 1.03; letter-spacing: -0.03em; }
+  .cover .subtitle {
+    font-family: var(--body);
+    font-size: 38px;
+    font-size: 3.5cqw;
+    line-height: 1.4;
+    max-width: 30ch;
+    color: var(--on-ink-muted);
+  }
+  .cover .text p { color: var(--on-ink-muted); }
+  .cover .highlight { background: color-mix(in oklab, var(--accent) 22%, var(--ink)); border-color: color-mix(in oklab, var(--accent) 45%, var(--ink)); color: #ffffff; }
+  .cover .highlight::before { box-shadow: inset 0 0 0 0.9cqw color-mix(in oklab, var(--accent) 22%, var(--ink)); }
+  .cover .tag {
+    align-self: flex-start;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 24px;
+    font-size: 2.2cqw;
+    font-weight: 650;
+  }
+  .cover .steps span { background: color-mix(in oklab, #ffffff 22%, var(--ink)); }
+  .cover .steps span.now { background: var(--accent); }
+  .cover .next { color: #ffffff; }
 </style>
 </head>
 <body>
 <section class="slide" id="slide-4" aria-label="4 / 8">
   <div class="frame">
-    <header class="kicker">
-      <span class="series">AI e pensioni: il nodo fiscale</span>
+    <header class="topbar">
+      <span class="brand">Inchiesta speciale · Osservatorio Algoritmi &amp; Welfare</span>
       <span class="count">04 / 08</span>
     </header>
     <main class="body">
-      <h1>Anche il fisco orienta le scelte</h1>
+      <h1>Un fisco che premia la macchina</h1>
       <div class="text">
-        <p>Uno studio sugli Stati Uniti rileva un vantaggio fiscale del capitale rispetto al lavoro. Alcune automazioni possono convenire anche senza grandi guadagni di produttività.</p>
-        <p>Fonte: Acemoglu, Manera e Restrepo, 2020 [2].</p>
+        <p>Per Acemoglu, Manera e Restrepo il fisco statunitense è sbilanciato contro il lavoro e a favore del capitale: alcune automazioni convengono per le tasse, non per la tecnologia.</p>
+        <p>Fonte: NBER Working Paper 27052, 2020 [2].</p>
       </div>
+      <blockquote class="highlight">Con una tassazione ottimale, nel loro modello l&#39;occupazione salirebbe del 4,02%.</blockquote>
     </main>
     <footer class="footer">
-      <span class="author">Osservatorio Algoritmi &amp; Welfare</span>
-      <span class="next" aria-hidden="true">&rarr;</span>
+      <span class="steps" aria-hidden="true"><span class="done"></span><span class="done"></span><span class="done"></span><span class="now"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span></span>
+      <span class="next" aria-hidden="true">Continua &rarr;</span>
     </footer>
   </div>
-  <div class="progress" style="width: 50.0%" aria-hidden="true"></div>
 </section>
 </body>
 </html>

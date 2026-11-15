@@ -8,7 +8,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from editorial_pipeline.cli.reports import _sanitize
 from editorial_pipeline.config import EditorialConfig
 from editorial_pipeline.config.models import relative_path
 from editorial_pipeline.domain.gates import (
@@ -71,6 +70,9 @@ class PublishAdapter(ABC):
         allowed_actions: list[str],
         config: EditorialConfig,
     ) -> tuple[dict[str, bytes], dict[str, Any]]:
+        # Lazy import: cli.__init__ imports the command dispatcher, which imports us.
+        from editorial_pipeline.cli.reports import _sanitize
+
         if not post_id or post_id in {".", ".."} or "/" in post_id or "\\" in post_id:
             raise ValueError("invalid publishing post identifier")
         paths = config.resolve_paths(self.root)
