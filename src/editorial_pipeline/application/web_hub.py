@@ -904,20 +904,65 @@ def generate_index(
 
 
 class _Links(HTMLParser):
-    def __init__(self, root: Path, page: Path) -> None:
+    def __init__(self, root: Path, page: Path, dist: Path | None = None) -> None:
         super().__init__()
-        self.root, self.page = root, page
+        self.root, self.page = root.resolve(), page
+        self.dist = _contained(self.root, dist or root / "dist")
+        if not self.is_public(page.resolve()):
+            raise ValueError("Console must be a public file inside dist")
         self.allowed = {page.resolve()}
+
+    def is_public(self, path: Path) -> bool:
+        if not path.is_relative_to(self.root) or not path.is_relative_to(self.dist):
+            return False
+        parts = {p.lower() for p in path.relative_to(self.dist).parts}
+        return (
+            not parts.intersection({"src", "config", "content", "evidence", "reports", "manifests"})
+            and not any(p.startswith(".") for p in parts)
+            and "manifest" not in path.name.lower()
+            and path.suffix.lower()
+            in {
+                ".html",
+                ".css",
+                ".js",
+                ".md",
+                ".txt",
+                ".m4a",
+                ".mp3",
+                ".pdf",
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".webp",
+                ".gif",
+                ".zip",
+                ".gz",
+                ".wav",
+                ".mp4",
+            }
+        )
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         for key, value in attrs:
-            if key in ("href", "src") and value and not urlsplit(value).scheme:
+            if (
+                key in ("href", "src")
+                and value
+                and not urlsplit(value).scheme
+                and not urlsplit(value).netloc
+            ):
                 path = (self.page.parent / unquote(urlsplit(value).path)).resolve()
-                if path.is_relative_to(self.root):
+                if self.is_public(path):
                     self.allowed.add(path)
 
 
-def serve_console(root: Path, page: Path, *, port: int = 8000, open_browser: bool = True) -> None:
+def serve_console(
+    root: Path,
+    page: Path,
+    *,
+    port: int = 8000,
+    open_browser: bool = True,
+    dist: Path | None = None,
+) -> None:
     """Serve the console and linked assets on loopback until Ctrl+C.
 
     Configuration, unrelated articles and directory listings are not served.
@@ -927,7 +972,7 @@ def serve_console(root: Path, page: Path, *, port: int = 8000, open_browser: boo
         raise ValueError("port must be between 0 and 65535")
     root = root.resolve()
     page = _contained(root, page)
-    links = _Links(root, page)
+    links = _Links(root, page, dist)
     links.feed(page.read_text(encoding="utf-8"))
     # The newsroom index links to post consoles: serve their assets as well.
     pending = [p for p in links.allowed if p.suffix == ".html" and p.parent == page.parent]
@@ -946,13 +991,19 @@ def serve_console(root: Path, page: Path, *, port: int = 8000, open_browser: boo
 
     class Handler(SimpleHTTPRequestHandler):
         def send_head(self) -> Any:
+            hosts = self.headers.get_all("Host", [])
+            if len(hosts) != 1 or not re.fullmatch(
+                r"(?:127\.0\.0\.1|localhost)(?::[0-9]{1,5})?", hosts[0], re.IGNORECASE
+            ):
+                self.send_error(403)
+                return None
             path = Path(self.translate_path(self.path))
             try:
                 safe = _contained(root, path)
             except ValueError:
                 self.send_error(403)
                 return None
-            if safe not in links.allowed or not safe.is_file():
+            if safe not in links.allowed or not links.is_public(safe) or not safe.is_file():
                 self.send_error(404)
                 return None
             return super().send_head()

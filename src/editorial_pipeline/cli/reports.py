@@ -11,13 +11,23 @@ def relative_path(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
-def digest(path: Path, root: Path) -> str:
+def digest_bytes(name: str, content: bytes) -> str:
+    """Hash exact binary bytes; canonicalize line endings only for known text."""
     h = hashlib.sha256()
-    h.update(relative_path(path, root).encode())
+    h.update(name.encode())
     h.update(b"\0")
-    data = path.read_bytes().replace(b"\r\n", b"\n")
-    h.update(data)
+    if (
+        Path(name).suffix.lower()
+        in {".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".html", ".css", ".js"}
+        and b"\x00" not in content
+    ):
+        content = content.replace(b"\r\n", b"\n")
+    h.update(content)
     return f"v1:{h.hexdigest()}"
+
+
+def digest(path: Path, root: Path) -> str:
+    return digest_bytes(relative_path(path, root), path.read_bytes())
 
 
 def _sanitize(value: Any) -> Any:

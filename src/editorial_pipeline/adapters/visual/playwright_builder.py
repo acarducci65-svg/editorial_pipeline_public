@@ -55,11 +55,13 @@ class PlaywrightVisualBuilder(VisualBuilder):
         template_name: str = TEMPLATE_NAME,
         language: str = "it",
         rasterize: bool = True,
+        workspace_root: Path | None = None,
     ) -> None:
         self.template_dir = template_dir
         self.template_name = template_name
         self.language = language
         self.rasterize = rasterize
+        self.workspace_root = workspace_root.resolve() if workspace_root else None
         # Resolved [theme] values (see ThemeConfig.resolved); empty means template defaults.
         self.theme: dict[str, str] = {}
         self._template: Any = None
@@ -110,6 +112,24 @@ class PlaywrightVisualBuilder(VisualBuilder):
 
     def build_carousel(self, spec: CarouselSpec, output_dir: Path) -> ArtifactManifest:
         target = output_dir / spec.post_id
+        # Without an explicit workspace, the lexical output directory is the boundary.
+        boundary = self.workspace_root or output_dir.absolute()
+
+        def check(path: Path) -> None:
+            if not path.resolve().is_relative_to(boundary):
+                raise VisualBuildError("Carousel output resolves outside workspace")
+
+        check(output_dir)
+        check(target)
+        # Preflight every output before any write, including existing file links.
+        outputs = [target / "manifest.json", target / f"{spec.post_id}_carousel.pdf"]
+        outputs.extend(
+            target / f"slide_{slide.number:02d}.{ext}"
+            for slide in spec.slides
+            for ext in ("html", "png")
+        )
+        for output in outputs:
+            check(output)
         try:
             target.mkdir(parents=True, exist_ok=True)
             html_files: list[Path] = []

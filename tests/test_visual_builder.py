@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -23,6 +25,39 @@ from editorial_pipeline.config import load_config
 
 TEMPLATE_DIR = Path("templates/social")
 TEMPLATE = TEMPLATE_DIR / "carousel_slide.html.jinja2"
+
+
+@pytest.mark.parametrize("location", ["output", "post", "slide", "manifest"])
+def test_output_links_cannot_escape(tmp_path: Path, location: str) -> None:
+    workspace = tmp_path / "workspace"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    outside.mkdir()
+    output = workspace / "social"
+    target = output / "post_01"
+    link = {
+        "output": output,
+        "post": target,
+        "slide": target / "slide_01.html",
+        "manifest": target / "manifest.json",
+    }[location]
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if location in {"output", "post"} and os.name == "nt":
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(outside)], check=True, capture_output=True
+        )
+    else:
+        destination = outside if location in {"output", "post"} else outside / "private.txt"
+        if location in {"slide", "manifest"}:
+            destination.write_text("untouched", encoding="utf-8")
+        try:
+            link.symlink_to(destination, target_is_directory=location in {"output", "post"})
+        except OSError:
+            pytest.skip("File symlinks unavailable")
+    before = {p.name: p.read_bytes() for p in outside.iterdir() if p.is_file()}
+    with pytest.raises(VisualBuildError, match="outside|escape"):
+        builder(rasterize=False).build_carousel(make_spec(), output)
+    assert {p.name: p.read_bytes() for p in outside.iterdir() if p.is_file()} == before
 
 
 def make_spec(aspect_ratio: str = "4:5", **overrides: Any) -> CarouselSpec:

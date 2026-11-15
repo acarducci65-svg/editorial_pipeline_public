@@ -419,7 +419,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 console = generate_web_hub(view_root, args.post_id, view_paths, **view_options)
             if args.serve:
-                serve_console(view_root, console, port=args.port, open_browser=not args.no_browser)
+                serve_options: dict[str, Any] = {}
+                if view_paths and view_paths["paths.dist"] != view_root / "dist":
+                    serve_options["dist"] = view_paths["paths.dist"]
+                serve_console(
+                    view_root,
+                    console,
+                    port=args.port,
+                    open_browser=not args.no_browser,
+                    **serve_options,
+                )
             else:
                 print(f"Editorial Hub: {console.relative_to(view_root).as_posix()}")
                 if not args.no_browser:

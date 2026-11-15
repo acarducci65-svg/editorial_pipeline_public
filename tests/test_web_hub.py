@@ -193,8 +193,14 @@ def test_server_lifecycle(
 
 
 def test_real_http_server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    page = put(tmp_path, "dist/web/demo.html", '<a href="../audio/demo/podcast.mp3">audio</a>')
+    page = put(
+        tmp_path,
+        "dist/web/demo.html",
+        '<a href="../audio/demo/podcast.mp3">audio</a><a href="../../editorial.toml">private</a><a href="../manifest.json">manifest</a><a href="../src/code.py">code</a>',
+    )
     put(tmp_path, "dist/audio/demo/podcast.mp3", "audio bytes")
+    put(tmp_path, "dist/manifest.json", "private manifest")
+    put(tmp_path, "dist/src/code.py", "private source")
     put(tmp_path, "editorial.toml", "private configuration")
 
     class ProbeServer(ThreadingHTTPServer):
@@ -207,10 +213,33 @@ def test_real_http_server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
                     assert response.status == 200
                 with urlopen(base + "/dist/audio/demo/podcast.mp3", timeout=5) as response:
                     assert response.read() == b"audio bytes"
-                for path in ("/editorial.toml", "/", "/dist/web/", "/../editorial.toml"):
+                for path in (
+                    "/editorial.toml",
+                    "/",
+                    "/dist/web/",
+                    "/../editorial.toml",
+                    "/dist/manifest.json",
+                    "/dist/src/code.py",
+                ):
                     with pytest.raises(HTTPError) as exc:
                         urlopen(base + path, timeout=5)
                     assert exc.value.code == 404
+                from urllib.request import Request
+
+                for host in (
+                    "attacker.example",
+                    "localhost.attacker.example",
+                    "127.0.0.1.attacker.example",
+                ):
+                    with pytest.raises(HTTPError) as exc:
+                        urlopen(
+                            Request(base + "/dist/web/demo.html", headers={"Host": host}), timeout=5
+                        )
+                    assert exc.value.code == 403
+                with urlopen(
+                    Request(base + "/dist/web/demo.html", headers={"Host": "localhost"}), timeout=5
+                ) as response:
+                    assert response.status == 200
             finally:
                 self.shutdown()
                 worker.join(timeout=5)
@@ -291,6 +320,35 @@ def test_cli_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, args: list[
 def test_server_invalid_port(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="port"):
         serve_console(tmp_path, tmp_path / "missing.html", port=65536)
+
+
+def test_custom_dist_whitelist(tmp_path: Path) -> None:
+    from editorial_pipeline.application.web_hub import _Links
+
+    dist = tmp_path / "output"
+    page = put(tmp_path, "output/web/demo.html")
+    asset = put(tmp_path, "output/audio/demo.mp3")
+    links = _Links(tmp_path, page, dist)
+    links.feed(
+        '<a href="../audio/demo.mp3">audio</a><a href="../../editorial.toml">config</a><a href="../editorial.toml">config</a><a href="../manifest.json">manifest</a><a href="//example.com/x">remote</a>'
+    )
+    assert links.allowed == {page.resolve(), asset.resolve()}
+    with pytest.raises(ValueError, match="public"):
+        _Links(tmp_path, tmp_path / "editorial.toml")
+
+
+def test_cli_serves_configured_dist(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    shutil.copytree("examples/sample_blog", tmp_path, dirs_exist_ok=True)
+    config = tmp_path / "editorial.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8").replace('dist = "dist"', 'dist = "output"'),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    server = MagicMock()
+    monkeypatch.setattr("editorial_pipeline.cli.commands.serve_console", server)
+    assert main(["view", "post_01", "--serve", "--no-browser"]) == 0
+    assert server.call_args.kwargs["dist"] == tmp_path / "output"
 
 
 @pytest.mark.parametrize(

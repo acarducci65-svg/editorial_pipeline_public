@@ -68,6 +68,23 @@ def run(root: Path, *args: str) -> int:
     return main(["publish", "post_01", "--config", str(root / "editorial.toml"), "--json", *args])
 
 
+def test_publish_snapshot_keeps_binary_crlf(project: Path) -> None:
+    asset = project / "dist/social/post_01/slide.png"
+    asset.write_bytes(b"binary\r\nbytes")
+    approve(project, ["archive", "export_markdown"])
+    assert run(project) == 0
+
+
+def test_binary_newline_change_invalidates_gate2(project: Path) -> None:
+    asset = project / "dist/social/post_01/slide.png"
+    asset.write_bytes(b"binary\r\nbytes")
+    approve(project, ["archive", "export_markdown"])
+    asset.write_bytes(b"binary\nbytes")
+    before = snapshot(project)
+    assert run(project) == 2
+    assert snapshot(project) == before
+
+
 @pytest.mark.parametrize(
     "case",
     [

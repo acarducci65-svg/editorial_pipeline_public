@@ -71,7 +71,7 @@ class PublishAdapter(ABC):
         config: EditorialConfig,
     ) -> tuple[dict[str, bytes], dict[str, Any]]:
         # Lazy import: cli.__init__ imports the command dispatcher, which imports us.
-        from editorial_pipeline.cli.reports import _sanitize
+        from editorial_pipeline.cli.reports import _sanitize, digest_bytes
 
         if not post_id or post_id in {".", ".."} or "/" in post_id or "\\" in post_id:
             raise ValueError("invalid publishing post identifier")
@@ -108,12 +108,7 @@ class PublishAdapter(ABC):
             first: receipt.bundle.gate1_digest,
         }
         for name, checksum in expected.items():
-            actual = (
-                "v1:"
-                + hashlib.sha256(
-                    name.encode() + b"\0" + files[name].replace(b"\r\n", b"\n")
-                ).hexdigest()
-            )
+            actual = digest_bytes(name, files[name])
             if actual != checksum:
                 raise GhostApprovalForbiddenError("Approved publishing input changed")
         files[draft_name] = str(_sanitize(files[draft_name].decode("utf-8"))).encode("utf-8")

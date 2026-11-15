@@ -25,7 +25,7 @@ def get_visual_builder(
         templates = config.paths.templates if config is not None else "templates"
         template_dir = root / templates / "social"
     language = config.project.language if config is not None else "it"
-    return PlaywrightVisualBuilder(template_dir=template_dir, language=language)
+    return PlaywrightVisualBuilder(template_dir=template_dir, language=language, workspace_root=root)
 
 
 __all__ = [
