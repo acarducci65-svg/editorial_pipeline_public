@@ -698,6 +698,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     except AudioUnavailableError as exc:
         print(str(exc), file=sys.stderr)
         return 1
-    except (OSError, RagUnavailableError, VisualBuildError, yaml.YAMLError) as exc:
+    except RagUnavailableError as exc:
+        print(_sanitize(f"Error: {exc}"), file=sys.stderr)
+        return 1
+    except (OSError, VisualBuildError, yaml.YAMLError) as exc:
         print(f"Error: {type(exc).__name__}", file=sys.stderr)
         return 1

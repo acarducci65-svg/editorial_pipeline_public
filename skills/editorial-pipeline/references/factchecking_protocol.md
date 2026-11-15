@@ -197,14 +197,42 @@ Percorso: `[paths].evidence/<post_id>/factcheck.json`.
 
 F3 parte dalla bozza **dopo** F2b e termina prima del Gate 1.
 
-1. **Estrazione dei claim dalla bozza corrente.** Rileggete il testo ed estraete ogni frase che contiene un fatto verificabile (numeri, date, nomi propri, attribuzioni, relazioni causali, citazioni), copiandola alla lettera con il suo contesto (paragrafo, sezione) prima di invocare il provider RAG e `verify-facts`. Le opinioni dichiarate, le previsioni e i giudizi dell'autore non sono claim: vanno in `excluded` con il motivo, perché il Direttore veda cosa è stato escluso.
+### 6.1 Perimetro del claim
+
+Un claim da fact-checking è un **fatto materiale che un lettore potrebbe contestare e che una fonte può confermare o smentire con un locator**. Non è una frase qualsiasi che contiene un nome proprio o un verbo al passato.
+
+**Ordine di grandezza.** Un articolo di 1.200–1.500 parole contiene normalmente **tra 8 e 15 claim empirici sostanziali**. Se l'estrazione ne produce molti di più (indicativamente oltre 20, o più di un claim ogni 100 parole), quasi sempre state frammentando il testo: fermatevi e rifate la selezione con la tabella qui sotto *prima* di interrogare qualsiasi corpus. Un pezzo di giornalismo dei dati può superare la soglia: in quel caso lo dite al Direttore e procedete a blocchi di `[providers.rag].max_claims_per_turn`.
+
+| È un claim (va in `claims`) | Non è un claim (non va in `factcheck.json`) |
+|---|---|
+| Cifre e importi: «la spesa è stata di 4,2 miliardi» | Frasi di raccordo narrativo: «Vediamo ora che cosa è cambiato» |
+| Percentuali e variazioni: «+18% rispetto al 2023» | Premesse concettuali: «Per capire il problema bisogna partire dalle regole» |
+| Date ed eventi datati: «la norma è entrata in vigore il 1° gennaio 2025» | Definizioni didattiche generali e di dominio pubblico (per esempio come funziona, in generale, un sistema pensionistico a ripartizione) |
+| Citazioni testuali di norme, atti o paper: «l'art. 12, comma 3, prevede che…» | Opinioni argomentate e giudizi dell'autore: «È una scelta miope» |
+| Dichiarazioni attribuite puntualmente: «secondo il rapporto, il 40% dei comuni…» | Domande retoriche, esempi ipotetici, riepiloghi di ciò che l'articolo ha già detto |
+| Risultati empirici attribuiti a una fonte: «lo studio ha rilevato un calo del 7%» | Ripetizioni dello stesso dato già coperto da un claim |
+
+Una definizione diventa claim solo se riporta un elemento puntuale e contestabile (una soglia, un'aliquota, un anno, il testo di un articolo di legge): in quel caso il claim è quell'elemento, non l'intera spiegazione.
+
+### 6.2 Divieto di iper-frammentazione
+
+> **Anti-pattern vietato.** Non si atomizza la bozza riga per riga in claim di `factcheck.json`. Trasformare ogni periodo in una voce, e ogni voce in un'interrogazione RAG, non aumenta il rigore: satura la quota del servizio remoto, blocca la sessione e sposta l'attenzione del Direttore dai pochi fatti che contano a decine di voci irrilevanti.
+
+- Frasi di raccordo, premesse concettuali, definizioni didattiche generali e opinioni argomentate **non sono claim** e **non si inseriscono** in `factcheck.json`, né in `claims` né in `excluded`.
+- `excluded` serve solo per le frasi che *sembrano* fattuali ma non lo sono per natura (una previsione con un numero, un giudizio che contiene un dato), così il Direttore vede perché non sono state verificate. Non è il cestino di tutte le frasi non verificate.
+- **«Copertura delle frasi fattuali» significa coprire i fatti materiali e statistici sensibili** (numeri, date, percentuali, citazioni, attribuzioni), non trasformare ogni periodo del testo in una query. Un paragrafo di dieci frasi che contiene un solo dato produce un solo claim.
+- Se dubitate che una frase sia un claim, chiedetevi: *se fosse sbagliata, servirebbe una voce in `/correzioni/`?* Se la risposta è no, non è un claim.
+
+### 6.3 Passi della procedura
+
+1. **Estrazione dei claim dalla bozza corrente.** Rileggete il testo ed estraete i fatti materiali secondo il perimetro del §6.1 (cifre, percentuali, date, citazioni testuali di norme o paper, dichiarazioni e risultati attribuiti puntualmente), copiandoli alla lettera con il loro contesto (paragrafo, sezione) prima di invocare il provider RAG e `verify-facts`. Un nome proprio o un nesso causale generico non bastano a fare di una frase un claim. Le opinioni dichiarate, le previsioni e i giudizi dell'autore che contengono elementi dall'aspetto fattuale vanno in `excluded` con il motivo, perché il Direttore veda cosa è stato escluso. Controllate il conteggio con l'ordine di grandezza del §6.1 prima di proseguire.
 2. **Un fatto per claim.** Una frase con due fatti verificabili si riscrive in due frasi: due voci con lo stesso `text` sono `BLOCK`.
-3. **Una domanda per claim.** Interrogate il corpus con una domanda precisa per ciascun claim, includendo il contesto estratto; al massimo `[providers.rag].max_claims_per_turn` interrogazioni per messaggio dell'agente, le restanti nel messaggio successivo. Chiedete il passaggio testuale, non un giudizio.
+3. **Una domanda per claim.** Interrogate il corpus con una domanda precisa per ciascun claim, includendo il contesto estratto; al massimo `[providers.rag].max_claims_per_turn` interrogazioni per messaggio dell'agente (default `8`), le restanti nel messaggio successivo, cominciando dai claim più critici (dati che finiranno in promozione, cifre, citazioni normative). Chiedete il passaggio testuale, non un giudizio. Dettagli e motivazione del limite in `verification-and-rag.md` §3.
 4. **Lettura del passaggio.** Confrontate voi il passaggio con il claim: numero, unità di misura, periodo, popolazione, luogo, edizione della fonte. Un modello RAG può fraintendere la fonte.
 5. **Esito e locator.** Assegnate l'esito del §2 e scrivete il locator del §3.
 6. **Correzione della bozza.** `unsupported` → togliete o riformulate la frase; `contradicted` → correggetela; registrate l'errore in `pre_publication_errors`. Aggiornate `text` nel claim con la frase nuova. Le frasi riscritte ripassano dalle voci 1–7 e 10 di `humanizer_checklist.md` (aggiornate `draft-review.json`).
 7. **Copertura della bozza (obbligatoria, manuale).** Con il digest finale:
-   - per ogni frase della bozza con numeri, date, nomi propri o virgolette verificate che esista un claim o una voce in `excluded` (la CLI non lo controlla);
+   - per ogni fatto materiale della bozza (numeri, date, percentuali, citazioni tra virgolette, attribuzioni puntuali) verificate che esista un claim o una voce in `excluded` (la CLI non lo controlla); le frasi fuori perimetro (§6.1) non richiedono alcuna voce;
    - scrivete in `draft_digest` di `factcheck.json` e di `draft-review.json` il digest corrente letto da `validate-draft --json`.
 8. **Verifica CLI.**
    ```bash
@@ -234,7 +262,8 @@ Se dopo il Gate 1 la bozza o `factcheck.json` cambiano, Gate 1 e Gate 2 diventan
 ## 8. Errori comuni
 
 - Parafrasare il claim in `text`: la CLI segnala `rag.claim_not_in_draft`; si copia la frase della bozza, non la si riassume.
-- Dimenticare frasi fattuali della bozza: la CLI non le vede, la copertura è a carico dell'agente.
+- Dimenticare fatti materiali della bozza: la CLI non li vede, la copertura è a carico dell'agente.
+- **Iper-frammentare la bozza** (§6.2): decine di claim per un articolo di lunghezza ordinaria, frasi di raccordo, premesse o definizioni generali trattate come claim, ogni periodo trasformato in una query. Satura la quota del provider RAG e non rende la verifica più rigorosa.
 - Aggiornare la bozza senza aggiornare `draft_digest` di `factcheck.json` e `draft-review.json`: `BLOCK` `rag.stale_factcheck` e `humanizer.stale_review`. Ricalcolare il digest senza rifare il controllo è comunque un errore.
 - Usare `grounded_primary` con una fonte `"primary": false`: `BLOCK`.
 - Presentare il Gate 1 prima di F3.

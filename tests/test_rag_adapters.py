@@ -326,6 +326,71 @@ def test_remote_empty_and_missing_corpus(nlm: Mock, tmp_path: Path) -> None:
     nlm.assert_not_called()
 
 
+@pytest.mark.parametrize("count", [9, 68])
+def test_remote_default_claim_cap(nlm: Mock, tmp_path: Path, count: int) -> None:
+    with pytest.raises(RagUnavailableError, match="exceeds maximum allowed per turn") as caught:
+        NotebookLMAdapter("test-corpus").verify(["claim"] * count, tmp_path)
+    assert str(caught.value) == (
+        f"RAG claims count ({count}) exceeds maximum allowed per turn (8). "
+        "Reduce claims to key factual assertions or configure max_claims_per_turn."
+    )
+    nlm.assert_not_called()
+
+
+@pytest.mark.parametrize("configured", [True, False])
+def test_remote_factory_claim_cap(nlm: Mock, tmp_path: Path, configured: bool) -> None:
+    from editorial_pipeline.config import load_config
+    from editorial_pipeline.config.models import RagConfig
+
+    config = load_config(Path("examples/sample_blog/editorial.toml"))
+    config = config.model_copy(
+        update={
+            "providers": config.providers.model_copy(
+                update={"rag": config.providers.rag.model_copy(update={"max_claims_per_turn": 2})}
+            ),
+            "rag": RagConfig(provider="notebooklm", corpus_id="test-corpus")
+            if configured
+            else None,
+        }
+    )
+    provider = get_rag_provider("notebooklm", config)
+    with pytest.raises(RagUnavailableError, match="maximum allowed per turn \\(2\\)"):
+        provider.verify(["claim"] * 3, tmp_path)
+    nlm.assert_not_called()
+
+
+@pytest.mark.parametrize("count", [0, 1, 2, 3])
+def test_remote_claim_cap_and_pacing(
+    nlm: Mock, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, count: int
+) -> None:
+    events: list[str] = []
+
+    def query(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        events.append("query")
+        return subprocess.CompletedProcess(
+            [], 0, '{"answer":"Supported","citations":["source"]}', ""
+        )
+
+    def sleep(seconds: float) -> None:
+        assert seconds == 0.5
+        events.append("sleep")
+
+    nlm.side_effect = query
+    monkeypatch.setattr("time.sleep", sleep)
+    findings = NotebookLMAdapter("test-corpus", max_claims_per_turn=3).verify(
+        ["claim"] * count, tmp_path
+    )
+    assert len(findings) == count
+    assert all(f.state is VerificationState.OK for f in findings)
+    assert events == ["query", "sleep", "query", "sleep", "query"][: max(0, count * 2 - 1)]
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_remote_rejects_nonpositive_claim_cap(limit: int) -> None:
+    with pytest.raises(ValueError, match="positive"):
+        NotebookLMAdapter(max_claims_per_turn=limit)
+
+
 @pytest.mark.parametrize("field", ["answer", "text", "content"])
 @pytest.mark.parametrize("references", ["citations", "sources"])
 def test_remote_supported(nlm: Mock, tmp_path: Path, field: str, references: str) -> None:
@@ -569,4 +634,34 @@ def test_remote_cli_invalid_evidence(
     (project / "evidence/post_01/factcheck.json").write_text("invalid", encoding="utf-8")
     assert main(["verify-facts", "post_01_valid.md", "--config", str(config)]) == 1
     assert '"rag.schema"' in capsys.readouterr().out
+    nlm.assert_not_called()
+
+
+@pytest.mark.parametrize("configured", [True, False])
+def test_remote_cli_claim_cap(
+    nlm: Mock, tmp_path: Path, capsys: pytest.CaptureFixture[str], configured: bool
+) -> None:
+    import shutil
+
+    from editorial_pipeline.cli.commands import main
+
+    project = tmp_path / "blog"
+    shutil.copytree(Path("examples/sample_blog"), project)
+    config = project / "editorial.toml"
+    text = (
+        config.read_text(encoding="utf-8")
+        .replace('adapter = "local"', 'adapter = "notebooklm"')
+        .replace("max_claims_per_turn = 8", "max_claims_per_turn = 1")
+    )
+    if configured:
+        text += '\n[rag]\nprovider = "notebooklm"\n'
+    config.write_text(text, encoding="utf-8")
+    checks_path = project / "evidence/post_01/factcheck.json"
+    checks = json.loads(checks_path.read_text(encoding="utf-8"))
+    claim = checks["claims"][0].copy()
+    claim["id"] = "EXTRA"
+    checks["claims"].append(claim)
+    checks_path.write_text(json.dumps(checks), encoding="utf-8")
+    assert main(["verify-facts", "post_01_valid.md", "--config", str(config)]) == 1
+    assert "exceeds maximum allowed per turn (1)" in capsys.readouterr().err
     nlm.assert_not_called()

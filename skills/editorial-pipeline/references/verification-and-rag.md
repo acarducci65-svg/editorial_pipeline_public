@@ -27,9 +27,16 @@ Sono indipendenti: potete usare gli strumenti MCP con `provider = "local"`, oppu
 
 ## 3. Livello agente: F3 — fact-checking della bozza
 
-Per ogni claim estratto dalla bozza (procedura in `factchecking_protocol.md` §6, passi 1–2):
+Per ogni claim estratto dalla bozza (perimetro e procedura in `factchecking_protocol.md` §6.1–6.3, passi 1–2):
 
-1. **Una domanda per claim** con `notebook_query`, al massimo `[providers.rag].max_claims_per_turn` per messaggio. Chiedete il passaggio, non un giudizio:
+> **Tetto per turno: `[providers.rag].max_claims_per_turn` (default `8`).** Ogni `notebook_query` consuma quota dell'account Google del Direttore, e una raffica di interrogazioni può far scattare il rate-limiting e bloccare la sessione per tutti. Quindi:
+>
+> - **mai più di `max_claims_per_turn` interrogazioni per messaggio dell'agente**; le restanti nel messaggio successivo, dopo aver letto i passaggi già ricevuti;
+> - le interrogazioni remote vanno ai **nodi fattuali critici**: prima i dati destinati alla promozione, poi cifre, percentuali, date e citazioni normative; le frasi fuori perimetro (`factchecking_protocol.md` §6.1) non si interrogano mai;
+> - se l'elenco dei claim supera di molto 8–15 per un articolo di lunghezza ordinaria, è iper-frammentazione (`factchecking_protocol.md` §6.2): rifate la selezione invece di distribuire le query su più turni;
+> - un errore di quota o di sessione scaduta non si aggira ritentando a raffica: fermatevi e riferite al Direttore.
+
+1. **Una domanda per claim** con `notebook_query`, nel rispetto del tetto per turno. Chiedete il passaggio, non un giudizio:
 
    > Riporta alla lettera il passaggio delle fonti che riguarda questa affermazione e indica fonte, pagina o sezione: «<testo del claim>». Se le fonti non lo trattano o lo contraddicono, dillo.
 
@@ -49,7 +56,12 @@ Configurazione (la prepara la persona che gestisce il progetto; voi la controlla
 provider = "notebooklm"
 corpus_id_env = "EDITORIAL_RAG_ID"   # nome della variabile, non l'identificativo
 timeout_seconds = 60
+
+[providers.rag]
+max_claims_per_turn = 8              # tetto di interrogazioni remote per esecuzione
 ```
+
+Il tetto vale anche per la CLI: con `provider = "notebooklm"`, se `factcheck.json` contiene più claim di `max_claims_per_turn`, `verify-facts` non lancia alcuna interrogazione e termina con exit `1` e il messaggio `Error: RAG claims count (N) exceeds maximum allowed per turn (8). …` (un `RagUnavailableError`); tra un'interrogazione e l'altra applica una breve pausa. La prima risposta è ridurre `claims` ai fatti materiali (`factchecking_protocol.md` §6.1–6.2). Alzare `max_claims_per_turn` è una decisione del Direttore, non un modo per far passare il controllo.
 
 Prerequisiti sull'host: `nlm` nel `PATH` (`uv tool install notebooklm-mcp-cli`), sessione aperta con `nlm login`, variabile `EDITORIAL_RAG_ID` con l'identificativo o un alias `nlm` del taccuino.
 
@@ -62,7 +74,7 @@ Comportamento:
 - la verifica locale gira sempre per prima: senza `factcheck.json` coerente il report resta `BLOCK`;
 - poi un'interrogazione `nlm` per claim, con un finding `rag.claim` identificato dalla posizione (`Claim 3: not supported by notebook sources`);
 - `BLOCK` se mancano citazioni o la risposta smentisce il claim, `WARN` se è incerta, `OK` altrimenti;
-- `Error: RagUnavailableError` ed exit `1`, senza report, se il corpus non è configurato, `nlm` manca, la sessione è scaduta, scade il timeout o la risposta non è JSON valido.
+- un errore `RagUnavailableError` (riga `Error: …` su stderr) ed exit `1`, senza report, se i claim superano `max_claims_per_turn`, il corpus non è configurato, `nlm` manca, la sessione è scaduta, scade il timeout o la risposta non è JSON valido.
 
 Come leggere i finding remoti:
 
@@ -71,7 +83,8 @@ Come leggere i finding remoti:
 | `Claim N: not supported by notebook sources` (`BLOCK`) | Riaprite la fonte del claim N. Se il passaggio non c'è, correggete o togliete la frase (`unsupported`). Se c'è ma la fonte non è nel taccuino, aggiungetela (F1) o dichiaratelo nel pacchetto Gate 1 |
 | `Claim N: requires review of notebook evidence` (`WARN`) | Rileggete il passaggio; motivate il `WARN` nel pacchetto Gate 1 o riformulate la frase |
 | `Claim N: supported by notebook sources` (`OK`) | Nessuna azione oltre al controllo che avete già fatto: la classificazione è lessicale, non sostituisce la vostra lettura |
-| `Error: RagUnavailableError` | Non è un esito sui claim. Riferite al Direttore (sessione `nlm` scaduta, variabile vuota, timeout). **Non** ripiegate da soli su `provider = "local"` per far passare il controllo: cambiare la configurazione è una decisione del Direttore |
+| `Error: RAG claims count (N) exceeds maximum allowed per turn (M)` | Troppi claim: rifate la selezione secondo `factchecking_protocol.md` §6.1–6.2 e rieseguite. Se l'elenco è già limitato ai fatti materiali (per esempio 12 claim legittimi in un articolo di 1.400 parole), riferite al Direttore, che decide se alzare il tetto per il progetto. Non spezzate `factcheck.json` per aggirare il tetto e non alzate `max_claims_per_turn` da soli |
+| Altri `RagUnavailableError` (`Error: …` su corpus, `nlm`, sessione, timeout) | Non è un esito sui claim. Riferite al Direttore (sessione `nlm` scaduta, variabile vuota, timeout). **Non** ripiegate da soli su `provider = "local"` per far passare il controllo: cambiare la configurazione è una decisione del Direttore |
 
 Il testo dei claim viene inviato a Google. Se la bozza è riservata, chiedete al Direttore prima di usare `provider = "notebooklm"`.
 
@@ -96,5 +109,6 @@ NotebookLM, da MCP o da CLI, produce indizi e finding automatici. Non cambia nul
 - Usare come `grounded_primary` un claim confermato solo dalla sintesi del modello, senza aver letto il passaggio.
 - Aggiungere al taccuino fonti non sottoposte al Direttore e citarle in bozza.
 - Scrivere l'identificativo del taccuino in `editorial.toml` (`corpus_id`) per «comodità».
-- Trattare `Error: RagUnavailableError` come un `BLOCK` sui claim e riscrivere la bozza: è un problema di configurazione o di sessione.
+- Trattare un `RagUnavailableError` come un `BLOCK` sui claim e riscrivere la bozza: è un problema di configurazione o di sessione.
 - Interrogare il taccuino con domande che contengono più fatti: una domanda, un claim.
+- Superare `max_claims_per_turn` interrogazioni in un messaggio, o interrogare frasi di raccordo, premesse e definizioni generali: satura la quota dell'account e blocca la sessione (§3).

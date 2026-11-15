@@ -117,11 +117,11 @@ Provider RAG in `verify-facts` (`[rag].provider` se la sezione `[rag]` esiste, a
 |---|---|
 | `local`, `manual` | Verifica di coerenza formale delle evidenze registrate (tabella sopra). Nessuna interrogazione di corpus: il riscontro sul passaggio della fonte lo fa l'agente in F3 |
 | `none` | `BLOCK` `rag.unavailable`: senza verifica il Gate 1 non si attraversa |
-| `notebooklm` | Verifica locale, poi una interrogazione `nlm query notebook` per claim sul taccuino indicato dalla variabile `corpus_id_env`: un finding `rag.claim` remoto per claim (`OK`/`WARN`/`BLOCK`). `Error: RagUnavailableError` (exit 1) se `nlm` manca, la sessione è scaduta o il corpus non è configurato: riferite al Direttore, non cambiate provider da soli. Dettagli in `references/verification-and-rag.md` §4 |
+| `notebooklm` | Verifica locale, poi una interrogazione `nlm query notebook` per claim sul taccuino indicato dalla variabile `corpus_id_env`: un finding `rag.claim` remoto per claim (`OK`/`WARN`/`BLOCK`). Un `RagUnavailableError` (riga `Error: …`, exit 1) se `nlm` manca, la sessione è scaduta o il corpus non è configurato: riferite al Direttore, non cambiate provider da soli. Lo stesso errore, senza alcuna interrogazione, se i claim superano `max_claims_per_turn`: riducete i claim ai fatti materiali. Dettagli in `references/verification-and-rag.md` §4 |
 
 Strumenti MCP di NotebookLM (`notebook_list`, `notebook_query`, `source_add`, `source_get_content`, …): se l'harness li espone, usateli in F1 e F3 per trovare i passaggi secondo `references/verification-and-rag.md`. Sono strumenti di ricerca: le evidenze si registrano comunque in `sources.json` e `factcheck.json` con fonte e locator, e nessun esito di NotebookLM approva un gate.
 
-> **Limiti formali della CLI.** Con `local` e `manual` tutti i controlli sono deterministici e offline; con `notebooklm` si aggiunge un controllo remoto lessicale, non una lettura delle fonti: la CLI verifica che evidenze e ricevute siano **coerenti tra loro e con i file correnti**, non che il testo sia vero né che il Direttore abbia davvero approvato. Una frase fattuale della bozza senza claim in `factcheck.json` non viene segnalata; un claim il cui `text` non compare nella bozza è un `WARN` (`rag.claim_not_in_draft`) da risolvere prima del gate. La copertura completa della bozza resta a carico dell'agente redattore (F3, passo 5).
+> **Limiti formali della CLI.** Con `local` e `manual` tutti i controlli sono deterministici e offline; con `notebooklm` si aggiunge un controllo remoto lessicale, non una lettura delle fonti: la CLI verifica che evidenze e ricevute siano **coerenti tra loro e con i file correnti**, non che il testo sia vero né che il Direttore abbia davvero approvato. Un fatto materiale della bozza senza claim in `factcheck.json` non viene segnalato; un claim il cui `text` non compare nella bozza è un `WARN` (`rag.claim_not_in_draft`) da risolvere prima del gate. La copertura completa della bozza resta a carico dell'agente redattore (F3, passo 5).
 
 ---
 
@@ -133,6 +133,8 @@ F1   Fonti primarie, sources.json
 F2a  Prima stesura
 F2b  De-aizing e revisione di stile, draft-review.json
 F3   Fact-checking con RAG, factcheck.json, verify-facts senza BLOCK
+     solo fatti materiali (8–15 claim ogni 1.200–1.500 parole), niente iper-frammentazione,
+     al massimo max_claims_per_turn (8) interrogazioni RAG per turno
      ══ GATE 1 — Bozza verificata (Direttore) ══
 F4   Visual & Social   ‖   F5   Podcast / Audio, build-audio   (in parallelo; F5 facoltativa)
      editorial view <post_id>: preparazione console prima del bundle Gate 2
@@ -198,11 +200,11 @@ All'inizio di ogni sessione: eseguite `editorial-pipeline status`, individuate l
 
 **Obiettivo:** ogni claim della bozza ha un esito, una fonte e un locator, **prima** che il Direttore la veda al Gate 1.
 
-1. **Estrazione dalla bozza corrente.** Rileggete il testo dopo F2b ed estraete ogni frase con un fatto verificabile (numeri, date, nomi propri, attribuzioni, relazioni causali, citazioni) con il suo contesto. Le frasi escluse per natura (opinioni dichiarate, previsioni) vanno in `excluded` con il motivo.
-2. Per ogni claim consultate la fonte (copie in `[paths].sources`, documento originale o un corpus RAG come NotebookLM via `notebook_query`) e chiedete il passaggio testuale. Al massimo `max_claims_per_turn` interrogazioni per messaggio dell'agente. La risposta di NotebookLM è un indizio: leggete il passaggio nella fonte e ricavatene il locator (`references/verification-and-rag.md` §3).
+1. **Estrazione dalla bozza corrente, nel perimetro del claim.** Rileggete il testo dopo F2b ed estraete i **fatti materiali** (cifre, percentuali, date, citazioni testuali di norme o paper, dichiarazioni e risultati attribuiti puntualmente) con il loro contesto. Un articolo di 1.200–1.500 parole ne contiene normalmente **tra 8 e 15**. **Divieto di iper-frammentazione:** frasi di raccordo, premesse concettuali, definizioni didattiche generali e opinioni argomentate non sono claim e non entrano in `factcheck.json`; non si trasforma ogni periodo in una query (`references/factchecking_protocol.md` §6.1–6.2). Le frasi dall'aspetto fattuale ma escluse per natura (previsioni, giudizi con un dato) vanno in `excluded` con il motivo.
+2. Per ogni claim consultate la fonte (copie in `[paths].sources`, documento originale o un corpus RAG come NotebookLM via `notebook_query`) e chiedete il passaggio testuale. Al massimo `max_claims_per_turn` (default `8`) interrogazioni per messaggio dell'agente, partendo dai nodi critici: ogni interrogazione remota consuma quota dell'account del Direttore e una raffica può bloccare la sessione. La risposta di NotebookLM è un indizio: leggete il passaggio nella fonte e ricavatene il locator (`references/verification-and-rag.md` §3).
 3. Assegnate l'esito secondo `references/factchecking_protocol.md` §2: `grounded_primary`, `verified_external`, `grounded_secondary`, `unsupported`, `contradicted`.
 4. Scrivete `evidence/<post_id>/factcheck.json` (reference §5) con `draft_digest` uguale al digest corrente. Il campo `text` riporta **alla lettera** la frase (o il tratto di frase) della bozza, compresi i backtick del codice in linea.
-5. **Copertura** (la CLI la controlla in una sola direzione): ogni frase fattuale della bozza ha un claim o una voce in `excluded`. La direzione opposta, cioè ogni `text` presente nella bozza, la segnala `verify-facts` con `rag.claim_not_in_draft`.
+5. **Copertura** (la CLI la controlla in una sola direzione): ogni fatto materiale della bozza ha un claim o una voce in `excluded`; copertura significa fatti materiali e statistici sensibili, non ogni frase del testo. La direzione opposta, cioè ogni `text` presente nella bozza, la segnala `verify-facts` con `rag.claim_not_in_draft`.
 6. Verificate:
    ```bash
    editorial-pipeline verify-facts content/posts/post_07_titolo.md --json

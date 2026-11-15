@@ -5,6 +5,7 @@ import math
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from editorial_pipeline.adapters.rag.base import RagProvider, RagUnavailableError
@@ -18,18 +19,28 @@ class NotebookLMAdapter(RagProvider):
         corpus_id_env: str = "EDITORIAL_RAG_ID",
         timeout: float = 60.0,
         cli_path: str = "nlm",
+        max_claims_per_turn: int = 8,
     ) -> None:
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("NotebookLM timeout must be finite and positive")
+        if max_claims_per_turn <= 0:
+            raise ValueError("NotebookLM max_claims_per_turn must be positive")
         self._corpus_id = corpus_id
         self._corpus_id_env = corpus_id_env
         self._timeout = timeout
         self._cli_path = cli_path
+        self._max_claims_per_turn = max_claims_per_turn
 
     def capabilities(self) -> set[str]:
         return {"fact_check"}
 
     def verify(self, claims: list[str], evidence_path: Path) -> list[Finding]:
+        if len(claims) > self._max_claims_per_turn:
+            raise RagUnavailableError(
+                f"RAG claims count ({len(claims)}) exceeds maximum allowed per turn "
+                f"({self._max_claims_per_turn}). Reduce claims to key factual assertions "
+                "or configure max_claims_per_turn."
+            )
         if not claims:
             return []
         corpus = self._corpus_id or os.environ.get(self._corpus_id_env)
@@ -39,6 +50,8 @@ class NotebookLMAdapter(RagProvider):
             raise RagUnavailableError("NotebookLM CLI ('nlm') is unavailable")
         findings = []
         for index, claim in enumerate(claims, 1):
+            if index > 1:
+                time.sleep(0.5)
             question = f"Verifica se la seguente affermazione e' supportata dalle fonti: '{claim}'"
             args = [
                 self._cli_path,

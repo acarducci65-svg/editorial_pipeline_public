@@ -19,14 +19,16 @@ def get_rag_provider(
     if name == "local":
         return LocalRagProvider(config, root)
     if name == "notebooklm":
+        max_claims = config.providers.rag.max_claims_per_turn if config is not None else 8
         if config is not None and config.rag is not None:
             return NotebookLMAdapter(
                 corpus_id=config.rag.corpus_id,
                 corpus_id_env=config.rag.corpus_id_env,
                 timeout=config.rag.timeout_seconds,
+                max_claims_per_turn=max_claims,
             )
         env = config.providers.rag.corpus_id_env if config is not None else "EDITORIAL_RAG_ID"
-        return NotebookLMAdapter(corpus_id_env=env)
+        return NotebookLMAdapter(corpus_id_env=env, max_claims_per_turn=max_claims)
     raise ValueError("Unknown RAG provider")
 
 
