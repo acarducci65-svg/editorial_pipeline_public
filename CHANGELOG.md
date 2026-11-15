@@ -4,6 +4,25 @@ Tutte le modifiche rilevanti di Editorial Pipeline sono documentate qui.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.0] - 2026-11-15
+
+### Added
+
+- Comando `editorial view` con console offline a 6 schede per articolo,
+  indice newsroom `index.html` e server loopback `--serve` con whitelist
+  di sicurezza.
+- Adapter `author_website` per la pubblicazione di pagine long-form standalone
+  per blog o sito personale dell'autore (`dist/author_site/<post_id>/index.html`),
+  con player podcast e carosello integrati.
+- Configurazione `[theme]` con palette accessibili WCAG AA (`cobalt_tech`,
+  `emerald`, `nordic_minimal`, `custom`), colori esadecimali e `font_family`.
+
+### Changed
+
+- Slide del carosello allineate al tema Cobalt Tech con dati post-Gate 2.
+- Skill `editorial-pipeline` aggiornata con intervista preliminare su testata,
+  autore e tema, e supporto a `view` e `author_website`.
+
 ## [0.2.0] - 2026-11-14
 
 ### Changed — Breaking / Architectural
