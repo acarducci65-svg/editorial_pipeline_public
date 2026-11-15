@@ -1,3 +1,6 @@
-# I file in dist/ sono il kit di distribuzione vincolato dalla ricevuta di
-# Gate 2 (evidence/<id>/approvals/gate2.json): vanno versionati.
+# Il kit ufficiale audio/social in dist/ rimane versionato.
 !dist/
+
+# Console web e sito autore sono output locali generabili a runtime.
+dist/author_site/
+dist/web/
