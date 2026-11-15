@@ -4,131 +4,667 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' file: data:; media-src 'self' file:; frame-src 'self' about:; connect-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'">
-<title>{{ title }} · Editorial Hub</title>
+<title>{{ title }} · {{ newsroom or 'Console redazionale' }}</title>
+{#- Theme values are validated hex colours / keywords (see web_hub._theme). -#}
 <style>
-:root{color-scheme:light;--ink:#172b38;--muted:#526372;--paper:#f8fafc;--accent:#11635d;--line:#e2e8f0;--card:#ffffff;--serif:Georgia,Cambria,'Iowan Old Style',serif;--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 var(--sans)}a{color:var(--accent);text-underline-offset:4px;overflow-wrap:anywhere}button,a.download{min-height:44px;font:600 .9rem/1.5 var(--sans);cursor:pointer;border:1px solid var(--accent);border-radius:999px;padding:.7rem 1.2rem;background:var(--accent);color:white;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;transition:background .2s,box-shadow .2s,transform .2s;touch-action:manipulation}button:hover,a.download:hover{box-shadow:0 4px 12px #172b3818;transform:translateY(-1px)}button:disabled{cursor:default;opacity:.5;transform:none}button:focus-visible,a:focus-visible,summary:focus-visible,textarea:focus-visible{outline:3px solid #9a5700;outline-offset:4px}[hidden]{display:none!important}.shell{max-width:1240px;margin:auto;padding:2rem 2rem 0}.skip{position:absolute;top:-100px;background:white;padding:1rem;z-index:2}.skip:focus{top:0}header{border-top:4px solid var(--ink);border-bottom:1px solid var(--line);padding:1.5rem 0 1.8rem}.masthead{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line);padding-bottom:1.2rem;margin-bottom:2rem}.brand{font:700 1.65rem var(--serif);letter-spacing:-.04em}.edition{font-size:.75rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}.eyebrow{color:var(--accent);font-size:.73rem;font-weight:750;letter-spacing:.17em;text-transform:uppercase}h1,h2,h3{font-family:var(--serif)}h1{font-size:clamp(2rem,4.5vw,3.7rem);font-weight:500;line-height:1.1;max-width:29ch;letter-spacing:-.04em;margin:1rem 0 1.2rem}h2{font-size:1.85rem;font-weight:500;line-height:1.25;letter-spacing:-.025em;margin:.4rem 0 1.4rem}h3{font-size:1.2rem}.subtitle{max-width:78ch;font-size:1.12rem;line-height:1.7;color:var(--muted)}.meta{font-size:.85rem;margin:1.4rem 0}.meta strong{color:var(--ink)}.meta,.muted,small{color:var(--muted)}.badges{display:flex;flex-wrap:wrap;gap:.65rem;margin:1.2rem 0}.badge{display:inline-flex;align-items:center;gap:.55rem;border:1px solid var(--line);border-radius:999px;padding:.5rem .9rem;background:var(--card);font-size:.8rem}.badge small{font-size:inherit}.badge.valid{color:#065f46;border-color:#a7f3d0;background:#ecfdf5}.status-dot{width:8px;height:8px;flex-shrink:0;border-radius:50%;background:#94a3b8}.valid .status-dot{background:#10b981;box-shadow:0 0 0 4px #10b98118;animation:pulse 2s ease-in-out infinite}.notice{font-size:.78rem}.quality{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.5rem;border:1px solid #c9ddd9;background:#f0f8f6;color:#245c55;border-radius:999px;padding:.4rem .8rem;font-size:.78rem;margin:0 0 1rem}nav{display:flex;gap:.5rem;flex-wrap:wrap;margin:1.5rem 0 2rem}nav a{font-size:.85rem;text-decoration:none;color:var(--muted);padding:.5rem .85rem;border-radius:999px}nav a:hover{background:#e9efef;color:var(--accent)}main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:1.5rem;align-items:start}section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:2rem;box-shadow:0 4px 20px -2px rgba(0,0,0,.05);min-width:0;scroll-margin-top:1rem}.wide{grid-column:1/-1}.section-head{display:flex;justify-content:space-between;align-items:start;gap:1rem}.section-note{font-size:.8rem;color:var(--muted);max-width:30ch;text-align:right}.tabs{display:flex;flex-wrap:wrap;gap:.6rem;border-bottom:1px solid var(--line);padding-bottom:1rem;margin-bottom:1.3rem}.tabs button{--channel:#0a66c2;border-color:var(--line);border-radius:8px;background:white;color:var(--channel);padding:.65rem 1.15rem}.tabs [data-channel=twitter]{--channel:#0f1419}.tabs [data-channel=newsletter]{--channel:#c2410c}.tabs [data-channel=instagram]{--channel:#a02484}.tabs button[aria-selected=true]{background:var(--channel);border-color:var(--channel);color:white}.tabs [data-channel=instagram][aria-selected=true]{background:linear-gradient(115deg,#7035a0,#b12569)}[role=tabpanel] label{display:block;font-size:.8rem;font-weight:650;color:var(--muted);margin-bottom:.65rem}textarea{display:block;width:100%;min-height:310px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:#fbfcfe;color:var(--ink);padding:1.25rem;font:400 .97rem/1.8 var(--sans)}.actions{display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;margin:1.2rem 0 .2rem}.count{font-size:.8rem;background:#f1f5f9;border-radius:999px;padding:.45rem .8rem;font-variant-numeric:tabular-nums}.count span{font-weight:750;color:var(--ink)}.copy svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7}.copy.done{animation:copied .3s ease;background:#047857;border-color:#047857}.feedback{font-size:.85rem;color:#047857}@keyframes copied{50%{transform:scale(1.04)}}@keyframes pulse{50%{box-shadow:0 0 0 6px #10b98108}}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:1rem 0;max-width:85ch}details{margin-top:1.2rem;padding:1rem 1.1rem;border:1px solid var(--line);border-radius:8px;background:#fbfcfe}summary{cursor:pointer;font-weight:600;font-size:.9rem}audio{display:block;width:100%;margin:1rem 0;accent-color:var(--accent);border-radius:999px;background:#f1f5f9}.audio-intro{color:var(--muted);font-family:var(--serif);font-size:1.12rem}.slide{margin:0}.slide img,.slide iframe{display:block;width:100%;aspect-ratio:4/5;height:auto;object-fit:contain;border:1px solid var(--line);background:#f8fafc;border-radius:8px;box-shadow:0 4px 16px #172b3810}.slide iframe{pointer-events:none}.slide figcaption{font-size:.75rem;color:var(--muted);padding-top:.7rem}.carousel-controls{justify-content:space-between}.carousel-controls button{min-width:48px;min-height:48px;background:white;color:var(--ink);border-color:var(--line)}#position{font-size:.85rem;font-variant-numeric:tabular-nums}.dots{display:flex;justify-content:center;gap:.25rem;flex-wrap:wrap;margin-top:.7rem}.dots button{min-width:44px;min-height:44px;padding:0;border:0;background:transparent}.dots button::before{content:'';width:8px;height:8px;border-radius:50%;background:#b3c1cb;transition:background .2s,transform .2s}.dots button[aria-current=true]::before{background:var(--accent);transform:scale(1.4)}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.table-scroll{overflow-x:auto;margin-top:1.5rem;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;text-align:left;font-size:.85rem;line-height:1.65}caption{text-align:left;padding:1rem 1.2rem;font-weight:650;background:#fff}th,td{padding:1rem 1.2rem;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{background:#f8fafc;font-size:.75rem;color:var(--muted);letter-spacing:.04em}tbody tr:hover{background:#fbfcfe}td:nth-child(3){max-width:38ch}ul.files{list-style:none;padding:0;margin-bottom:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 2rem}.files li{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--line);padding:1rem 0}.files span{font-size:.78rem;overflow-wrap:anywhere}.files a{flex-shrink:0;background:white;color:var(--accent);border-color:var(--line);padding:.5rem .85rem}footer{padding:2rem 0;color:var(--muted);font-size:.75rem;line-height:1.8}
-@media(max-width:760px){main{grid-template-columns:1fr}.wide{grid-column:auto}.shell{padding:1rem}header{padding-top:1rem}.masthead{align-items:start}.edition{font-size:.65rem;max-width:13ch;text-align:right}section{padding:1.25rem}.section-head{display:block}.section-note{text-align:left;max-width:none}.tabs{gap:.5rem}.tabs button{flex:1 0 40%;padding:.6rem}.files li{align-items:flex-start;flex-direction:column}ul.files{grid-template-columns:1fr}th,td{padding:.75rem}textarea{min-height:340px}.dots{gap:0}.dots button{min-width:44px;min-height:44px}.badge{border-radius:12px}.section-note{display:none}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before{animation:none!important;transition:none!important}}
+:root{
+  color-scheme:light;
+  --bg:{{ theme.background_color }};--ink:{{ theme.ink_color }};--accent:{{ theme.accent_color }};
+  --surface:#fff;
+  --surface-2:color-mix(in oklab,var(--ink) 3.5%,var(--bg));
+  --muted:color-mix(in oklab,var(--ink) 72%,var(--bg));
+  --faint:color-mix(in oklab,var(--ink) 58%,var(--bg));
+  --line:color-mix(in oklab,var(--ink) 11%,var(--bg));
+  --line-strong:color-mix(in oklab,var(--ink) 20%,var(--bg));
+  --accent-soft:color-mix(in oklab,var(--accent) 9%,#fff);
+  --accent-line:color-mix(in oklab,var(--accent) 30%,#fff);
+  --accent-ink:color-mix(in oklab,var(--accent) 82%,var(--ink));
+  --ok:#15803d;--ok-soft:#ecfdf3;--ok-line:#b7e4c7;
+  --warn:#a15c07;--warn-soft:#fff8eb;--warn-line:#f3d9a4;
+  --bad:#b42318;--bad-soft:#fef3f2;--bad-line:#f6c4bf;
+  --sans:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Source Serif 4","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --mono:"JetBrains Mono","Cascadia Mono","SF Mono",Consolas,ui-monospace,monospace;
+  --reading:{{ 'var(--serif)' if theme.font_family == 'serif' else 'var(--sans)' }};
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 1px 2px color-mix(in oklab,var(--ink) 6%,transparent),0 4px 16px color-mix(in oklab,var(--ink) 5%,transparent);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --z-sticky:10;--z-skip:30;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{color:var(--accent)}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:1rem;top:-4rem;z-index:var(--z-skip);background:var(--surface);padding:.6rem 1rem;border-radius:var(--radius-sm);box-shadow:var(--shadow)}
+.skip:focus{top:1rem}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.5rem}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:40px;padding:.5rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font:600 .875rem/1.2 var(--sans);text-decoration:none;cursor:pointer;transition:background-color .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease);touch-action:manipulation}
+.btn:hover{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent-ink)}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;background:var(--surface);color:var(--muted);border-color:var(--line)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-ink);border-color:var(--accent-ink);color:#fff}
+.btn.done{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)}
+.btn svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Masthead */
+.topbar{border-bottom:1px solid var(--line);background:var(--surface)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:56px}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:700;letter-spacing:-.01em;min-width:0}
+.brand-mark{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+.brand-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-sub{color:var(--muted);font-weight:500;white-space:nowrap}
+.topbar a.back{font-size:.875rem;font-weight:600;text-decoration:none;white-space:nowrap}
+.hero{padding:1.75rem 0 1.25rem;background:var(--surface);border-bottom:1px solid var(--line)}
+.hero h1{margin:0;font-size:1.75rem;line-height:1.2;letter-spacing:-.02em;font-weight:750;text-wrap:balance;max-width:52ch}
+.meta{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin:.6rem 0 0;color:var(--muted);font-size:.875rem}
+.meta strong{color:var(--ink);font-weight:600}
+.meta code{font:500 .8rem var(--mono);color:var(--muted)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem 2.5rem;align-items:start}
+.hero-main .notice{margin-top:1rem}
+.hero-main .lifecycle{margin-top:.9rem}
+.gates{display:grid;gap:.6rem}
+.gate{display:flex;align-items:flex-start;gap:.7rem;padding:.6rem .9rem;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);min-width:min(100%,300px)}
+.gate.on{background:var(--ok-soft);border-color:var(--ok-line)}
+.gate b{display:block;font-size:.875rem}
+.gate small{display:block;color:var(--muted);font-size:.8rem}
+.gate .state{font-size:.8rem;font-weight:600;color:var(--muted)}
+.gate.on .state{color:var(--ok)}
+.dot{position:relative;width:10px;height:10px;margin-top:.35rem;border-radius:50%;background:var(--faint);flex:none}
+.gate.on .dot{background:#22c55e}
+.gate.on .dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:#22c55e;animation:pulse 2.4s var(--ease) infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}80%,100%{transform:scale(2.6);opacity:0}}
+.notice{display:flex;gap:.6rem;align-items:flex-start;margin:0;max-width:110ch;font-size:.875rem;color:var(--muted)}
+.notice svg{width:18px;height:18px;flex:none;margin-top:.1rem;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.notice strong{color:var(--ink)}
+.lifecycle{display:flex;flex-wrap:wrap;gap:.35rem;margin:0;padding:0;list-style:none}
+.lifecycle li{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:999px;border:1px solid var(--line);font-size:.75rem;font-weight:600;color:var(--faint)}
+.lifecycle li.done{color:var(--ink);border-color:var(--line-strong);background:var(--surface)}
+.lifecycle li.done::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* Tabs */
+.tabbar{position:sticky;top:0;z-index:var(--z-sticky);background:color-mix(in oklab,var(--bg) 92%,transparent);backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:.25rem;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative;display:inline-flex;align-items:center;gap:.45rem;padding:.95rem .9rem;border:0;background:none;color:var(--muted);font:600 .9rem/1 var(--sans);white-space:nowrap;cursor:pointer;text-decoration:none;transition:color .15s var(--ease)}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:.6rem;right:.6rem;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.tab .n{font:600 .7rem/1 var(--mono);padding:.2rem .4rem;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.tab[aria-selected="true"] .n{background:var(--accent-soft);color:var(--accent-ink)}
+main{padding:2rem 0 4rem}
+.panel{animation:enter .22s var(--ease)}
+@keyframes enter{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+.panel-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.75rem 2rem;margin-bottom:1.5rem}
+.panel-head h2{margin:0;font-size:1.35rem;letter-spacing:-.015em;line-height:1.25}
+.panel-head p{margin:.35rem 0 0;color:var(--muted);max-width:68ch}
+.empty{padding:2rem;border:1px dashed var(--line-strong);border-radius:var(--radius);color:var(--muted);background:var(--surface);max-width:68ch}
+.empty strong{display:block;color:var(--ink);margin-bottom:.25rem}
+.empty code,.how code{font:500 .82rem var(--mono);background:var(--surface-2);padding:.1rem .35rem;border-radius:4px;color:var(--ink)}
+
+/* 1 — Article */
+.reader{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:3rem;align-items:start}
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:3.5rem clamp(1.25rem,6vw,4.5rem) 4rem}
+.article{max-width:40rem;margin:0 auto;font-family:var(--reading);font-size:1.125rem;line-height:1.75;color:color-mix(in oklab,var(--ink) 92%,var(--bg))}
+.article-head{max-width:40rem;margin:0 auto 2.25rem;padding-bottom:1.75rem;border-bottom:1px solid var(--line)}
+.article-head .version{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);padding:.25rem .6rem;border-radius:999px}
+.article-head h2{margin:1rem 0 0;font:750 clamp(1.8rem,3.2vw,2.4rem)/1.15 var(--sans);letter-spacing:-.022em;color:var(--ink);text-wrap:pretty}
+.standfirst{margin:1rem 0 0;font-family:var(--reading);font-size:1.25rem;line-height:1.55;color:var(--muted);text-wrap:pretty}
+.byline{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin-top:1.25rem;font-size:.875rem;color:var(--muted)}
+.byline strong{color:var(--ink)}
+.article p{margin:0 0 1.35em;text-wrap:pretty;hyphens:auto}
+.article h2{font:700 1.5rem/1.25 var(--sans);letter-spacing:-.015em;color:var(--ink);margin:2.4em 0 .7em;text-wrap:balance;scroll-margin-top:5rem}
+.article h3{font:700 1.2rem/1.3 var(--sans);color:var(--ink);margin:2em 0 .5em;scroll-margin-top:5rem}
+.article h4,.article h5,.article h6{font:700 1.05rem/1.35 var(--sans);color:var(--ink);margin:1.6em 0 .4em}
+.article ul,.article ol{margin:0 0 1.35em;padding-left:1.3em}
+.article li{margin:.35em 0}
+.article li::marker{color:var(--accent)}
+.article blockquote{margin:1.8em 0;padding:1.1em 1.4em;background:var(--accent-soft);border-radius:var(--radius-sm);font-size:1.15rem;color:var(--ink)}
+.article blockquote p{margin:0}
+.article hr{border:0;height:1px;background:var(--line);margin:2.5em 0}
+.article em{font-style:italic}
+.article code{font:500 .9em var(--mono);background:var(--surface-2);padding:.1em .3em;border-radius:4px}
+.article pre{white-space:pre-wrap;font:500 .85rem/1.6 var(--mono);background:var(--surface-2);padding:1rem;border-radius:var(--radius-sm);overflow:auto}
+.cites{font:600 .68em/0 var(--sans);vertical-align:super;color:var(--muted);white-space:nowrap}
+.cite{text-decoration:none;color:var(--accent-ink);padding:0 .1em}
+.cite:hover{text-decoration:underline}
+.toc{position:sticky;top:5rem;font-size:.85rem}
+.toc h3{margin:0 0 .6rem;font-size:.8rem;color:var(--muted);font-weight:600}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc a{display:block;padding:.35rem 0 .35rem .9rem;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none;line-height:1.4}
+.toc a:hover{color:var(--ink);border-left-color:var(--line-strong)}
+.toc a.active{color:var(--accent-ink);border-left-color:var(--accent)}
+.toc .facts{margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--muted);line-height:1.5}
+.toc .facts b{color:var(--ink)}
+details.compare{max-width:40rem;margin:2rem auto 0;border-top:1px solid var(--line);padding-top:1rem}
+summary{cursor:pointer;font-weight:600;color:var(--accent-ink);list-style-position:outside}
+
+/* 2 — Social */
+.social{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:1rem}
+.channel{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.channel header{display:flex;align-items:center;gap:.6rem;padding:.85rem 1rem;border-bottom:1px solid var(--line)}
+.channel header h3{margin:0;font-size:.95rem}
+.channel header .limit{margin-left:auto;font-size:.75rem;color:var(--muted)}
+.glyph{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--surface-2);color:var(--ink);font:700 .75rem/1 var(--sans)}
+.channel textarea{flex:1;width:100%;min-height:300px;margin:0;padding:1rem;border:0;resize:vertical;background:var(--surface);color:var(--ink);font:400 .9rem/1.6 var(--sans)}
+.channel textarea:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:0}
+.channel textarea::placeholder{color:var(--muted)}
+.channel footer{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;padding:.75rem 1rem;border-top:1px solid var(--line);background:var(--surface-2)}
+.count{font:500 .78rem/1.3 var(--mono);color:var(--muted)}
+.count.over{color:var(--bad)}
+.feedback{font-size:.8rem;color:var(--ok)}
+.channel footer .btn{margin-left:auto}
+
+/* 3 — Podcast */
+.broadcast{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:1.5rem;align-items:start}
+.player{background:var(--ink);color:#fff;border-radius:var(--radius);padding:1.5rem;display:grid;gap:1rem}
+.player .kind{display:inline-flex;align-items:center;gap:.5rem;font-size:.8rem;font-weight:600;color:color-mix(in oklab,#fff 75%,var(--ink))}
+.player .kind::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 35%,transparent)}
+.player h3{margin:0;font-size:1.15rem;line-height:1.3;text-wrap:balance}
+.player .facts{display:flex;flex-wrap:wrap;gap:.25rem 1rem;font:500 .8rem var(--mono);color:color-mix(in oklab,#fff 70%,var(--ink))}
+.player audio{width:100%;color-scheme:dark}
+.player .btn{background:#fff;border-color:#fff;color:var(--ink)}
+.player .btn:hover{background:var(--accent-soft)}
+.script{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.25rem 1.5rem}
+.script summary{font-size:.95rem}
+.script .article{font-size:1rem;line-height:1.7;margin-top:1rem;max-width:72ch}
+.script .note{color:var(--muted);font-size:.85rem;margin:.6rem 0 0}
+
+/* 4 — Carousel */
+.deck{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:2rem;align-items:start}
+.stage{display:grid;justify-items:center;gap:1rem;padding:1.5rem;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius)}
+.slide{margin:0;width:min(100%,460px)}
+.slide iframe,.slide img{display:block;width:100%;aspect-ratio:4/5;border:0;border-radius:var(--radius-sm);background:#fff;box-shadow:var(--shadow)}
+.controls{display:flex;align-items:center;gap:.75rem}
+.position{font:600 .85rem var(--mono);min-width:5ch;text-align:center}
+.strip{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:center}
+.strip button{width:34px;height:34px;border-radius:7px;border:1px solid var(--line);background:var(--surface);font:600 .75rem var(--mono);color:var(--muted);cursor:pointer}
+.strip button[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.side{display:grid;gap:1rem}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem 1.2rem}
+.box h3{margin:0 0 .35rem;font-size:.95rem}
+.box p{margin:0 0 .9rem;color:var(--muted);font-size:.875rem}
+.box .btn{width:100%}
+.box .btn+.btn{margin-top:.5rem}
+
+/* 5 — Sources */
+.summary-line{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;padding:1rem 1.25rem;margin-bottom:1rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);font-size:.9rem}
+.summary-line b{font-size:1rem}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:.75rem 1.5rem;margin:0 0 1.75rem;padding:0;font-size:.85rem;color:var(--muted)}
+.legend div{display:grid;gap:.35rem}
+.legend dt{justify-self:start}
+.legend dd{margin:0}
+.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:999px;font-size:.75rem;font-weight:600;line-height:1.3;border:1px solid var(--line-strong);color:var(--muted);background:var(--surface)}
+.badge.primary{color:var(--accent-ink);background:var(--accent-soft);border-color:var(--accent-line)}
+.badge.ok{color:var(--ok);background:var(--ok-soft);border-color:var(--ok-line)}
+.badge.partial{color:var(--warn);background:var(--warn-soft);border-color:var(--warn-line)}
+.badge.fail{color:var(--bad);background:var(--bad-soft);border-color:var(--bad-line)}
+.badge.ok::before{content:"✓";font-weight:800}
+.sources{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
+.source{display:grid;grid-template-columns:2.25rem minmax(0,1fr);gap:1rem;padding:1.25rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);scroll-margin-top:5rem;transition:border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.source.flash{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.source .num{display:grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:8px;background:var(--surface-2);font:700 .9rem var(--mono)}
+.source h3{margin:0;font-size:1rem;line-height:1.4;text-wrap:pretty}
+.source .by{margin:.25rem 0 0;color:var(--muted);font-size:.85rem}
+.source .tags{display:flex;flex-wrap:wrap;gap:.35rem;margin:.7rem 0 0}
+.source .desc{margin:.7rem 0 0;font-size:.875rem;color:var(--muted);max-width:80ch}
+.links{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}
+.links .btn{min-height:36px;padding:.4rem .8rem;font-size:.82rem}
+.links .host{font-weight:500;color:var(--muted)}
+.links .btn:hover .host{color:inherit}
+.claims{margin-top:.9rem;border-top:1px solid var(--line);padding-top:.75rem}
+.claims summary{font-size:.875rem}
+.claims ol{list-style:none;margin:.75rem 0 0;padding:0;display:grid;gap:.75rem}
+.claim{padding:.85rem 1rem;border-radius:var(--radius-sm);background:var(--surface-2)}
+.claim p{margin:0;font-size:.9rem}
+.claim blockquote{margin:.5rem 0 0;font-size:.85rem;font-style:italic;color:var(--muted)}
+.claim .row{display:flex;flex-wrap:wrap;gap:.4rem .9rem;align-items:center;margin-top:.55rem;font-size:.78rem;color:var(--muted)}
+.claim .row code{font:500 .75rem var(--mono)}
+.orphans{margin-top:1rem}.orphans .sources{margin-top:.75rem}
+.missing{color:var(--muted);font-size:.85rem;margin:.9rem 0 0}
+
+/* 6 — Publishing */
+.status-banner{display:flex;gap:1rem;align-items:flex-start;padding:1.1rem 1.25rem;border-radius:var(--radius);border:1px solid var(--warn-line);background:var(--warn-soft);margin-bottom:1.5rem}
+.status-banner.on{border-color:var(--ok-line);background:var(--ok-soft)}
+.status-banner b{display:block}
+.status-banner p{margin:.25rem 0 0;font-size:.9rem;color:var(--muted)}
+.status-banner .dot{margin-top:.45rem}
+.status-banner.on .dot{background:#22c55e}
+.steps{counter-reset:step;list-style:none;margin:0 0 2rem;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:1rem}
+.steps li{counter-increment:step;position:relative;padding:1rem 1rem 1rem 3.2rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);font-size:.875rem;color:var(--muted)}
+.steps li::before{content:counter(step);position:absolute;left:1rem;top:1rem;display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--accent);color:#fff;font:700 .75rem/1 var(--sans)}
+.steps b{display:block;color:var(--ink);font-size:.9rem;margin-bottom:.2rem}
+.steps code{font:500 .78rem var(--mono);color:var(--ink)}
+.platforms{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:1rem;margin-bottom:2.25rem}
+.platform{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem 1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.platform h3{display:flex;align-items:center;gap:.6rem;margin:0;font-size:1rem}
+.platform p{margin:0;color:var(--muted);font-size:.85rem;flex:1}
+.platform .btn{width:100%}
+.files h3{margin:1.5rem 0 .6rem;font-size:.9rem}
+.files h3:first-child{margin-top:0}
+.files ul{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.files li{display:flex;align-items:center;gap:1rem;padding:.6rem 1rem;border-top:1px solid var(--line);font-size:.85rem}
+.files li:first-child{border-top:0}
+.files .path{min-width:0;flex:1;font:500 .8rem var(--mono);overflow-wrap:anywhere}
+.files .size{color:var(--muted);font:500 .75rem var(--mono);white-space:nowrap}
+.files a{font-weight:600;white-space:nowrap}
+.scope{font-size:.85rem;color:var(--muted);margin:.25rem 0 1rem;max-width:80ch}
+footer.page{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--muted);font-size:.8rem}
+
+@media (max-width:1000px){.reader,.deck,.broadcast,.hero-grid{grid-template-columns:1fr}.toc{display:none}}
+@media (max-width:640px){
+  .wrap{padding:0 1rem}.hero h1{font-size:1.4rem}.brand-sub{display:none}
+  .paper{padding:2rem 1.1rem 2.5rem;border-radius:0;border-inline:0;margin-inline:-1rem}
+  .article{font-size:1.0625rem}.tab{padding:.85rem .7rem}.files li{flex-wrap:wrap}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media print{.topbar,.tabbar,.gates,.notice,.lifecycle,.toc,.btn{display:none!important}.panel[hidden]{display:none!important}.paper{border:0;padding:0}}
 </style>
 </head>
-<body><a class="skip" href="#main">Vai ai contenuti</a><div class="shell">
-<header>
-<div class="masthead"><span class="brand">Editorial Hub<span aria-hidden="true">.</span></span><span class="edition">Desk di produzione · Edizione locale</span></div>
-<div class="eyebrow">Editorial Pipeline / Console redazionale</div>
-<h1>{{ title }}</h1>
-{% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
-<p class="meta">A cura di <strong>{{ author or 'Autore non disponibile' }}</strong> · <time id="article-date" datetime="{{ date }}">{{ date or 'Data non disponibile' }}</time> · Registro: {{ register or 'Non disponibile' }}</p>
-<div class="badges">{% for gate in gates %}{% set validated = gate.status == 'RECEIPT_VALID' %}<div class="badge {{ 'valid' if validated else '' }}"><span class="status-dot" aria-hidden="true"></span><span><strong>Gate {{ gate.number }}{{ ' Validato' if validated else '' }}</strong> · {{ gate.status }}{% if gate.role %}<br><small>{{ gate.role }} · {{ gate.timestamp }}</small>{% endif %}</span></div>{% endfor %}</div>
-<p class="muted notice">Anteprima locale · Stato gate registrato, non rivalidato. La console non autorizza la pubblicazione.</p>
-</header>
-<nav aria-label="Sezioni"><a href="#social">Copy social</a><a href="#carousel">Carosello</a><a href="#audio">Audio</a><a href="#article">Articolo</a><a href="#evidence">Fonti</a><a href="#downloads">Download</a></nav>
-<main id="main">
-<section id="social" class="wide">
-<div class="section-head"><div><div class="eyebrow">01 / Distribuzione</div><h2>Social Copy Hub</h2></div><p class="section-note">Quattro canali, una base documentale. Seleziona e copia il testo.</p></div>
-<div class="tabs" role="tablist" aria-label="Canali social">{% for channel in social %}<button type="button" role="tab" id="tab-{{ channel.key }}" aria-controls="panel-{{ channel.key }}" aria-selected="{{ 'true' if loop.first else 'false' }}" tabindex="{{ '0' if loop.first else '-1' }}" data-channel="{{ channel.key }}">{{ channel.label }}</button>{% endfor %}</div>
-{% for channel in social %}<div role="tabpanel" id="panel-{{ channel.key }}" aria-labelledby="tab-{{ channel.key }}" {% if not loop.first %}hidden{% endif %}>
-<label for="copy-{{ channel.key }}">{{ channel.label }}</label>
-<textarea id="copy-{{ channel.key }}" readonly spellcheck="false" placeholder="Non disponibile">{{ channel.text }}</textarea>
-<div class="actions"><button type="button" class="copy" data-copy="copy-{{ channel.key }}" {% if not channel.text %}disabled{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span class="copy-label">Copia testo</span></button><small class="count"><span data-count="copy-{{ channel.key }}">{{ channel.text|length }}</span> caratteri</small><span class="feedback" role="status" aria-live="polite"></span></div>
-</div>{% endfor %}
-</section>
-<section id="carousel"><div class="eyebrow">02 / Visual</div><h2>Carosello</h2>
-{% if slides %}<div id="slides" aria-label="Slide carosello">{% for slide in slides %}<figure class="slide" {% if not loop.first %}hidden{% endif %}>
-{% if slide.html %}<iframe sandbox="" title="Slide {{ loop.index }}" srcdoc="{{ '<meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; img-src data:; base-uri &#39;none&#39;; form-action &#39;none&#39;&quot;>'|replace('&quot;', '"')|replace('&#39;', "'") }}{{ slide.html }}"></iframe>{% else %}<img src="{{ slide.url }}" alt="Slide {{ loop.index }} del carosello">{% endif %}
-<figcaption>{{ slide.name }} · <a href="{{ slide.url }}" download>Scarica slide</a></figcaption></figure>{% endfor %}</div>
-<div class="actions carousel-controls"><button id="previous" type="button" aria-label="Slide precedente">← Indietro</button><span id="position" role="status" aria-live="polite">1 / {{ slides|length }}</span><button id="next" type="button" aria-label="Slide successiva">Avanti →</button></div>
-<div class="dots" aria-label="Seleziona slide">{% for slide in slides %}<button type="button" data-slide="{{ loop.index0 }}" aria-label="Vai alla slide {{ loop.index }}" aria-current="{{ 'true' if loop.first else 'false' }}"><span class="sr-only">{{ loop.index }}</span></button>{% endfor %}</div>
-{% else %}<p class="muted">Non disponibile</p>{% endif %}
-{% for pdf in pdfs %}<p><a class="download" href="{{ pdf.url }}" download>Scarica PDF · {{ pdf.name }}</a></p>{% endfor %}
-</section>
-<section id="audio"><div class="eyebrow">03 / Broadcast</div><h2>Podcast e copione</h2>
-{% if podcast %}<p class="quality">{{ 'Google NotebookLM Studio' if post_id == 'ai_pensioni' else 'Audio locale' }} <span id="audio-duration"></span></p><p class="audio-intro">L’approfondimento da ascoltare, con il tempo per seguire i passaggi.</p><audio controls preload="metadata" src="{{ podcast }}">Il browser non supporta il player audio.</audio><p><a class="download" href="{{ podcast }}" download>Scarica Podcast</a></p>{% else %}<p class="muted">Non disponibile</p>{% endif %}
-{% if script %}<details><summary>Leggi il copione</summary><pre>{{ script }}</pre></details>{% else %}{% set scripts = downloads|selectattr('name', 'equalto', 'dist/audio/' ~ post_id ~ '/podcast_script.md')|list %}{% if scripts %}<details><summary>Copione e scaletta di lavorazione</summary><p>Documento di preparazione; può differire dalla registrazione finale.</p><a href="{{ scripts[0].url }}" download>Scarica il copione Markdown</a></details>{% else %}<p class="muted">Copione: Non disponibile</p>{% endif %}{% endif %}
-</section>
-<section id="article" class="wide"><div class="eyebrow">04 / Articolo</div><h2>Testi editoriali</h2>
-{% if article %}<details open><summary>Testo pubblicato · anteprima testuale</summary><pre>{{ article }}</pre></details>{% endif %}
-{% if draft %}<details {% if not article %}open{% endif %}><summary>Bozza · anteprima testuale</summary><pre>{{ draft }}</pre></details>{% endif %}
-{% if not article and not draft %}<p class="muted">Non disponibile</p>{% endif %}
-</section>
-<section id="evidence" class="wide"><div class="eyebrow">05 / Trasparenza</div><h2>Fonti RAG ed evidenze</h2>
-<p class="muted">Esiti riportati dai file locali; nessuna nuova verifica eseguita. <span class="quality">Punteggio de-aizing: {{ score }}</span></p>
-{% if sources %}<div class="table-scroll"><table><caption>Fonti primarie registrate</caption><thead><tr><th>Chiave</th><th>Fonte</th><th>Riferimento</th><th>Primaria</th></tr></thead><tbody>{% for source in sources %}<tr><td>{{ source.get('key', loop.index) }}</td><td>{{ source.get('title', '') }}</td><td>{{ source.get('url') or source.get('local_copy') or 'Non disponibile' }}</td><td>{{ source.get('primary', 'Non disponibile') }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">Fonti: Non disponibile</p>{% endif %}
-{% if claims %}<div class="table-scroll"><table><caption>Citazioni ed esiti registrati</caption><thead><tr><th>N.</th><th>Affermazione</th><th>Fonte / citazione</th><th>Esito</th></tr></thead><tbody>{% for claim in claims %}<tr><td>{{ claim.get('id', loop.index) }}</td><td>{{ claim.get('text', '') }}</td><td>{{ claim.get('source_key', '') }} · {{ claim.get('locator', '') }}</td><td>{{ claim.get('outcome', 'Non disponibile') }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
-</section>
-<section id="downloads" class="wide"><div class="eyebrow">06 / Esportazione</div><h2>Export CMS e download</h2><p class="muted">Materiali locali per CMS e pubblicazioni. Ogni utilizzo resta soggetto ai gate umani.</p>
-<ul class="files">{% for file in downloads %}<li><span>{{ file.name }}</span><a class="download" href="{{ file.url }}" download>Scarica</a></li>{% endfor %}</ul>
-</section>
-</main><footer>Editorial Hub · {{ post_id }} · Offline-first. Conserva la pagina insieme alle cartelle del progetto per riprodurre e scaricare gli asset.</footer>
+<body>
+<a class="skip" href="#main">Vai ai contenuti</a>
+<div class="topbar"><div class="wrap">
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">{{ newsroom or 'Redazione' }}</span><span class="brand-sub">/ Console redazionale</span></div>
+  {% if index_url %}<a class="back" href="{{ index_url }}">← Tutti gli articoli</a>{% endif %}
+</div></div>
+
+<header class="hero"><div class="wrap hero-grid">
+  <div class="hero-main">
+  <h1>{{ title }}</h1>
+  <p class="meta"><span>Autore: <strong>{{ author or 'Autore non disponibile' }}</strong></span><span>Data: <time datetime="{{ date }}">{{ date_label or 'Non disponibile' }}</time></span><span>Registro: <strong>{{ register or 'Non disponibile' }}</strong></span><span>ID: <code>{{ post_id }}</code></span></p>
+  <ul class="lifecycle" aria-label="Ciclo di vita dell'articolo">{% for stage in stages %}<li class="{{ 'done' if stage.done else '' }}" title="{{ 'Completata' if stage.done else 'Da completare' }}">{{ stage.code }} {{ stage.label }}</li>{% endfor %}</ul>
+  {% set registered = gates|selectattr('registered')|list %}
+  <p class="notice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+  <span>{% if registered %}<strong>Ricevute con impronta crittografica registrate.</strong>{% else %}<strong>Nessuna ricevuta registrata: materiali in lavorazione.</strong>{% endif %} La pubblicazione online è subordinata all'approvazione esplicita del Direttore. Questa console legge lo stato dei gate, registrato e non rivalidato: la verifica formale si esegue con <code>editorial check-gate</code>.</span></p>
+  </div>
+  <div class="gates">{% for gate in gates %}
+    <div class="gate {{ 'on' if gate.registered else '' }}" data-status="{{ gate.status }}">
+      <span class="dot" aria-hidden="true"></span>
+      <div><b>Gate {{ gate.number }} · {{ gate.name }}</b>
+        <span class="state">{{ gate.label }}</span>
+        {% if gate.timestamp %}<small><time datetime="{{ gate.timestamp }}" data-tz="{{ timezone }}">{{ gate.when }}</time>{% if gate.role %} · {{ gate.role }}{% endif %}</small>{% endif %}
+      </div>
+    </div>{% endfor %}
+  </div>
+</div></header>
+
+{% set slide_count = slides|length %}
+{% set filled = social|selectattr('text')|list|length %}
+<nav class="tabbar" aria-label="Viste della console"><div class="wrap"><div class="tabs" role="tablist">
+  <a class="tab" role="tab" href="#articolo" id="tab-articolo" aria-controls="view-articolo" aria-selected="true">Articolo</a>
+  <a class="tab" role="tab" href="#social" id="tab-social" aria-controls="view-social" aria-selected="false">Social <span class="n">{{ filled }}/{{ social|length }}</span></a>
+  <a class="tab" role="tab" href="#podcast" id="tab-podcast" aria-controls="view-podcast" aria-selected="false">Podcast</a>
+  <a class="tab" role="tab" href="#carosello" id="tab-carosello" aria-controls="view-carosello" aria-selected="false">Carosello <span class="n">{{ slide_count }}</span></a>
+  <a class="tab" role="tab" href="#fonti" id="tab-fonti" aria-controls="view-fonti" aria-selected="false">Fonti e trasparenza <span class="n">{{ sources|length }}</span></a>
+  <a class="tab" role="tab" href="#pubblicazione" id="tab-pubblicazione" aria-controls="view-pubblicazione" aria-selected="false">Pubblicazione</a>
+</div></div></nav>
+
+<main id="main"><div class="wrap">
+
+<section class="panel" id="view-articolo" role="tabpanel" aria-labelledby="tab-articolo" tabindex="-1">
+{% if article_html %}
+<div class="reader">
+  <div class="paper">
+    <header class="article-head">
+      <span class="version">{{ article_version }}</span>
+      <h2>{{ title }}</h2>
+      {% if subtitle %}<p class="standfirst">{{ subtitle }}</p>{% endif %}
+      <div class="byline"><span>di <strong>{{ author or 'Autore non disponibile' }}</strong></span>{% if date_label %}<span>{{ date_label }}</span>{% endif %}{% if reading_minutes %}<span>{{ reading_minutes }} min di lettura</span>{% endif %}</div>
+    </header>
+    <article class="article" id="article-body">{{ article_html|safe }}</article>
+    {% if draft_html %}<details class="compare"><summary>Confronta con la bozza di lavoro</summary><div class="article">{{ draft_html|safe }}</div></details>{% endif %}
+  </div>
+  <aside class="toc" aria-label="Indice dell'articolo">
+    {% if toc %}<h3>In questo articolo</h3><ol>{% for item in toc %}<li><a href="#{{ item.id }}" data-toc="{{ item.id }}">{{ item.text }}</a></li>{% endfor %}</ol>{% endif %}
+    <div class="facts"><b>{{ claims_verified }}</b> affermazioni verificate su {{ claims_total }} · <b>{{ sources|length }}</b> fonti · revisione stile <b>{{ score }}</b></div>
+  </aside>
 </div>
+{% else %}
+<div class="empty"><strong>Testo non disponibile</strong>Nessuna bozza né versione pubblicata trovata per questo articolo.</div>
+{% endif %}
+</section>
+
+<section class="panel" id="view-social" role="tabpanel" aria-labelledby="tab-social" tabindex="-1">
+  <div class="panel-head"><div><h2>Social Copy Hub</h2><p>Testi pronti per ciascun canale, tratti dalla stessa base documentale dell'articolo. Il contatore segnala quando un testo supera il limite della piattaforma.</p></div></div>
+  {% set limits = {'linkedin': 3000, 'twitter': 280, 'newsletter': 0, 'instagram': 2200} %}
+  {% set glyphs = {'linkedin': 'in', 'twitter': 'X', 'newsletter': '@', 'instagram': 'IG'} %}
+  <div class="social">{% for channel in social %}
+    <article class="channel">
+      <header><span class="glyph" aria-hidden="true">{{ glyphs[channel.key] }}</span><h3 id="label-{{ channel.key }}">{{ channel.label }}</h3><span class="limit">{% if channel.key == 'twitter' %}280 per post{% elif limits[channel.key] %}max {{ '{:,}'.format(limits[channel.key]).replace(',', '.') }}{% else %}nessun limite{% endif %}</span></header>
+      <textarea id="copy-{{ channel.key }}" aria-labelledby="label-{{ channel.key }}" readonly spellcheck="false" placeholder="Non disponibile: nessun testo per questo canale." data-limit="{{ limits[channel.key] }}" data-channel="{{ channel.key }}">{{ channel.text }}</textarea>
+      <footer><span class="count" data-count="copy-{{ channel.key }}">{{ channel.text|length }} caratteri</span><span class="feedback" role="status" aria-live="polite"></span>
+        <button type="button" class="btn copy" data-copy="copy-{{ channel.key }}" {% if not channel.text %}disabled{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span class="copy-label">Copia testo</span></button></footer>
+    </article>{% endfor %}
+  </div>
+</section>
+
+<section class="panel" id="view-podcast" role="tabpanel" aria-labelledby="tab-podcast" tabindex="-1">
+  <div class="panel-head"><div><h2>Broadcast podcast</h2><p>L'approfondimento audio dell'articolo, da ascoltare qui o scaricare per la distribuzione.</p></div></div>
+  {% if podcast or script_html %}
+  <div class="broadcast">
+    {% if podcast %}
+    <div class="player">
+      <span class="kind">{{ 'NotebookLM · Audio Overview' if podcast_format == 'M4A' else 'Audio locale' }}</span>
+      <h3>{{ title }}</h3>
+      <div class="facts"><span id="audio-duration">Durata in caricamento</span><span>{{ podcast_format }}</span><span>{{ podcast_size }}</span></div>
+      <audio controls preload="metadata" src="{{ podcast }}">Il browser non supporta il player audio.</audio>
+      <a class="btn" href="{{ podcast }}" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Scarica il podcast ({{ podcast_format }})</a>
+    </div>
+    {% else %}<div class="empty"><strong>Audio non disponibile</strong>Genera l'audio con <code>editorial build-audio {{ post_id }}</code>.</div>{% endif %}
+    {% if script_html %}
+    <div class="script"><details><summary>Leggi il copione</summary>
+      {% if script_name != 'script.txt' %}<p class="note">Documento di preparazione: può differire dalla registrazione finale. <a href="{{ script_url }}" download>Scarica {{ script_name }}</a></p>{% endif %}
+      <div class="article">{{ script_html|safe }}</div></details></div>
+    {% else %}<div class="script"><p class="note">Copione: Non disponibile</p></div>{% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><strong>Podcast non disponibile</strong>Nessun file audio o copione per questo articolo. Generali con <code>editorial build-audio {{ post_id }}</code>.</div>
+  {% endif %}
+</section>
+
+<section class="panel" id="view-carosello" role="tabpanel" aria-labelledby="tab-carosello" tabindex="-1">
+  <div class="panel-head"><div><h2>Kit carosello</h2><p>Slide pronte per Instagram e LinkedIn. Scorri con le frecce, con la tastiera o con uno swipe.</p></div></div>
+  {% if slides %}
+  <div class="deck">
+    <div class="stage">
+      <div id="slides" aria-roledescription="carosello" aria-label="Slide del carosello">{% for slide in slides %}
+        <figure class="slide" {% if not loop.first %}hidden{% endif %} aria-label="Slide {{ loop.index }} di {{ slide_count }}">
+        {% if slide.html %}<iframe sandbox="" loading="lazy" title="Slide {{ loop.index }}: {{ slide.name }}" srcdoc="{{ '<meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; img-src data:; base-uri &#39;none&#39;; form-action &#39;none&#39;&quot;>'|replace('&quot;', '"')|replace('&#39;', "'") }}{{ slide.html }}"></iframe>{% else %}<img src="{{ slide.url }}" alt="Slide {{ loop.index }} del carosello">{% endif %}
+        </figure>{% endfor %}
+      </div>
+      <div class="controls"><button id="previous" class="btn" type="button" aria-label="Slide precedente">←</button><span id="position" class="position" role="status" aria-live="polite">1 / {{ slide_count }}</span><button id="next" class="btn" type="button" aria-label="Slide successiva">→</button></div>
+      <div class="strip" aria-label="Vai alla slide">{% for slide in slides %}<button type="button" data-slide="{{ loop.index0 }}" aria-label="Slide {{ loop.index }}" aria-current="{{ 'true' if loop.first else 'false' }}">{{ loop.index }}</button>{% endfor %}</div>
+    </div>
+    <div class="side">
+      <div class="box"><h3>Deck completo</h3>
+        {% if pdfs %}<p>Il PDF raccoglie tutte le slide in un unico file, pronto per il caricamento come documento su LinkedIn.</p>{% for pdf in pdfs %}<a class="btn primary" href="{{ pdf.url }}" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Scarica PDF · {{ pdf.name }}</a>{% endfor %}
+        {% else %}<p>PDF non disponibile: generalo con <code>editorial build-visual {{ post_id }}</code> (richiede Playwright).</p>{% endif %}
+      </div>
+      <div class="box"><h3>Slide corrente</h3><p id="slide-name">{{ slides[0].name }}</p><a id="slide-download" class="btn" href="{{ slides[0].url }}" download>Scarica la slide</a></div>
+    </div>
+  </div>
+  <script type="application/json" id="slide-data">[{% for slide in slides %}{"name": {{ slide.name|tojson }}, "url": {{ slide.url|tojson }}}{{ ',' if not loop.last }}{% endfor %}]</script>
+  {% else %}
+  <div class="empty"><strong>Carosello non disponibile</strong>Genera le slide con <code>editorial build-visual {{ post_id }}</code>.</div>
+  {% for pdf in pdfs %}<p><a class="btn" href="{{ pdf.url }}" download>Scarica PDF · {{ pdf.name }}</a></p>{% endfor %}
+  {% endif %}
+</section>
+
+<section class="panel" id="view-fonti" role="tabpanel" aria-labelledby="tab-fonti" tabindex="-1">
+  <div class="panel-head"><div><h2>Fonti e trasparenza</h2><p>Ogni dato dell'articolo è collegato a una fonte e a una citazione letterale. Gli esiti sono quelli registrati nelle evidenze locali: la console non esegue nuove verifiche.</p></div></div>
+  <div class="summary-line"><span><b>{{ claims_verified }}</b> affermazioni verificate su {{ claims_total }}</span><span><b>{{ sources|selectattr('primary')|list|length }}</b> fonti ufficiali primarie su {{ sources|length }}</span><span>Revisione stile (de-aizing): <b>{{ score }}</b></span></div>
+  <dl class="legend">
+    <div><dt><span class="badge primary">Fonte ufficiale primaria</span></dt><dd>Documento originale dell'ente o degli autori che producono il dato: rapporto, statistica, studio, atto.</dd></div>
+    <div><dt><span class="badge">Fonte secondaria</span></dt><dd>Rielaborazione di terzi (stampa, sintesi): usata per contesto, non come unica prova di un dato.</dd></div>
+    <div><dt><span class="badge ok">Dato verificato · riscontro letterale</span></dt><dd>La frase dell'articolo corrisponde a un passaggio testuale della fonte, alla pagina o sezione indicata.</dd></div>
+  </dl>
+  {% if sources %}
+  <ol class="sources">{% for source in sources %}
+    <li class="source" id="fonte-{{ source.number }}"><span class="num" aria-hidden="true">{{ source.number }}</span>
+      <div>
+        <h3><span class="sr-only">Fonte {{ source.number }}: </span>{{ source.title }}</h3>
+        <p class="by">{{ [source.author, source.publisher, source.published]|select|join(' · ') }}</p>
+        <div class="tags"><span class="badge {{ 'primary' if source.primary else '' }}">{{ source.primary_label }}</span>{% if source.type %}<span class="badge">{{ source.type }}</span>{% endif %}{% if source.access %}<span class="badge">{{ source.access }}</span>{% endif %}{% if source.accessed %}<span class="badge">Consultata il {{ source.accessed }}</span>{% endif %}</div>
+        {% if source.description %}<p class="desc">{{ source.description }}</p>{% endif %}
+        {% if source.links %}<div class="links">{% for link in source.links %}<a class="btn {{ 'primary' if link.kind == 'pdf' else '' }}" href="{{ link.url }}" {% if link.kind == 'local' %}download{% else %}target="_blank" rel="noopener noreferrer"{% endif %}>{% if link.kind == 'pdf' or link.kind == 'local' %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>{% endif %}{{ link.label }} <span class="host">{{ link.host }}</span></a>{% endfor %}</div>
+        {% else %}<p class="missing">Collegamento non disponibile: aggiungi <code>url</code> o <code>pdf</code> in sources.json.</p>{% endif %}
+        {% if source.claims %}<details class="claims"><summary>{{ source.claims|length }} {{ 'affermazione collegata' if source.claims|length == 1 else 'affermazioni collegate' }}</summary><ol>{% for claim in source.claims %}
+          <li class="claim"><p>{{ claim.text }}</p>{% if claim.quote %}<blockquote lang="und">«{{ claim.quote }}»</blockquote>{% endif %}
+            <div class="row"><span class="badge {{ claim.tone }}">{{ claim.label }}</span>{% if claim.locator %}<span>Posizione: {{ claim.locator }}</span>{% endif %}<code>{{ claim.id }}</code></div></li>{% endfor %}
+        </ol></details>{% endif %}
+      </div>
+    </li>{% endfor %}
+  </ol>
+  {% else %}<div class="empty"><strong>Fonti: Non disponibile</strong>Nessun inventario <code>sources.json</code> per questo articolo.</div>{% endif %}
+  {% if orphans %}
+  <div class="box orphans"><h3>Affermazioni senza fonte registrata</h3><ol class="sources">{% for claim in orphans %}
+    <li class="claim"><p>{{ claim.text }}</p>{% if claim.quote %}<blockquote>«{{ claim.quote }}»</blockquote>{% endif %}<div class="row"><span class="badge {{ claim.tone }}">{{ claim.label }}</span><span>{{ claim.source_key or 'Fonte non indicata' }}{% if claim.locator %} · {{ claim.locator }}{% endif %}</span></div></li>{% endfor %}
+  </ol></div>
+  {% endif %}
+</section>
+
+<section class="panel" id="view-pubblicazione" role="tabpanel" aria-labelledby="tab-pubblicazione" tabindex="-1">
+  <div class="panel-head"><div><h2>Pubblicazione e CMS</h2><p>Questa console non pubblica nulla da sola: prepara i materiali e spiega come portarli sulla piattaforma della redazione, dopo l'approvazione del Direttore.</p></div></div>
+  {% set gate2 = gates[1] %}
+  <div class="status-banner {{ 'on' if gate2.registered else '' }}"><span class="dot" aria-hidden="true"></span><div>
+    {% if gate2.registered %}<b>Gate 2 registrato: pubblicazione autorizzata dal Direttore</b><p>{% if gate2.when %}Ricevuta del <time datetime="{{ gate2.timestamp }}" data-tz="{{ timezone }}">{{ gate2.when }}</time>. {% endif %}{% if gate2.actions %}Azioni consentite: {{ gate2.actions|map(attribute='label')|join(', ') }}.{% endif %} Se modifichi testo o asset dopo l'approvazione, la ricevuta non è più valida e serve un nuovo Gate 2.</p>
+    {% else %}<b>In attesa del Gate 2</b><p>I materiali si possono consultare e preparare, ma non vanno messi online finché il Direttore non conferma la pubblicazione.</p>{% endif %}
+  </div></div>
+  <ol class="steps">
+    <li><b>Approvazione</b>Il Direttore conferma il Gate 2 in chat; la ricevuta viene registrata con l'impronta dei file approvati.</li>
+    <li><b>Esportazione</b>Scegli la piattaforma qui sotto: copia l'articolo formattato o scarica il Markdown con i metadati.</li>
+    <li><b>Archiviazione</b>Registra l'uscita con <code>editorial publish {{ post_id }}</code>: crea l'archivio o la copia per il sito statico.</li>
+  </ol>
+  <div class="platforms">
+    <div class="platform"><h3><span class="glyph" aria-hidden="true">G</span>Ghost</h3><p>Nell'editor apri una scheda Markdown e incolla il testo, oppure incolla l'articolo già formattato.</p><button type="button" class="btn" data-copy="export-markdown" {% if not article_html %}disabled{% endif %}><span class="copy-label">Copia Markdown</span></button></div>
+    <div class="platform"><h3><span class="glyph" aria-hidden="true">S</span>Substack</h3><p>Crea un nuovo post e incolla: titoli, elenchi, link e citazioni mantengono la formattazione.</p><button type="button" class="btn" data-copy-rich="article-body" {% if not article_html %}disabled{% endif %}><span class="copy-label">Copia articolo formattato</span></button></div>
+    <div class="platform"><h3><span class="glyph" aria-hidden="true">H</span>Hugo / Jekyll</h3><p>Salva il file in <code>content/posts/</code> (Hugo) o <code>_posts/</code> (Jekyll): il front matter include titolo, sommario, data e autore.</p><button type="button" class="btn" data-download="export-markdown" data-filename="{{ post_id }}.md" {% if not article_html %}disabled{% endif %}><span class="copy-label">Scarica {{ post_id }}.md</span></button></div>
+    <div class="platform"><h3><span class="glyph" aria-hidden="true">M</span>Medium</h3><p>Apri una nuova storia e incolla l'articolo formattato; il titolo va nel primo campo dell'editor.</p><button type="button" class="btn" data-copy-rich="article-body" {% if not article_html %}disabled{% endif %}><span class="copy-label">Copia articolo formattato</span></button></div>
+  </div>
+  <textarea id="export-markdown" hidden readonly aria-hidden="true">{{ markdown_export }}</textarea>
+  <span class="feedback sr-only" id="publish-feedback" role="status" aria-live="polite"></span>
+  <div class="panel-head"><div><h2>File di questo articolo</h2><p class="scope">L'elenco riguarda solo l'articolo <code>{{ post_id }}</code>, non l'intero sito. {% if package %}L'archivio <strong>{{ package.name }}</strong> ({{ package.size }}) contiene il pacchetto completo dell'articolo.{% endif %}</p></div>{% if package %}<a class="btn primary" href="{{ package.url }}" download>Scarica l'archivio dell'articolo</a>{% endif %}</div>
+  <div class="files">{% for group in groups %}
+    <h3>{{ group.label }}</h3>
+    <ul>{% for file in group.files %}<li><span class="path">{{ file.name }}</span><span class="size">{{ file.size }}</span><a href="{{ file.url }}" download>Scarica</a></li>{% endfor %}</ul>{% else %}<p class="scope">Non disponibile</p>{% endfor %}
+  </div>
+</section>
+
+</div></main>
+<footer class="page"><div class="wrap">{{ newsroom or 'Editorial Pipeline' }} · console offline di <code>{{ post_id }}</code>. Conserva questa pagina insieme alle cartelle del progetto: i link a audio, slide e file sono relativi.</div></footer>
+
 <script>
-const dateLabel = document.getElementById('article-date');
-if (dateLabel && /^\d{4}-\d{2}-\d{2}$/.test(dateLabel.dateTime)) {
-  const date = new Date(dateLabel.dateTime + 'T12:00:00');
-  if (!Number.isNaN(date.getTime())) dateLabel.textContent = new Intl.DateTimeFormat('it-IT', {day:'numeric',month:'long',year:'numeric'}).format(date);
-}
-const audio = document.querySelector('audio');
-if (audio) {
-  const showDuration = () => {
-    if (Number.isFinite(audio.duration)) document.getElementById('audio-duration').textContent = '· ' + Math.floor(audio.duration / 60) + ':' + String(Math.floor(audio.duration % 60)).padStart(2, '0') + ' min';
-  };
-  audio.addEventListener('loadedmetadata', showDuration);
-  showDuration();
-}
-const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
-function selectTab(tab) {
-  tabs.forEach(item => {
-    const active = item === tab;
-    item.setAttribute('aria-selected', String(active)); item.tabIndex = active ? 0 : -1;
-    document.getElementById(item.getAttribute('aria-controls')).hidden = !active;
+(() => {
+  const months = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  // Gate timestamps: refine to the project time zone when the browser knows it.
+  document.querySelectorAll('time[data-tz]').forEach(el => {
+    const date = new Date(el.dateTime);
+    if (Number.isNaN(date.getTime())) return;
+    try {
+      const opts = {day:'numeric', month:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23'};
+      if (el.dataset.tz) opts.timeZone = el.dataset.tz;
+      const p = Object.fromEntries(new Intl.DateTimeFormat('it-IT', opts).formatToParts(date).map(x => [x.type, x.value]));
+      el.textContent = `${p.day} ${months[Number(p.month) - 1]} ${p.year}, ore ${p.hour}:${p.minute}`;
+    } catch (error) { /* keep the server-rendered label */ }
   });
-}
-tabs.forEach((tab, index) => {
-  tab.addEventListener('click', () => selectTab(tab));
-  tab.addEventListener('keydown', event => {
-    let next;
-    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
-    else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = tabs.length - 1;
-    else return;
-    event.preventDefault(); selectTab(tabs[next]); tabs[next].focus();
+
+  // Views: hash-addressable tabs (Arrow keys, Home, End).
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
+  // Panels are "view-<name>" while the URL uses "#<name>": no native jump on load.
+  function show(name, focusPanel) {
+    const tab = tabs.find(t => t.getAttribute('aria-controls') === 'view-' + name) || tabs[0];
+    tabs.forEach((t, i) => {
+      const active = t === tab;
+      t.setAttribute('aria-selected', String(active));
+      t.tabIndex = active ? 0 : -1;
+      panels[i].hidden = !active;
+    });
+    if (focusPanel) document.getElementById(tab.getAttribute('aria-controls')).focus({preventScroll:true});
+    return tab;
+  }
+  function fromHash() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!id) { show('articolo'); return; }
+    if (panels.some(p => p.id === 'view-' + id)) { show(id); return; }
+    const target = document.getElementById(id);
+    const panel = target && target.closest('[role="tabpanel"]');
+    if (panel) { show(panel.id.slice(5)); target.scrollIntoView({block:'start'}); flash(target); }
+  }
+  function flash(el) {
+    if (!el.classList.contains('source')) return;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1600);
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', event => {
+      event.preventDefault();
+      show(tab.getAttribute('href').slice(1));
+      history.replaceState(null, '', tab.getAttribute('href'));
+      window.scrollTo({top: document.querySelector('.tabbar').offsetTop, behavior: 'instant'});
+    });
+    tab.addEventListener('keydown', event => {
+      const keys = {ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1};
+      if (!(event.key in keys)) return;
+      event.preventDefault();
+      const next = tabs[(keys[event.key] + tabs.length) % tabs.length];
+      show(next.getAttribute('href').slice(1));
+      history.replaceState(null, '', next.getAttribute('href'));
+      next.focus();
+    });
   });
-});
-document.querySelectorAll('[data-count]').forEach(counter => {
-  counter.textContent = Array.from(document.getElementById(counter.dataset.count).value).length;
-});
-document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
-  const textarea = document.getElementById(button.dataset.copy);
-  const feedback = button.parentElement.querySelector('.feedback');
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(textarea.value);
-    else { textarea.focus(); textarea.select(); if (!document.execCommand('copy')) throw new Error('clipboard'); }
-    button.querySelector('.copy-label').textContent = 'Copiato! ✓'; button.classList.add('done'); feedback.textContent = 'Testo copiato';
-    setTimeout(() => { button.querySelector('.copy-label').textContent = 'Copia testo'; button.classList.remove('done'); feedback.textContent = ''; }, 1800);
-  } catch (error) { textarea.focus(); textarea.select(); feedback.textContent = 'Seleziona e copia il testo con Ctrl+C o Cmd+C.'; }
-}));
-const slides = Array.from(document.querySelectorAll('.slide'));
-const dots = Array.from(document.querySelectorAll('[data-slide]'));
-let index = 0;
-function showSlide(next) {
-  if (!slides.length) return;
-  index = (next + slides.length) % slides.length;
-  slides.forEach((slide, i) => { slide.hidden = i !== index; });
-  dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === index)));
-  document.getElementById('position').textContent = `${index + 1} / ${slides.length}`;
-}
-if (slides.length) {
-  document.getElementById('previous').addEventListener('click', () => showSlide(index - 1));
-  document.getElementById('next').addEventListener('click', () => showSlide(index + 1));
-  dots.forEach(dot => dot.addEventListener('click', () => showSlide(Number(dot.dataset.slide))));
-  let touchX = 0;
-  const gallery = document.getElementById('slides');
-  gallery.addEventListener('touchstart', event => { touchX = event.changedTouches[0].screenX; }, {passive:true});
-  gallery.addEventListener('touchend', event => {
-    const delta = event.changedTouches[0].screenX - touchX;
-    if (Math.abs(delta) > 45) showSlide(index + (delta < 0 ? 1 : -1));
-  }, {passive:true});
-}
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+
+  // Citation markers open the matching source.
+  document.querySelectorAll('a.cite').forEach(a => a.addEventListener('click', event => {
+    const target = document.getElementById('fonte-' + a.dataset.source);
+    if (!target) return;
+    event.preventDefault();
+    show('fonti');
+    history.replaceState(null, '', '#fonti');
+    target.scrollIntoView({block:'center'});
+    flash(target);
+  }));
+
+  // Table of contents: highlight the section being read.
+  const tocLinks = Array.from(document.querySelectorAll('[data-toc]'));
+  if (tocLinks.length && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      tocLinks.forEach(a => a.classList.toggle('active', a.dataset.toc === entry.target.id));
+    }), {rootMargin: '-20% 0px -70% 0px'});
+    tocLinks.forEach(a => { const h = document.getElementById(a.dataset.toc); if (h) observer.observe(h); });
+    tocLinks.forEach(a => a.addEventListener('click', event => {
+      event.preventDefault();
+      document.getElementById(a.dataset.toc).scrollIntoView({block:'start'});
+    }));
+  }
+
+  // Podcast duration.
+  const audio = document.querySelector('audio');
+  if (audio) {
+    const label = document.getElementById('audio-duration');
+    const showDuration = () => {
+      if (Number.isFinite(audio.duration)) label.textContent = Math.floor(audio.duration / 60) + ':' + String(Math.floor(audio.duration % 60)).padStart(2, '0') + ' min';
+    };
+    audio.addEventListener('loadedmetadata', showDuration);
+    audio.addEventListener('error', () => { label.textContent = 'Durata non disponibile'; });
+    showDuration();
+  }
+
+  // Character counters, with platform limits (X: longest post of the thread).
+  const fmt = n => n.toLocaleString('it-IT');
+  document.querySelectorAll('[data-count]').forEach(counter => {
+    const area = document.getElementById(counter.dataset.count);
+    const total = Array.from(area.value).length;
+    const limit = Number(area.dataset.limit);
+    if (!total) { counter.textContent = '0 caratteri'; return; }
+    if (area.dataset.channel === 'twitter') {
+      const posts = area.value.split(/\n\s*\n(?=\s*\d+\/\d+)/).map(t => Array.from(t.trim()).length).filter(Boolean);
+      const longest = Math.max(...posts);
+      counter.textContent = `${posts.length} post · il più lungo ${longest}/${limit}`;
+      counter.classList.toggle('over', longest > limit);
+    } else if (limit) {
+      counter.textContent = `${fmt(total)} / ${fmt(limit)} caratteri`;
+      counter.classList.toggle('over', total > limit);
+    } else {
+      counter.textContent = `${fmt(total)} caratteri`;
+    }
+  });
+
+  // Copy: plain text, rich article (text/html) and Markdown download.
+  function confirm(button, ok, message) {
+    const label = button.querySelector('.copy-label');
+    const original = label.dataset.original || label.textContent;
+    label.dataset.original = original;
+    const feedback = button.parentElement.querySelector('.feedback') || document.getElementById('publish-feedback');
+    if (ok) {
+      label.textContent = 'Copiato! ✓'; button.classList.add('done');
+      if (feedback) feedback.textContent = message || 'Testo copiato';
+      setTimeout(() => { label.textContent = original; button.classList.remove('done'); if (feedback) feedback.textContent = ''; }, 1800);
+    } else if (feedback) {
+      feedback.textContent = 'Copia non riuscita: seleziona il testo e usa Ctrl+C o Cmd+C.';
+    }
+  }
+  async function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); return; }
+    const area = document.createElement('textarea');
+    area.value = text; area.style.position = 'fixed'; area.style.opacity = '0';
+    document.body.appendChild(area); area.select();
+    const ok = document.execCommand('copy'); area.remove();
+    if (!ok) throw new Error('clipboard');
+  }
+  document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
+    const source = document.getElementById(button.dataset.copy);
+    try { await copyText(source.value); confirm(button, true); }
+    catch (error) { if (!source.hidden) { source.focus(); source.select(); } confirm(button, false); }
+  }));
+  document.querySelectorAll('[data-copy-rich]').forEach(button => button.addEventListener('click', async () => {
+    const source = document.getElementById(button.dataset.copyRich);
+    const html = `<h1>${document.querySelector('.article-head h2').innerHTML}</h1>${source.innerHTML.replace(/<sup class="cites">.*?<\/sup>/g, m => m.replace(/<a [^>]*>(\d+)<\/a>/g, '$1'))}`;
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html], {type:'text/html'}), 'text/plain': new Blob([source.innerText], {type:'text/plain'})})]);
+      } else {
+        const range = document.createRange(); range.selectNodeContents(source);
+        const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        const ok = document.execCommand('copy'); selection.removeAllRanges();
+        if (!ok) throw new Error('clipboard');
+      }
+      confirm(button, true, 'Articolo formattato copiato');
+    } catch (error) { confirm(button, false); }
+  }));
+  document.querySelectorAll('[data-download]').forEach(button => button.addEventListener('click', () => {
+    const text = document.getElementById(button.dataset.download).value;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([text], {type:'text/markdown;charset=utf-8'}));
+    link.download = button.dataset.filename;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }));
+
+  // Carousel viewer: buttons, numbered strip, arrow keys and swipe (touchstart/touchend).
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const strip = Array.from(document.querySelectorAll('[data-slide]'));
+  const data = document.getElementById('slide-data');
+  const meta = data ? JSON.parse(data.textContent) : [];
+  let index = 0;
+  function showSlide(next) {
+    if (!slides.length) return;
+    index = (next + slides.length) % slides.length;
+    slides.forEach((slide, i) => { slide.hidden = i !== index; });
+    strip.forEach((b, i) => b.setAttribute('aria-current', String(i === index)));
+    document.getElementById('position').textContent = `${index + 1} / ${slides.length}`;
+    if (meta[index]) {
+      document.getElementById('slide-name').textContent = meta[index].name;
+      document.getElementById('slide-download').href = meta[index].url;
+    }
+  }
+  if (slides.length) {
+    document.getElementById('previous').addEventListener('click', () => showSlide(index - 1));
+    document.getElementById('next').addEventListener('click', () => showSlide(index + 1));
+    strip.forEach(b => b.addEventListener('click', () => showSlide(Number(b.dataset.slide))));
+    const panel = document.getElementById('view-carosello');
+    panel.addEventListener('keydown', event => {
+      if (event.target.closest('[role="tab"]')) return;
+      if (event.key === 'ArrowRight') showSlide(index + 1);
+      if (event.key === 'ArrowLeft') showSlide(index - 1);
+    });
+    let touchX = 0;
+    const gallery = document.getElementById('slides');
+    gallery.addEventListener('touchstart', event => { touchX = event.changedTouches[0].screenX; }, {passive:true});
+    gallery.addEventListener('touchend', event => {
+      const delta = event.changedTouches[0].screenX - touchX;
+      if (Math.abs(delta) > 45) showSlide(index + (delta < 0 ? 1 : -1));
+    }, {passive:true});
+  }
+})();
 </script>
 </body></html>

@@ -45,7 +45,11 @@ from editorial_pipeline.application.evidence_verifier import (
     load_records,
 )
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
-from editorial_pipeline.application.web_hub import generate_web_hub, serve_console
+from editorial_pipeline.application.web_hub import (
+    generate_index,
+    generate_web_hub,
+    serve_console,
+)
 from editorial_pipeline.cli.reports import _sanitize, digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
 from editorial_pipeline.config.models import MACRO_RUNTIME_AMMESSE, AudioConfig
@@ -303,8 +307,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     install = sub.add_parser("install-skill", help="Install the editorial-pipeline agent skill")
     install.add_argument("target_dir", help="Agent skills directory receiving editorial-pipeline/")
     install.add_argument("--force", action="store_true", help="Overwrite an existing skill")
-    view = sub.add_parser("view", help="Open the offline editorial console")
-    view.add_argument("post_id")
+    view = sub.add_parser(
+        "view",
+        help="Open the offline editorial console of a post, or the newsroom index",
+    )
+    view.add_argument("post_id", nargs="?", help="Post to open; omit it to build the index")
+    view.add_argument(
+        "--all",
+        action="store_true",
+        help="Regenerate every post console and the newsroom index (dist/web/index.html)",
+    )
     view.add_argument("--serve", action="store_true", help="Serve on localhost until Ctrl+C")
     view.add_argument("--port", type=int, default=8000, help="Local port; 0 selects a free port")
     view.add_argument("--no-browser", action="store_true")
@@ -361,10 +373,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             view_root = Path(args.config).resolve().parent
             view_paths = None
             author, register, receipts_dir = "", "", "approvals"
+            newsroom, timezone = "", ""
+            theme: dict[str, str] | None = None
             if Path(args.config).is_file():
                 view_root, view_config, view_paths = _config(args.config)
                 register = Path(view_config.register_.active).stem
                 receipts_dir = view_config.gates.receipts_dir
+                newsroom = view_config.project.name
+                timezone = view_config.project.timezone
+                theme = view_config.theme.resolved()
                 profile = view_paths["author.profile"]
                 try:
                     profile_text = profile.read_text(encoding="utf-8-sig")
@@ -388,14 +405,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                     author = ""
             elif args.config != "editorial.toml":
                 raise ValueError("Configuration file not found")
-            console = generate_web_hub(
-                view_root,
-                args.post_id,
-                view_paths,
-                author=author,
-                register=register,
-                receipts_dir=receipts_dir,
-            )
+            view_options: dict[str, Any] = {
+                "author": author,
+                "register": register,
+                "receipts_dir": receipts_dir,
+                "newsroom": newsroom,
+                "theme": theme,
+                "timezone": timezone,
+            }
+            if args.all or args.post_id is None:
+                console = generate_index(view_root, view_paths, **view_options)
+            else:
+                console = generate_web_hub(view_root, args.post_id, view_paths, **view_options)
             if args.serve:
                 serve_console(view_root, console, port=args.port, open_browser=not args.no_browser)
             else:
@@ -621,6 +642,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 0
             builder = get_visual_builder("playwright", config, root)
             if isinstance(builder, PlaywrightVisualBuilder):
+                builder.theme = config.theme.resolved()
                 if not (
                     paths["paths.templates"] / "social" / "carousel_slide.html.jinja2"
                 ).is_file():

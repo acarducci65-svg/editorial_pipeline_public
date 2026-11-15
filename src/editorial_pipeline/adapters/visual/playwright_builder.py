@@ -60,6 +60,8 @@ class PlaywrightVisualBuilder(VisualBuilder):
         self.template_name = template_name
         self.language = language
         self.rasterize = rasterize
+        # Resolved [theme] values (see ThemeConfig.resolved); empty means template defaults.
+        self.theme: dict[str, str] = {}
         self._template: Any = None
 
     def _resolve_template_dir(self) -> Path:
@@ -98,6 +100,7 @@ class PlaywrightVisualBuilder(VisualBuilder):
                     width=width,
                     height=height,
                     lang=self.language,
+                    theme=self.theme,
                 )
             )
         except VisualBuildError:
