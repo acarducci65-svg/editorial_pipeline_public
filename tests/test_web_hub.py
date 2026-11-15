@@ -150,6 +150,23 @@ def test_flat_posts_and_existing_carousel(tmp_path: Path) -> None:
     assert "approved" not in html
 
 
+@pytest.mark.parametrize("filename", ["post_01.md", "post_01_long_title.md"])
+def test_nested_draft_discovery(tmp_path: Path, filename: str) -> None:
+    put(
+        tmp_path,
+        f"content/posts/nested/{filename}",
+        "---\ntitle: Nested article title\n---\n# Draft heading\n\nNested article body.",
+    )
+    put(tmp_path, "evidence/post_01/sources.json", '{"sources": []}')
+
+    output = generate_web_hub(tmp_path, "post_01", paths={"paths.content": tmp_path / "content"})
+    html = output.read_text(encoding="utf-8")
+
+    assert "Nested article title" in html
+    assert "<p>Nested article body.</p>" in html
+    assert "Testo non disponibile" not in html
+
+
 def test_cli_view(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

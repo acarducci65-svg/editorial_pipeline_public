@@ -535,7 +535,7 @@ def _build(
     if not existing(draft):
         candidates = [
             file
-            for file in content.glob("*.md")
+            for file in content.rglob("*.md")
             if file.stem == post_id or file.stem.startswith(post_id + "_")
         ]
         if len(candidates) > 1:
