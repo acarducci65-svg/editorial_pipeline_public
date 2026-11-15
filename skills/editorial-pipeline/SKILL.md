@@ -323,6 +323,9 @@ Struttura attesa:
 ```text
 site/
 ├── hugo.toml
+├── Dockerfile                         # build Hugo + Nginx (punto d)
+├── .dockerignore
+├── deploy/nginx.conf
 ├── content/
 │   ├── posts/<post_id>/index.md      # scritto da publish (hugo_bundle), con i media accanto
 │   ├── metodo/_index.md               # da templates/pages/metodo.template.md
@@ -341,6 +344,7 @@ site/
 ```toml
 baseURL = "https://example.org/"        # [project].base_url
 languageCode = "it-it"
+defaultContentLanguage = "it"            # lingua delle date localizzate (punto c)
 title = "Nome della testata"             # [project].name
 ignoreFiles = ['\.html$']                # nessun .html in content/ diventa pagina
 
@@ -382,7 +386,87 @@ ignoreFiles = ['\.html$']                # nessun .html in content/ diventa pagi
 - `_default/list.html`: elenco delle pagine della sezione (`.Pages`) con titolo, data e sommario; per `metodo`, `correzioni` e `per-chi-scrive` mostra anche `.Content` dell'`_index.md`.
 - `index.html`: home con testata, ultimi articoli di `posts` (`where .Site.RegularPages "Section" "posts"`) e richiamo al metodo.
 
-Nomi, bio e firme non si scrivono nei layout: vengono da `hugo.toml` e dalle pagine approvate. Verifica locale con `hugo --source site` (build senza errori, nessun `.html` dentro `site/content/`) e anteprima con `hugo server --source site`. Il caricamento del sito pubblicato in rete resta un'operazione umana, fuori dalla CLI.
+**Date in italiano.** In `single.html`, `list.html` e `index.html` la data si scrive `{{ .Date | time.Format ":date_long" }}` (es. «15 novembre 2026»), che Hugo localizza secondo `defaultContentLanguage = "it"`. Non usate `.Date.Format "02 Gennaio 2006"`: il layout di Go riconosce solo i token inglesi (`January`, `Jan`), quindi «Gennaio» resta testo fisso e ogni articolo mostrerebbe lo stesso mese. Per l'attributo `datetime` di `<time>` usate `{{ .Date.Format "2006-01-02" }}`.
+
+Nomi, bio e firme non si scrivono nei layout: vengono da `hugo.toml` e dalle pagine approvate. Verifica locale con `hugo --source site` (build senza errori, nessun `.html` dentro `site/content/`) e anteprima con `hugo server --source site`.
+
+**d) Container di produzione (Coolify o altro host Docker).** Tre file sotto `site/`, preparati una volta come il resto dello scaffolding:
+
+`site/Dockerfile`: build multi-stage, Hugo Extended con versione esplicita (mai `latest`; ≥ 0.144 per `:contentbasename`) e Nginx su porta 80.
+
+```dockerfile
+FROM debian:bookworm-slim AS build
+ARG HUGO_VERSION=0.147.0
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" \
+    | tar -xz -C /usr/local/bin hugo \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY . .
+RUN hugo --minify
+
+FROM nginx:alpine
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/public /usr/share/nginx/html
+EXPOSE 80
+```
+
+`site/deploy/nginx.conf`: file statici, gzip, header di sicurezza, cache lunga per media e audio.
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json application/xml image/svg+xml;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~* \.(?:png|jpe?g|gif|webp|svg|pdf|mp3|m4a|ogg|wav)$ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+}
+```
+
+Un `add_header` dentro una `location` annulla quelli del blocco `server`: per questo `nosniff` è ripetuto nella location dei media.
+
+`site/.dockerignore`:
+
+```text
+public
+resources
+.hugo_build.lock
+.git
+```
+
+Parametri obbligatori dell'applicazione su Coolify:
+
+| Campo | Valore |
+|---|---|
+| Build Pack | `Dockerfile` |
+| Base Directory | `/site` |
+| Dockerfile Location | `/Dockerfile` (relativo alla Base Directory) |
+| Ports Exposes | `80` |
+
+Con Base Directory `/site` il contesto di build è solo il sito: `evidence/`, `dist/` e il resto del progetto non entrano nell'immagine, e `COPY deploy/nginx.conf` risolve. Con Base Directory `/` il build fallisce o, peggio, copia nell'immagine le evidenze di redazione. Il primo deploy e ogni modifica dei parametri restano operazioni umane, fuori dalla CLI.
+
+**e) Codifica: UTF-8 senza BOM.** `hugo.toml`, `Dockerfile`, `.dockerignore` e `deploy/nginx.conf` si salvano in UTF-8 **senza BOM**. Con il BOM (`EF BB BF`) Nginx non avvia il container e riporta `unknown directive "server" in /etc/nginx/conf.d/default.conf:1`.
+
+- Su Windows PowerShell 5.1 **non** usate `Set-Content -Encoding utf8` né `Out-File -Encoding utf8`: entrambi scrivono il BOM. Usate lo strumento di scrittura file dell'harness, Python (`Path(p).write_text(testo, encoding="utf-8")`) oppure `[System.IO.File]::WriteAllText($p, $testo, [System.Text.UTF8Encoding]::new($false))`.
+- Controllo prima del commit: `head -c 3 site/deploy/nginx.conf | od -An -tx1` (POSIX) o `Format-Hex site/deploy/nginx.conf | Select-Object -First 1` (PowerShell). Se i primi byte sono `ef bb bf`, riscrivete il file senza BOM.
 
 ### Console webredazionale — consultazione a fine flusso
 

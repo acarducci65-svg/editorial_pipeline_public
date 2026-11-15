@@ -235,7 +235,7 @@ allow_overwrite = true                    # default false
 - `allow_overwrite = true`: se `<static_site_dir>/<post_id>/` esiste già, i file vengono riscritti invece di uscire con `Error: publishing destination already exists`. Serve per la **ripubblicazione** di un'unità già uscita (es. dopo una correzione F6 approvata e un nuovo Gate 2). Non cancella i file che nel nuovo bundle non ci sono più: si rimuovono a mano, su istruzione del Direttore. L'opzione vale solo per `static_site`; `dist_archive` e `author_website` non sovrascrivono mai.
 - Con `static_site_dir` fuori da `[paths].dist` (come `site/content/posts`) la pubblicazione non rende `stale` il Gate 2 (§3.4). Il gate resta obbligatorio a ogni ripubblicazione: `allow_overwrite` non sostituisce una nuova ricevuta quando il bundle è cambiato.
 
-La struttura del sito Hugo che riceve l'export (configurazione, pagine di trasparenza, layout) è descritta in `SKILL.md`, §4 «Hugo Scaffolding».
+La struttura del sito Hugo che riceve l'export (configurazione, pagine di trasparenza, layout con date localizzate, container Docker/Nginx, parametri Coolify, codifica UTF-8 senza BOM) è descritta in `SKILL.md`, §4 «Hugo Scaffolding».
 
 ## 4. Checklist rapida
 
