@@ -249,6 +249,28 @@ def test_static_site_audio_media_included(project: Path, suffix: str, action: st
         assert output.read_bytes() == b"audio\r\nbytes"
 
 
+def test_static_site_excludes_html_artifacts(project: Path) -> None:
+    excluded = [
+        "dist/social/post_01/slide_01.html",
+        "dist/social/post_01/slide_01.css",
+        "dist/web/post_01.html",
+        "dist/web/post_01.HTML",
+    ]
+    for name in excluded:
+        path = project / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("<html></html>", encoding="utf-8")
+    approve(project, ["export_markdown", "static_site"])
+    assert run(project, "--target", "static_site") == 0
+    output = project / "dist/published/post_01"
+    assert (output / "post_01_valid.md").exists()
+    assert (output / "dist/social/post_01/slide.png").read_bytes() == b"visual"
+    for name in excluded:
+        assert not (output / name).exists()
+    exported = {path.suffix.lower() for path in output.rglob("*") if path.is_file()}
+    assert not exported & {".html", ".css"}
+
+
 @pytest.mark.parametrize("dry", [False, True])
 def test_static_site_allow_overwrite(project: Path, dry: bool) -> None:
     with (project / "editorial.toml").open("a", encoding="utf-8") as stream:

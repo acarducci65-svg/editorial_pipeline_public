@@ -36,7 +36,7 @@ class StaticSitePublisher(PublishAdapter):
             else draft_path.name
         )
         exports = {markdown_name: files[draft_name]}
-        visual = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf", ".html", ".css"}
+        visual = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf"}
         media_audio = {".mp3", ".m4a", ".ogg", ".wav"}
         if {"publish_audio", "static_site"}.intersection(allowed_actions):
             visual |= media_audio
