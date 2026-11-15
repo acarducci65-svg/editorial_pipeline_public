@@ -1,4 +1,4 @@
-"""Markdown and approved visual assets exported to a local static site."""
+"""Markdown and approved media assets exported to a local static site."""
 
 from pathlib import Path
 
@@ -27,11 +27,19 @@ class StaticSitePublisher(PublishAdapter):
         directory = directory or f"{config.paths.dist}/published"
         output = self.destination(directory, config) / post_id
         self.safe_path(output.relative_to(self.root).as_posix())
-        if output.exists():
+        if output.exists() and not (config.publishing and config.publishing.allow_overwrite):
             raise ValueError("publishing destination already exists")
         draft_name = draft_path.relative_to(self.root).as_posix()
-        exports = {draft_path.name: files[draft_name]}
+        markdown_name = (
+            "index.md"
+            if config.publishing and config.publishing.static_site_layout == "hugo_bundle"
+            else draft_path.name
+        )
+        exports = {markdown_name: files[draft_name]}
         visual = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf", ".html", ".css"}
+        media_audio = {".mp3", ".m4a", ".ogg", ".wav"}
+        if {"publish_audio", "static_site"}.intersection(allowed_actions):
+            visual |= media_audio
         exports.update(
             {name: files[name] for name in artifacts if Path(name).suffix.lower() in visual}
         )

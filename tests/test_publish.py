@@ -17,6 +17,7 @@ ACTIONS = [
     "export_markdown",
     "publish_markdown",
     "static_site",
+    "publish_audio",
     "publish",
 ]
 
@@ -213,6 +214,77 @@ def test_config_target_and_output(project: Path, capsys: pytest.CaptureFixture[s
 def test_unsafe_output_rejected_before_writes(project: Path, directory: str) -> None:
     with (project / "editorial.toml").open("a", encoding="utf-8") as stream:
         stream.write("\n[publishing]\nstatic_site_dir = " + json.dumps(directory) + "\n")
+    before = snapshot(project)
+    assert run(project, "--target", "static_site") == 1
+    assert snapshot(project) == before
+
+
+def test_static_site_hugo_bundle_layout(project: Path) -> None:
+    with (project / "editorial.toml").open("a", encoding="utf-8") as stream:
+        stream.write('\n[publishing]\nstatic_site_layout = "hugo_bundle"\n')
+    draft = project / "content/posts/post_01_valid.md"
+    draft.write_bytes(draft.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+    _refresh_evidence(project)
+    _write_gate_receipt(project, 1)
+    approve(project, ["export_markdown"])
+    assert run(project, "--target", "static_site") == 0
+    output = project / "dist/published/post_01"
+    assert (output / "index.md").read_bytes() == draft.read_bytes()
+    assert not (output / draft.name).exists()
+
+
+@pytest.mark.parametrize("suffix", [".mp3", ".m4a", ".ogg", ".wav", ".MP3"])
+@pytest.mark.parametrize("action", ["publish_audio", "static_site", "export_markdown"])
+def test_static_site_audio_media_included(project: Path, suffix: str, action: str) -> None:
+    name = f"dist/audio/post_01/podcast{suffix}"
+    audio = project / name
+    audio.parent.mkdir(parents=True, exist_ok=True)
+    audio.write_bytes(b"audio\r\nbytes")
+    approve(project, ["export_markdown", action] if action != "export_markdown" else [action])
+    assert run(project, "--target", "static_site") == 0
+    output = project / "dist/published/post_01" / name
+    if action == "export_markdown":
+        assert not output.exists()
+    else:
+        assert output.read_bytes() == b"audio\r\nbytes"
+
+
+@pytest.mark.parametrize("dry", [False, True])
+def test_static_site_allow_overwrite(project: Path, dry: bool) -> None:
+    with (project / "editorial.toml").open("a", encoding="utf-8") as stream:
+        stream.write("\n[publishing]\nallow_overwrite = true\n")
+    assert run(project, "--target", "static_site") == 0
+    draft = project / "content/posts/post_01_valid.md"
+    draft.write_bytes(draft.read_bytes() + b"\nApproved correction.\n")
+    _refresh_evidence(project)
+    _write_gate_receipt(project, 1)
+    approve(project, ["export_markdown"])
+    before = snapshot(project)
+    assert run(project, "--target", "static_site", *(["--dry-run"] if dry else [])) == 0
+    if dry:
+        assert snapshot(project) == before
+    else:
+        assert (
+            project / "dist/published/post_01/post_01_valid.md"
+        ).read_bytes() == draft.read_bytes()
+
+
+def test_static_site_overwrite_disabled(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    with (project / "editorial.toml").open("a", encoding="utf-8") as stream:
+        stream.write("\n[publishing]\nallow_overwrite = false\n")
+    output = project / "dist/published/post_01/post_01_valid.md"
+    output.parent.mkdir(parents=True)
+    output.write_bytes(b"existing publication")
+    approve(project, ["export_markdown"])
+    before = snapshot(project)
+    assert run(project, "--target", "static_site") == 1
+    assert "publishing destination already exists" in capsys.readouterr().err
+    assert snapshot(project) == before
+
+
+def test_static_site_rejects_invalid_layout(project: Path) -> None:
+    with (project / "editorial.toml").open("a", encoding="utf-8") as stream:
+        stream.write('\n[publishing]\nstatic_site_layout = "unknown"\n')
     before = snapshot(project)
     assert run(project, "--target", "static_site") == 1
     assert snapshot(project) == before

@@ -176,6 +176,8 @@ class PublishingConfig(Schema):
     target: Literal["dist_archive", "static_site", "author_website"] = "dist_archive"
     archive_dir: RelativePath | None = None
     static_site_dir: RelativePath | None = None
+    static_site_layout: Literal["flat", "hugo_bundle"] = "flat"
+    allow_overwrite: bool = False
     author_website_dir: RelativePath | None = None
 
 

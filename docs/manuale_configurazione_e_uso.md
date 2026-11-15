@@ -1871,7 +1871,9 @@ Provare un pattern prima di adottarlo:
 ```python
 import re
 
-pattern = re.compile(r"\bgioca(?:re|no|)? un ruolo (?:chiave|cruciale|fondamentale)\b", re.IGNORECASE)
+pattern = re.compile(
+    r"\bgioca(?:re|no|)? un ruolo (?:chiave|cruciale|fondamentale)\b", re.IGNORECASE
+)
 frase = "La cooperativa gioca un ruolo chiave nell'ecosistema locale."
 print(bool(pattern.search(frase)))  # True
 ```
