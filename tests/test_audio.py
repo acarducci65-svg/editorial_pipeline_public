@@ -296,6 +296,8 @@ def test_notebooklm_build(
             assert args[4:6] == ["--language", "it"]
             assert "--confirm" in args and "--json" in args
             return subprocess.CompletedProcess(args, 0, '{"artifact_id": "sandbox-audio"}', "")
+        if args[1:3] == ["studio", "status"] and "--artifact-id" not in args:
+            return subprocess.CompletedProcess(args, 0, '{"artifacts": []}', "")
         if args[1:3] == ["studio", "status"]:
             return subprocess.CompletedProcess(
                 args,
@@ -324,7 +326,7 @@ def test_notebooklm_build(
         mocked.assert_not_called()
         assert snapshot(project) == before
     else:
-        assert mocked.call_count == 4
+        assert mocked.call_count == 5
         assert (project / result["audio_files"][0]).read_bytes() == b"fake audio"
         assert len(list((project / "dist/audio/post_01").iterdir())) == 1
 
@@ -384,6 +386,8 @@ def test_notebooklm_errors_are_protected(
             return subprocess.CompletedProcess(args, 0, private, "")
         if failure == "shape":
             return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[1:3] == ["studio", "status"] and "--artifact-id" not in args:
+            return subprocess.CompletedProcess(args, 0, '{"artifacts": []}', "")
         if args[1:3] == ["audio", "create"]:
             return subprocess.CompletedProcess(
                 args, 0, "{}" if failure == "artifact" else '{"artifact_id": "sandbox-audio"}', ""
@@ -603,6 +607,8 @@ def test_download_failure_preserves_existing_audio(
     def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         assert args[3] == "configured-corpus"
         assert kwargs["timeout"] == 5
+        if args[1:3] == ["studio", "status"] and "--artifact-id" not in args:
+            return subprocess.CompletedProcess(args, 0, '{"artifacts": []}', "")
         if args[1:3] == ["audio", "create"]:
             return subprocess.CompletedProcess(args, 0, '{"artifact_id": "sandbox-audio"}', "")
         if args[1:3] == ["studio", "status"]:
@@ -691,6 +697,8 @@ def test_notebooklm_audio_adapter_creates_and_downloads(
     def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         assert kwargs["shell"] is False
         calls.append(args)
+        if args[1:3] == ["studio", "status"] and "--artifact-id" not in args:
+            return subprocess.CompletedProcess(args, 0, '{"artifacts": []}', "")
         if args[1:3] == ["audio", "create"]:
             return subprocess.CompletedProcess(args, 0, '{"artifact_id": "sandbox-audio"}', "")
         if args[1:3] == ["studio", "status"]:
@@ -715,11 +723,12 @@ def test_notebooklm_audio_adapter_creates_and_downloads(
         [{"key": "src", "claims": [{"text": "Fatto verificato.", "locator": "p. 1"}]}],
         output,
     )
-    create = calls[0]
+    create = calls[1]
     assert create[1:4] == ["audio", "create", "sandbox-corpus"]
     assert create[4:7] == ["--language", language, "--confirm"]
     assert "Fatto verificato. (fonte src, p. 1)" in create[-1]
     assert [call[1:3] for call in calls] == [
+        ["studio", "status"],
         ["audio", "create"],
         ["studio", "status"],
         ["download", "audio"],
@@ -826,3 +835,136 @@ def test_configured_notebooklm_builds_when_available(
         assert run(project, "--json") == 0
     adapter.return_value.preflight.assert_called_once_with()
     assert json.loads(capsys.readouterr().out)["provider"] == "notebooklm"
+
+
+# --- T-082: realistic polling window and reuse of existing Studio artifacts ----------
+
+
+def _studio_mock(
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    discovery: list[dict[str, str]],
+    statuses: list[str],
+) -> list[list[str]]:
+    monkeypatch.setattr(
+        "editorial_pipeline.adapters.audio.notebooklm.shutil.which", lambda _: "nlm"
+    )
+    sleeps: list[float] = []
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.notebooklm.time.sleep", sleeps.append)
+    pending = iter(statuses)
+    calls: list[list[str]] = []
+
+    def execute(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert kwargs["shell"] is False
+        calls.append(args)
+        if args[1:3] == ["studio", "status"] and "--artifact-id" not in args:
+            return subprocess.CompletedProcess(args, 0, json.dumps({"artifacts": discovery}), "")
+        if args[1:3] == ["studio", "status"]:
+            artifact = args[args.index("--artifact-id") + 1]
+            response = {"artifacts": [{"artifact_id": artifact, "status": next(pending)}]}
+            return subprocess.CompletedProcess(args, 0, json.dumps(response), "")
+        if args[1:3] == ["audio", "create"]:
+            return subprocess.CompletedProcess(args, 0, '{"artifact_id": "fresh-audio"}', "")
+        assert args[1:3] == ["download", "audio"]
+        (project / args[args.index("--output") + 1]).write_bytes(b"studio audio")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.notebooklm.subprocess.run", execute)
+    return calls
+
+
+def test_notebooklm_reuses_completed_studio_artifact(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    discovery = [
+        {"artifact_id": "video-1", "type": "video", "status": "completed"},
+        {"artifact_id": "-flag", "type": "audio", "status": "completed"},
+        {"artifact_id": "broken-audio", "type": "audio", "status": "failed"},
+        {"artifact_id": "ready-audio", "type": "audio", "status": "completed"},
+    ]
+    calls = _studio_mock(project, monkeypatch, discovery, [])
+    adapter = NotebookLMAdapter(project, corpus_id="sandbox-corpus")
+    result = adapter.build("post_01", "Draft", [], project / "dist/audio/post_01")
+    assert [call[1:3] for call in calls] == [["studio", "status"], ["download", "audio"]]
+    assert not any(call[1:3] == ["audio", "create"] for call in calls)
+    assert calls[-1][calls[-1].index("--id") + 1] == "ready-audio"
+    assert result.audio_files == ["dist/audio/post_01/podcast.m4a"]
+    assert (project / "dist/audio/post_01/podcast.m4a").read_bytes() == b"studio audio"
+
+
+@pytest.mark.parametrize("initial", ["in_progress", "queued"])
+def test_notebooklm_resumes_in_progress_studio_artifact(
+    project: Path, monkeypatch: pytest.MonkeyPatch, initial: str
+) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    discovery = [{"artifact_id": "running-audio", "status": initial}]
+    calls = _studio_mock(project, monkeypatch, discovery, ["in_progress", "completed"])
+    adapter = NotebookLMAdapter(project, corpus_id="sandbox-corpus")
+    adapter.build("post_01", "Draft", [], project / "dist/audio/post_01")
+    assert not any(call[1:3] == ["audio", "create"] for call in calls)
+    polls = [call for call in calls if "--artifact-id" in call]
+    assert len(polls) == 2
+    assert all(call[call.index("--artifact-id") + 1] == "running-audio" for call in polls)
+    assert calls[-1][calls[-1].index("--id") + 1] == "running-audio"
+    assert (project / "dist/audio/post_01/podcast.m4a").read_bytes() == b"studio audio"
+
+
+def test_notebooklm_creates_when_no_reusable_artifact(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    discovery = [
+        {"artifact_id": "old-audio", "type": "audio", "status": "failed"},
+        {"artifact_id": "slides", "type": "slide_deck", "status": "in_progress"},
+    ]
+    calls = _studio_mock(project, monkeypatch, discovery, ["queued", "completed"])
+    NotebookLMAdapter(project, corpus_id="sandbox-corpus").build(
+        "post_01", "Draft", [], project / "dist/audio/post_01"
+    )
+    assert [call[1:3] for call in calls] == [
+        ["studio", "status"],
+        ["audio", "create"],
+        ["studio", "status"],
+        ["studio", "status"],
+        ["download", "audio"],
+    ]
+    assert calls[-1][calls[-1].index("--id") + 1] == "fresh-audio"
+
+
+def test_notebooklm_default_polling_window(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from editorial_pipeline.adapters.audio import AudioUnavailableError, NotebookLMAdapter
+
+    adapter = NotebookLMAdapter(project, corpus_id="sandbox-corpus")
+    assert adapter.poll_attempts == 120
+    assert adapter.poll_interval == 5.0
+    assert adapter.poll_attempts * adapter.poll_interval == 600.0
+    sleeps: list[float] = []
+    _studio_mock(project, monkeypatch, [], ["in_progress"] * 120)
+    monkeypatch.setattr("editorial_pipeline.adapters.audio.notebooklm.time.sleep", sleeps.append)
+    with pytest.raises(AudioUnavailableError, match="bounded polling"):
+        adapter.build("post_01", "Draft", [], project / "dist/audio/post_01")
+    assert len(sleeps) == 119 and set(sleeps) == {5.0}
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"poll_attempts": 0},
+        {"poll_attempts": -1},
+        {"poll_attempts": True},
+        {"poll_attempts": 2.5},
+        {"poll_interval": 0},
+        {"poll_interval": -1.0},
+        {"poll_interval": float("inf")},
+        {"poll_interval": float("nan")},
+    ],
+)
+def test_notebooklm_rejects_invalid_polling(project: Path, kwargs: dict[str, object]) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    with pytest.raises(ValueError, match="poll_"):
+        NotebookLMAdapter(project, **kwargs)  # type: ignore[arg-type]

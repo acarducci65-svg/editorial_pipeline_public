@@ -21,6 +21,11 @@ def unavailable(reason: str) -> AudioUnavailableError:
 
 AudioFormat = Literal["m4a", "mp3"]
 AUDIO_FORMATS: tuple[AudioFormat, ...] = ("m4a", "mp3")
+PENDING_STATUSES = ("in_progress", "queued")
+
+
+def valid_artifact_id(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and not value.startswith("-")
 
 
 class NotebookLMAdapter(AudioProvider):
@@ -34,6 +39,8 @@ class NotebookLMAdapter(AudioProvider):
         timeout: float = 60.0,
         language: str = "it",
         audio_format: AudioFormat = "m4a",
+        poll_attempts: int = 120,
+        poll_interval: float = 5.0,
     ) -> None:
         super().__init__(project_root)
         if not math.isfinite(timeout) or timeout <= 0:
@@ -42,11 +49,21 @@ class NotebookLMAdapter(AudioProvider):
             raise ValueError("NotebookLM language must be a short alphabetic code")
         if audio_format not in AUDIO_FORMATS:
             raise ValueError("NotebookLM audio format must be 'm4a' or 'mp3'")
+        if (
+            isinstance(poll_attempts, bool)
+            or not isinstance(poll_attempts, int)
+            or poll_attempts <= 0
+        ):
+            raise ValueError("NotebookLM poll_attempts must be a positive integer")
+        if not math.isfinite(poll_interval) or poll_interval <= 0:
+            raise ValueError("NotebookLM poll_interval must be finite and positive")
         self._corpus_id = corpus_id
         self._corpus_id_env = corpus_id_env
         self._timeout = timeout
         self.language = language
         self.audio_format: AudioFormat = audio_format
+        self.poll_attempts = poll_attempts
+        self.poll_interval = float(poll_interval)
 
     @property
     def filename(self) -> str:
@@ -94,24 +111,29 @@ class NotebookLMAdapter(AudioProvider):
             raise unavailable("invalid JSON response")
         return payload
 
-    def build(
-        self,
-        post_id: str,
-        draft_text: str,
-        sources: list[dict[str, Any]],
-        output_dir: Path,
-        dry_run: bool = False,
-    ) -> AudioResult:
-        path = self.destination(post_id, output_dir, self.filename)
-        result = AudioResult(
-            status="DRY_RUN" if dry_run else "BUILT",
-            provider="notebooklm",
-            audio_files=[self.result_path(path)],
-            details={"language": self.language, "format": self.audio_format},
-        )
-        if dry_run:
-            return result
-        corpus = self.preflight()
+    def _artifacts(self, payload: dict[str, Any]) -> list[Any]:
+        artifacts = payload.get("artifacts")
+        if not isinstance(artifacts, list):
+            raise unavailable("invalid studio status response")
+        return artifacts
+
+    def _existing_artifact(self, corpus: str) -> tuple[str, str] | None:
+        """Return a reusable audio artifact (id, status) already present in Studio."""
+        payload = self._json(["studio", "status", corpus, "--json", "--mcp-compatible"])
+        pending: tuple[str, str] | None = None
+        for item in self._artifacts(payload):
+            if not isinstance(item, dict) or not valid_artifact_id(item.get("artifact_id")):
+                continue
+            if item.get("type", "audio") != "audio":
+                continue
+            status = item.get("status")
+            if status == "completed":
+                return item["artifact_id"], status
+            if status in PENDING_STATUSES and pending is None:
+                pending = (item["artifact_id"], status)
+        return pending
+
+    def _create_artifact(self, corpus: str, sources: list[dict[str, Any]]) -> str:
         claims = "\n".join(
             f"{claim['text']} (fonte {source['key']}, {claim['locator']})"
             for source in sources
@@ -132,9 +154,13 @@ class NotebookLMAdapter(AudioProvider):
             ]
         )
         artifact = created.get("artifact_id")
-        if not isinstance(artifact, str) or not artifact.strip() or artifact.startswith("-"):
+        if not isinstance(artifact, str) or not valid_artifact_id(artifact):
             raise unavailable("missing audio artifact in response")
-        for _ in range(30):
+        return artifact
+
+    def _wait_completed(self, corpus: str, artifact: str) -> None:
+        """Poll a single Studio artifact until completion, within the bounded window."""
+        for attempt in range(self.poll_attempts):
             payload = self._json(
                 [
                     "studio",
@@ -146,24 +172,48 @@ class NotebookLMAdapter(AudioProvider):
                     artifact,
                 ]
             )
-            artifacts = payload.get("artifacts")
-            if not isinstance(artifacts, list):
-                raise unavailable("invalid studio status response")
             selected = [
                 item
-                for item in artifacts
+                for item in self._artifacts(payload)
                 if isinstance(item, dict) and item.get("artifact_id") == artifact
             ]
             if len(selected) != 1:
                 raise unavailable("audio artifact absent from studio status")
             status = selected[0].get("status")
             if status == "completed":
-                break
-            if status not in ("in_progress", "queued"):
+                return
+            if status not in PENDING_STATUSES:
                 raise unavailable("audio generation failed")
-            time.sleep(2)
+            if attempt + 1 < self.poll_attempts:
+                time.sleep(self.poll_interval)
+        raise unavailable("generation still pending after bounded polling")
+
+    def build(
+        self,
+        post_id: str,
+        draft_text: str,
+        sources: list[dict[str, Any]],
+        output_dir: Path,
+        dry_run: bool = False,
+    ) -> AudioResult:
+        path = self.destination(post_id, output_dir, self.filename)
+        result = AudioResult(
+            status="DRY_RUN" if dry_run else "BUILT",
+            provider="notebooklm",
+            audio_files=[self.result_path(path)],
+            details={"language": self.language, "format": self.audio_format},
+        )
+        if dry_run:
+            return result
+        corpus = self.preflight()
+        existing = self._existing_artifact(corpus)
+        if existing is None:
+            artifact = self._create_artifact(corpus, sources)
+            self._wait_completed(corpus, artifact)
         else:
-            raise unavailable("generation still pending after bounded polling")
+            artifact, status = existing
+            if status != "completed":
+                self._wait_completed(corpus, artifact)
         # Download to a temporary file so errors never replace an existing artifact.
         path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix=".audio-", dir=path.parent) as temporary:
