@@ -182,3 +182,15 @@ target = "dist_archive"
 [audio]
 provider = "notebooklm"
 corpus_id_env = "EDITORIAL_AUDIO_ID"   # nome della variabile (alias nlm del taccuino), mai l'ID
+
+# [theme] definisce l'identità visiva condivisa da console web, indice newsroom
+# e slide del carosello. `palette` sceglie un preset verificato per il
+# contrasto (cobalt_tech, emerald, nordic_minimal, custom); i colori indicati
+# qui sotto prevalgono sul preset. Solo valori esadecimali #rrggbb.
+# `font_family` imposta il corpo del testo: "sans" (moderno) o "serif".
+[theme]
+palette = "cobalt_tech"
+accent_color = "#2563eb"       # blu cobalto: link, azioni, stato attivo
+background_color = "#f8fafc"   # slate chiarissimo
+ink_color = "#0f172a"          # blu notte per il testo
+font_family = "sans"

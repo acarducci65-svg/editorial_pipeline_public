@@ -385,3 +385,311 @@ def test_x_thread_filename(tmp_path: Path) -> None:
     put(tmp_path, "dist/social/demo/x_thread.txt", "Thread from file")
     html = generate_web_hub(tmp_path, "demo").read_text(encoding="utf-8")
     assert ">Thread from file</textarea>" in html
+
+
+# --- T-058: tabbed console, theme, sources, publishing and newsroom index ---------
+
+
+def test_theme_config_presets_and_overrides() -> None:
+    from pydantic import ValidationError
+
+    from editorial_pipeline.config.models import ThemeConfig
+
+    assert ThemeConfig().resolved()["accent_color"] == "#2563eb"
+    emerald = ThemeConfig(palette="emerald").resolved()
+    assert emerald["accent_color"] == "#0f766e" and emerald["palette"] == "emerald"
+    custom = ThemeConfig(palette="nordic_minimal", accent_color="#123456", font_family="serif")
+    assert custom.resolved()["accent_color"] == "#123456"
+    assert custom.resolved()["background_color"] == "#ffffff"
+    assert custom.resolved()["font_family"] == "serif"
+    for bad in ({"accent_color": "red;}"}, {"palette": "vintage"}, {"font_family": "mono"}):
+        with pytest.raises(ValidationError):
+            ThemeConfig.model_validate(bad)
+
+
+def test_live_example_declares_theme() -> None:
+    from editorial_pipeline.config import load_config
+
+    config = load_config("examples/live_newsroom/editorial.toml")
+    assert config.theme.palette == "cobalt_tech"
+    assert config.theme.resolved()["ink_color"] == "#0f172a"
+
+
+def test_console_is_tabbed_and_themed(tmp_path: Path) -> None:
+    put(
+        tmp_path,
+        "content/posts/demo/draft.md",
+        "---\ntitle: Tabbed\ndate: 2026-11-14\n---\n# Tabbed\nIntro **bold** and *italic* with "
+        "`code` [1], [link](https://example.org/a) and [bad](javascript:alert(1)).\n\n"
+        "## Section one\n- first\n- second\n  continued\n\n1. one\n2. two\n\n> quoted\n\n---\n\n"
+        "```\n<raw>\n```\n### Sub\nText [1, 2] and [9]\n",
+    )
+    put(tmp_path, "dist/social/demo/twitter.txt", "1/2 " + "x" * 300 + "\n\n2/2 short")
+    html = generate_web_hub(
+        tmp_path,
+        "demo",
+        newsroom="Example Desk",
+        theme={"accent_color": "#0f766e", "ink_color": "url(x)", "font_family": "serif"},
+        timezone="Europe/Rome",
+    ).read_text(encoding="utf-8")
+    for view in ("articolo", "social", "podcast", "carosello", "fonti", "pubblicazione"):
+        assert f'id="view-{view}"' in html and f'href="#{view}"' in html
+    assert 'role="tablist"' in html and "Example Desk" in html
+    assert "--accent:#0f766e" in html and "url(x)" not in html and "--ink:#0f172a" in html
+    assert "--reading:var(--serif)" in html
+    assert "<strong>bold</strong>" in html and "<em>italic</em>" in html
+    assert "<code>code</code>" in html and 'href="https://example.org/a"' in html
+    assert 'href="javascript' not in html and ">bad</a>" not in html
+    assert 'href="#fonte-1"' in html and 'href="#fonte-2"' in html
+    assert '<h2 id="section-one">' in html and "<ol><li>one</li>" in html
+    assert "<li>second continued</li>" in html and "<blockquote><p>quoted</p>" in html
+    assert "<hr>" in html and "&lt;raw&gt;" in html and '<h3 id="sub">' in html
+    assert "In questo articolo" in html and "Section one" in html
+    article = html.split('id="article-body"')[1].split("</article>")[0]
+    assert article.count("<pre>") == 1  # only the fenced code block, never the whole text
+    assert "14 novembre 2026" in html and "Nessuna ricevuta registrata" in html
+    assert "In attesa del Gate 2" in html
+
+
+def test_sources_view_links_and_badges(tmp_path: Path) -> None:
+    put(tmp_path, "content/posts/demo/draft.md", "# Sources")
+    put(tmp_path, "evidence/sources/copy.pdf", "pdf bytes")
+    sources = [
+        {
+            "key": "a",
+            "title": "Official report",
+            "type": "institutional_report",
+            "primary": True,
+            "url": "https://example.org/report.html",
+            "pdf": "https://example.org/report.pdf",
+            "doi": "10.1234/abc.5",
+            "access": "open",
+            "local_copy": "evidence/sources/copy.pdf",
+            "accessed": "2026-11-14",
+        },
+        {
+            "key": "b",
+            "title": "Press piece",
+            "primary": False,
+            "type": "custom_kind",
+            "url": "ftp://example.org/x",
+            "access": "paywall",
+            "local_copy": "../outside.pdf",
+        },
+        {"key": "c", "title": "", "url": "https://example.org/doc.PDF"},
+    ]
+    claims = [
+        {"id": "C1", "source_key": "a", "outcome": "grounded_primary", "text": "T1", "quote": "Q"},
+        {"id": "C2", "source_key": "b", "outcome": "grounded_secondary", "text": "T2"},
+        {"id": "C3", "source_key": "zz", "outcome": "contradicted", "text": "Orphan claim"},
+        {"source_key": "a", "outcome": "mystery", "text": "T4"},
+    ]
+    put(tmp_path, "evidence/demo/sources.json", json.dumps({"sources": sources}))
+    put(tmp_path, "evidence/demo/factcheck.json", json.dumps({"claims": claims}))
+    put(tmp_path, "evidence/demo/draft-review.json", '{"items": {"a": "pass", "b": "fail"}}')
+    html = generate_web_hub(tmp_path, "demo").read_text(encoding="utf-8")
+    for expected in (
+        "Fonte ufficiale primaria",
+        "Fonte secondaria",
+        "Tipologia non dichiarata",
+        "Rapporto istituzionale",
+        "Custom kind",
+        "Accesso libero",
+        "Accesso riservato",
+        "Scarica il PDF",
+        "Apri la pagina web",
+        "https://doi.org/10.1234/abc.5",
+        "../../evidence/sources/copy.pdf",
+        "Dato verificato · riscontro letterale",
+        "Riscontro su fonte secondaria",
+        "Contraddetto dalle fonti",
+        "mystery",
+        "Affermazioni senza fonte registrata",
+        "Orphan claim",
+        "1/2 controlli superati",
+        "Consultata il 14 novembre 2026",
+        'id="fonte-3"',
+    ):
+        assert expected in html, expected
+    assert "ftp://" not in html and "outside.pdf" not in html
+
+
+def test_publishing_view_and_gate_actions(tmp_path: Path) -> None:
+    put(
+        tmp_path,
+        "content/posts/demo/draft.md",
+        "---\ntitle: Ready\nsubtitle: Sub\nauthor: Desk\ndate: 2026-11-14\n---\n# Ready\nBody",
+    )
+    put(tmp_path, "dist/published/demo/article.html", "<h1>Ready</h1><p>Published <b>html</b></p>")
+    put(tmp_path, "dist/packages/demo.zip", "zip")
+    put(tmp_path, "dist/audio/demo/podcast.m4a", "a" * 2048)
+    put(tmp_path, "dist/audio/demo/podcast_script.md", "# Script\nHost line")
+    put(
+        tmp_path,
+        "reports/gates/demo/gate2.json",
+        json.dumps(
+            {
+                "status": "RECEIPT_VALID",
+                "gate": 2,
+                "post_id": "demo",
+                "role": "Direttore",
+                "timestamp": "2026-11-14T20:10:44+00:00",
+                "allowed_actions": ["archive", "custom_action"],
+            }
+        ),
+    )
+    html = generate_web_hub(tmp_path, "demo", timezone="Mars/Olympus").read_text(encoding="utf-8")
+    for expected in (
+        "Versione pubblicata",
+        "Published",
+        "Confronta con la bozza di lavoro",
+        "Gate 2 registrato",
+        "Archiviazione nel pacchetto locale",
+        "custom action",
+        "14 novembre 2026, ore 20:10 (UTC)",
+        "Ghost",
+        "Substack",
+        "Hugo / Jekyll",
+        "Medium",
+        "title: Ready",
+        "description: Sub",
+        "Scarica l'archivio dell'articolo",
+        "non l'intero sito",
+        "NotebookLM · Audio Overview",
+        "2,0 KB",
+        "Host line",
+        "podcast_script.md",
+    ):
+        assert expected in html, expected
+    assert "<b>html</b>" not in html
+
+
+def test_when_formats_dates() -> None:
+    from editorial_pipeline.application.web_hub import _when
+
+    assert _when("") == ""
+    assert _when("not a date") == "not a date"
+    assert _when("2026-03-05") == "5 marzo 2026"
+    assert _when("2026-11-14T20:55:00") == "14 novembre 2026, ore 20:55"
+    assert _when("2026-11-14T19:55:00+01:00", "Bad/Zone") == "14 novembre 2026, ore 19:55"
+
+
+def test_file_sizes() -> None:
+    from editorial_pipeline.application.web_hub import _size
+
+    class Fake:
+        def __init__(self, size: int) -> None:
+            self.size = size
+
+        def stat(self) -> Any:
+            return MagicMock(st_size=self.size)
+
+    assert _size(Fake(10)) == "10 B"  # type: ignore[arg-type]
+    assert _size(Fake(3 * 1024 * 1024)) == "3,0 MB"  # type: ignore[arg-type]
+
+
+def test_newsroom_index_and_cli(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from editorial_pipeline.application.web_hub import discover_post_ids
+
+    put(tmp_path, "content/posts/alpha/draft.md", "---\ntitle: Alpha\ndate: 2026-11-10\n---\nA")
+    put(tmp_path, "content/posts/post_02_long_name.md", "---\ndate: 2026-11-12\n---\n# Beta")
+    put(tmp_path, "content/posts/beta.social_kit.md", "## LinkedIn\nx")
+    put(tmp_path, "content/posts/_notes.md", "skip")
+    put(tmp_path, "content/posts/dup.md", "# one")
+    put(tmp_path, "content/posts/dup_two.md", "# two")
+    put(tmp_path, "evidence/alpha/sources.json", '{"sources": []}')
+    assert discover_post_ids(tmp_path / "content/posts") == ["alpha", "dup", "dup_two", "post_02"]
+    assert discover_post_ids(tmp_path / "missing") == []
+    monkeypatch.chdir(tmp_path)
+    browser = MagicMock()
+    monkeypatch.setattr("editorial_pipeline.cli.commands.webbrowser.open", browser)
+    assert main(["view", "--no-browser"]) == 0
+    assert "dist/web/index.html" in capsys.readouterr().out
+    index = (tmp_path / "dist/web/index.html").read_text(encoding="utf-8")
+    assert index.index("Beta") < index.index("Alpha")
+    assert 'href="alpha.html"' in index and 'href="post_02.html"' in index
+    assert "Console non generata" in index and "Ambiguous post_id" in index
+    assert "In lavorazione" in index and "G2" in index
+    console = (tmp_path / "dist/web/alpha.html").read_text(encoding="utf-8")
+    assert 'href="index.html"' in console
+    assert main(["view", "alpha", "--all"]) == 0
+    browser.assert_called_once()
+
+
+def test_configured_cli_passes_theme_and_newsroom(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    shutil.copytree("examples/sample_blog", tmp_path, dirs_exist_ok=True)
+    config = tmp_path / "editorial.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8") + '\n[theme]\npalette = "emerald"\n', encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    assert main(["view", "post_01", "--no-browser"]) == 0
+    html = (tmp_path / "dist/web/post_01.html").read_text(encoding="utf-8")
+    assert "--accent:#0f766e" in html
+
+
+def test_index_states_and_missing_template(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from editorial_pipeline.application import web_hub
+
+    put(tmp_path, "content/posts/live/draft.md", "# Live")
+    put(tmp_path, "dist/published/live/article.md", "Body")
+    put(tmp_path, "content/posts/ready/draft.md", "# Ready")
+    put(tmp_path, "content/posts/doing/draft.md", "# Doing")
+    for post, gates in (("ready", (1, 2)), ("doing", (1,))):
+        for number in gates:
+            put(
+                tmp_path,
+                f"reports/gates/{post}/gate{number}.json",
+                json.dumps({"status": "RECEIPT_VALID", "gate": number, "post_id": post}),
+            )
+    index = web_hub.generate_index(tmp_path).read_text(encoding="utf-8")
+    for state in ("Pubblicato", "Pronto per la pubblicazione", "In produzione"):
+        assert state in index
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert "Nessun articolo trovato" in web_hub.generate_index(empty).read_text(encoding="utf-8")
+    monkeypatch.setattr(web_hub, "DEFAULT_TEMPLATE_DIRS", (tmp_path,))
+    with pytest.raises(ValueError, match="index template not found"):
+        web_hub.generate_index(tmp_path)
+
+
+def test_server_follows_index_links(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from editorial_pipeline.application import web_hub
+
+    index = put(tmp_path, "dist/web/index.html", '<a href="a.html">A</a><a href="gone.html">x</a>')
+    put(tmp_path, "dist/web/a.html", '<a href="../audio/a/podcast.mp3">p</a><a href="index.html">')
+    put(tmp_path, "dist/audio/a/podcast.mp3")
+    captured: list[set[Path]] = []
+
+    class Probe(ThreadingHTTPServer):
+        def serve_forever(self, poll_interval: float = 0.5) -> None:
+            raise KeyboardInterrupt
+
+    original = web_hub._Links.feed
+
+    def feed(self: Any, data: str) -> None:
+        original(self, data)
+        captured.append(self.allowed)
+
+    monkeypatch.setattr(web_hub, "ThreadingHTTPServer", Probe)
+    monkeypatch.setattr(web_hub._Links, "feed", feed)
+    serve_console(tmp_path, index, port=0, open_browser=False)
+    assert (tmp_path / "dist/audio/a/podcast.mp3").resolve() in captured[-1]
+
+
+def test_render_markdown_edges() -> None:
+    from editorial_pipeline.application.web_hub import render_markdown
+
+    html, toc = render_markdown("# Title\n## Same\n## Same\n```\nopen fence", skip_title=False)
+    assert '<h2 id="title">' in html and 'id="same-2"' in html and len(toc) == 3
+    assert "<pre><code>open fence</code></pre>" in html
+    html, _ = render_markdown("> a\n- b\n\npara\n- c\n1. d\n> e\nf", citations=False)
+    assert "<blockquote><p>a</p></blockquote>\n<ul><li>b</li></ul>" in html
+    assert "<ul><li>c</li></ul>\n<ol><li>d</li></ol>" in html and "<p>f</p>" in html
+    assert "[1]" in render_markdown("see [1]", citations=False)[0]
+    assert '<a href="/metodo/">' in render_markdown("[M](/metodo/)")[0]
+    assert "href" not in render_markdown("[x](//evil.example/a)")[0]

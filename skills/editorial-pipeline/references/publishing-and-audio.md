@@ -159,14 +159,22 @@ Le destinazioni predefinite sono dentro `[paths].dist`, che fa parte del bundle 
 
 La console riunisce gli asset locali di un articolo in una pagina responsive utilizzabile offline. Al termine del flusso, il Direttore o il redattore può consultarla per copiare i copy social, ascoltare il podcast ed esportare i file tramite download. Mostra ciò che esiste: una sezione «Non disponibile» indica un asset assente, che `view` non genera.
 
-### 5.1 Funzionalità
+### 5.1 Funzionalità: sei schede
 
-- **One-Click Copy con feedback:** schede per LinkedIn, Twitter/X, Newsletter (per esempio Substack/Ghost) e Instagram, con conteggio caratteri e pulsante «Copia testo». Il successo mostra «Copiato!» e «Testo copiato». Se il browser impedisce l'accesso agli appunti, il testo viene selezionato e compare l'istruzione di copiarlo con `Ctrl+C` o `Cmd+C`.
-- **Player audio NotebookLM:** player HTML5 con controlli di riproduzione per `podcast.m4a` o `podcast.mp3`, più download del podcast. La console riproduce l'audio già scaricato da NotebookLM Studio; non accede al taccuino e non avvia una generazione remota. L'ascolto integrale richiesto in F5 resta obbligatorio.
-- **Anteprima carosello:** galleria delle slide HTML o immagini presenti, con navigazione avanti/indietro, indicatori e swipe su schermo tattile. Ogni slide è scaricabile; il download PDF appare quando il PDF è già disponibile.
-- **Download asset:** elenco dei file locali raccolti (kit social, media, evidenze, articolo esportato o pacchetto, se presenti). Il pulsante «Scarica» esporta il file esistente per l'uso nel CMS o nei canali autorizzati; non crea un nuovo archivio né pubblica sui social.
+La console è una dashboard a schede, non una pagina a scorrimento continuo. Ogni scheda ha un indirizzo proprio (`#articolo`, `#social`, `#podcast`, `#carosello`, `#fonti`, `#pubblicazione`) e si raggiunge anche con le frecce della tastiera. In testa restano titolo, autore, registro, le fasi completate (F1–F5, G1, G2) e i badge dei due gate con data e ora in italiano nel fuso `[project].timezone` (per esempio «14 novembre 2026, ore 20:55»).
 
-Sono visibili anche anteprime testuali, fonti e claim registrati. Gli stati dei gate derivano dai report o dalle ricevute disponibili: **non sono una nuova verifica** e non autorizzano alcuna azione.
+- **Articolo:** impaginazione da rivista, con sommario, firma, tempo di lettura e indice delle sezioni. Il Markdown della versione pubblicata (o della bozza) è reso come testo tipografico, senza riquadri monospaziati; i rimandi `[n]` aprono la fonte corrispondente nella scheda «Fonti». Se esistono entrambe le versioni, la bozza resta consultabile in «Confronta con la bozza di lavoro».
+- **Social:** quattro schede affiancate per LinkedIn, Twitter/X, Newsletter (per esempio Substack/Ghost) e Instagram, con contatore rispetto al limite del canale (per X: numero di post del thread e lunghezza del più lungo su 280) e pulsante «Copia testo». Il successo mostra «Copiato!» e «Testo copiato». Se il browser impedisce l'accesso agli appunti compare l'istruzione di copiare con `Ctrl+C` o `Cmd+C`.
+- **Podcast:** player per `podcast.m4a` o `podcast.mp3` con durata, formato, dimensione e download; il copione (`script.txt` o `podcast_script.md`) si apre con «Leggi il copione». La console riproduce l'audio già scaricato da NotebookLM Studio; non accede al taccuino e non avvia generazioni. L'ascolto integrale richiesto in F5 resta obbligatorio.
+- **Carosello:** visualizzatore delle slide HTML o immagini con frecce, numeri, tastiera e swipe; download della slide corrente e del deck PDF quando esiste.
+- **Fonti e trasparenza:** per ogni fonte titolo, autori, editore, data, tipologia e badge «Fonte ufficiale primaria» o «Fonte secondaria», più «Accesso libero» o «Accesso riservato» se `access` è dichiarato. I pulsanti aprono la pagina web (`url`), scaricano il PDF (`pdf`, oppure `url` che termina in `.pdf`), aprono la scheda DOI e la copia locale (`local_copy`). Le affermazioni collegate mostrano testo, citazione letterale, posizione nella fonte ed esito in chiaro: «Dato verificato · riscontro letterale» significa che la frase dell'articolo corrisponde a un passaggio testuale della fonte, alla pagina o sezione indicata.
+- **Pubblicazione:** stato del Gate 2 con le azioni autorizzate, i tre passi (approvazione, esportazione, archiviazione con `publish`) e un'area per piattaforma: Ghost (copia Markdown), Substack e Medium (copia dell'articolo formattato), Hugo/Jekyll (download di `<post_id>.md` con front matter `title`, `description`, `date`, `author`). Segue l'elenco dei file **di questa unità**, raggruppati per tipo, e l'archivio `dist/packages/<post_id>.tar.gz` se esiste: non è un'esportazione dell'intero sito.
+
+Gli stati dei gate derivano dai report o dalle ricevute disponibili: **non sono una nuova verifica** e non autorizzano alcuna azione. Colori e carattere seguono `[theme]` di `editorial.toml` (§5.4).
+
+### 5.1-bis Indice della redazione
+
+`editorial view` senza `<post_id>`, oppure `editorial view --all`, rigenera le console di tutte le unità e scrive `[paths].dist/web/index.html`: un catalogo con titolo, data, autore, fasi completate (F1 Fonti, F2 Bozza, F3 Verifica, G1, F4 Visual e social, F5 Audio, G2), stato sintetico («In lavorazione», «In produzione», «Pronto per la pubblicazione», «Pubblicato») e il link alla console di ciascun articolo. Ogni console rimanda all'indice con «← Tutti gli articoli». Un'unità illeggibile compare con il motivo, senza bloccare le altre. Anche l'indice è in `dist/`: rigenerarlo dopo la ricevuta Gate 2 la rende `stale`.
 
 ### 5.2 Modalità standard: file locale
 
@@ -192,3 +200,16 @@ editorial view post_07 --serve --port 0
 `--serve` rigenera la console e avvia un server HTTP locale fino a `Ctrl+C`, stampando l'URL da aprire. La porta predefinita è `8000`; `--port PORT` accetta `0`–`65535`, con `0` per una porta libera scelta dal sistema. Una porta esplicita occupata produce errore; `--port` ha effetto sul server solo con `--serve`. `--no-browser` mantiene attivo il server senza aprire automaticamente una finestra. Anche questa modalità va preparata prima del Gate 2 per evitare la rigenerazione dopo l'approvazione.
 
 Il server ascolta **solo su `127.0.0.1`** e serve la console con i file collegati, senza elenchi di directory né configurazione. È utile per le prove HTTP sul computer della redazione. Il collegamento diretto da cellulare o da un altro computer della rete locale **non è supportato**: non esiste un'opzione per esporre il server sulla LAN. Per verificare il layout mobile sullo stesso computer usate l'emulazione dispositivi del browser; l'accesso da un dispositivo reale richiede un inoltro o un servizio separato configurato dalla redazione. La sola scelta della porta non abilita l'accesso dalla rete.
+
+### 5.4 Tema visivo (`[theme]`)
+
+```toml
+[theme]
+palette = "cobalt_tech"        # cobalt_tech | emerald | nordic_minimal | custom
+accent_color = "#2563eb"       # facoltativo: prevale sul preset
+background_color = "#f8fafc"
+ink_color = "#0f172a"
+font_family = "sans"           # sans | serif (corpo dell'articolo e delle slide)
+```
+
+La tabella è facoltativa: senza `[theme]` vale `cobalt_tech`. I colori sono accettati solo come `#rrggbb`. Lo stesso tema si applica a console, indice e slide generate da `build-visual`. Le slide già presenti in `dist/social/` mantengono l'aspetto con cui sono state generate finché non vengono ricostruite, e la ricostruzione richiede un nuovo Gate 2.

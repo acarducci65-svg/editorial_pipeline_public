@@ -107,7 +107,7 @@ Convenzioni:
 | `editorial build-audio <post_id> [--provider notebooklm] [--format {m4a,mp3}] [--language it] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il podcast conversazionale a due voci di **Google NotebookLM Studio** (`podcast.m4a` o `podcast.mp3`, via `nlm`) in `[paths].dist/audio/<post_id>/`. Con `--provider script_only` scrive invece il solo copione `podcast_script.md` (offline). `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm` | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non ascolta né revisiona l'audio, non approva nulla. Il provider `tts` è deprecato e **vietato** per la pubblicazione (§4, F5) |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
 | `editorial-pipeline publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown e asset in `dist/published/<post_id>/`. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive |
-| `editorial view <post_id> [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 2; consultazione a fine flusso | Genera `[paths].dist/web/<post_id>.html` e apre la console webredazionale: copy social, player podcast, carosello e download degli asset presenti. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`: dopo il Gate 2 può invalidare la ricevuta |
+| `editorial view [<post_id>] [--all] [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 2; consultazione a fine flusso | Con `<post_id>` genera `[paths].dist/web/<post_id>.html`, la console webredazionale a schede (Articolo, Social, Podcast, Carosello, Fonti e trasparenza, Pubblicazione) nei colori di `[theme]`. Senza `<post_id>` o con `--all` rigenera le console di tutte le unità e l'indice della redazione `[paths].dist/web/index.html`, con lo stato F1–F5, Gate 1 e Gate 2 di ciascuna. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`: dopo il Gate 2 può invalidare la ricevuta |
 
 Stati dei controlli: `OK`, `WARN` (va motivato nel pacchetto), `BLOCK` (impedisce il gate).
 
@@ -156,14 +156,21 @@ All'inizio di ogni sessione: eseguite `editorial-pipeline status`, individuate l
 2. Proponete il registro di stile (`[register].active`): `academic_essay`, `tech_blog`, `investigative`, `cultural_newsletter` o un registro custom in `templates/registers/`. Motivate la scelta in una riga.
 3. Proponete una scaletta (titoli di sezione + claim principali attesi) e un `post_id` coerente con la convenzione dei nomi file.
 4. Controllate a mano che profilo autore e manifesto siano compilati (nessun `{{...}}` residuo nei campi usati).
+5. **Identità della testata.** Prima della prima unità di un progetto, e ogni volta che un dato manca, leggetelo dalla configurazione oppure **chiedetelo esplicitamente al Direttore**:
+   - **nome della testata** → `[project].name` di `editorial.toml`. Non inventate nomi generici («Il Blog», «Redazione AI»): se il Direttore non lo indica, lasciate il campo da compilare e fermatevi;
+   - **firma dell'autore** → `author.display_name` del profilo indicato da `[author].profile` (oppure il campo `author` del front matter dell'unità). Solo nella forma fornita dal Direttore;
+   - **stile visivo e palette** → tabella `[theme]`: `palette` (`cobalt_tech` blu cobalto su slate, predefinita; `emerald` verde petrolio; `nordic_minimal` grafite su bianco; `custom`), eventuali colori `accent_color`, `background_color`, `ink_color` in esadecimale `#rrggbb` (prevalgono sul preset) e `font_family` (`sans` o `serif`). Se il Direttore indica i colori del proprio marchio, verificate il contrasto (testo e accento almeno 4,5:1 sullo sfondo) e segnalate i valori insufficienti invece di adottarli in silenzio.
 
-**Uscita:** scaletta, angolo e registro **confermati dal Direttore** in chat. La conferma di F0 non è un gate e non produce ricevuta, ma senza di essa non si passa a F1.
+   Lo stesso tema colora console web, indice della redazione e slide del carosello. Cambiare `[theme]` dopo il Gate 2 richiede di rigenerare gli asset e quindi un nuovo Gate 2.
+
+**Uscita:** scaletta, angolo, registro e identità della testata (nome, firma, tema) **confermati dal Direttore** in chat. La conferma di F0 non è un gate e non produce ricevuta, ma senza di essa non si passa a F1.
 
 ### F1 — Fonti primarie
 
 **Obiettivo:** un inventario di fonti controllabili prima di scrivere una riga.
 
 1. Cercate le **fonti primarie** (testo originale, dataset, documentazione ufficiale, atto normativo, misura dell'autore), non sintesi che le riassumono. Le fonti secondarie si annotano come tali.
+   **Fonti consultabili dal lettore.** Oltre che verificata, ogni fonte deve essere raggiungibile gratuitamente: preferite la versione ad accesso libero (pagina HTML ufficiale o PDF scaricabile senza abbonamento). In `sources.json` registrate `url` (pagina della fonte) e, quando esiste, `pdf` (link diretto al documento integrale), più `"access": "open"` oppure `"access": "paywall"`. Per una fonte a pagamento cercate un'edizione aperta equivalente (working paper, preprint, versione dell'ente); se non esiste, dichiaratelo al Direttore nel pacchetto F1. La console mostra il badge «Accesso riservato» accanto alla fonte.
 2. Salvate copie locali quando la licenza lo permette in `[paths].sources`, registrandone l'hash.
    Se l'harness espone gli strumenti MCP di NotebookLM, caricate nel taccuino indicato dal Direttore solo fonti già scelte (`source_add`) e controllatele (`source_describe`, `source_get_content`): `references/verification-and-rag.md` §2.
 3. Scrivete `evidence/<post_id>/sources.json` secondo `references/factchecking_protocol.md` §4. Gli identificativi del taccuino e delle fonti NotebookLM non si scrivono nei file.
@@ -264,7 +271,7 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
 
 ### Console webredazionale — preparazione prima del Gate 2
 
-A kit ultimato, generate la console con `editorial view <post_id>` (oppure `--no-browser` in una sessione non interattiva) **prima** di calcolare il bundle del Gate 2. Verificate che mostri i copy social e gli asset attesi. Dettagli e modalità server: `references/publishing-and-audio.md` §5.
+A kit ultimato, generate la console con `editorial view <post_id>` (oppure `--no-browser` in una sessione non interattiva) **prima** di calcolare il bundle del Gate 2. Verificate scheda per scheda: articolo impaginato, copy social entro i limiti dei canali, podcast, slide, fonti con i link ai documenti e scheda «Pubblicazione». Con più unità generate anche l'indice (`editorial view --all`). Dettagli e modalità server: `references/publishing-and-audio.md` §5.
 
 ### ══ GATE 2 — Pubblicazione ══
 
@@ -297,7 +304,7 @@ Procedura completa ed esiti: `references/publishing-and-audio.md` §3.
 
 ### Console webredazionale — consultazione a fine flusso
 
-Al termine del flusso, o dopo il Gate 2/pubblicazione, suggerite al Direttore o al redattore la console per copiare i testi LinkedIn, Twitter/X, Newsletter e Instagram, ascoltare il podcast NotebookLM ed esportare i file disponibili tramite download. `editorial view <post_id>` la genera e la apre; richiamarlo **riscrive** l'HTML in `dist/` e può rendere `stale` una ricevuta già vincolata. Per consultare senza modifiche, aprite direttamente nel browser il file `[paths].dist/web/<post_id>.html` preparato prima del gate. Se occorre rigenerarlo, fatelo prima di un nuovo pacchetto Gate 2 e riferite l'invalidazione; ogni successiva pubblicazione richiede il nuovo gate umano. Gli stati mostrati sono registrati, non rivalidati dalla console.
+Al termine del flusso, o dopo il Gate 2/pubblicazione, suggerite al Direttore o al redattore la console per copiare i testi LinkedIn, Twitter/X, Newsletter e Instagram, ascoltare il podcast NotebookLM ed esportare i file disponibili tramite download. La scheda «Pubblicazione» spiega come portare l'articolo sulla piattaforma della redazione (Ghost, Substack, Hugo/Jekyll, Medium: copia formattata, copia Markdown, file `.md` con front matter) e mostra se il Gate 2 è registrato. La console non pubblica nulla da sola e i download riguardano solo l'unità aperta, non l'intero sito. `editorial view <post_id>` la genera e la apre; richiamarlo **riscrive** l'HTML in `dist/` e può rendere `stale` una ricevuta già vincolata. Per consultare senza modifiche, aprite direttamente nel browser il file `[paths].dist/web/<post_id>.html` preparato prima del gate. Se occorre rigenerarlo, fatelo prima di un nuovo pacchetto Gate 2 e riferite l'invalidazione; ogni successiva pubblicazione richiede il nuovo gate umano. Gli stati mostrati sono registrati, non rivalidati dalla console.
 
 ### F6 — Monitoraggio, trasparenza e correzioni
 

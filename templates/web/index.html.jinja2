@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>{{ newsroom or 'Redazione' }} · Indice degli articoli</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:{{ theme.background_color }};--ink:{{ theme.ink_color }};--accent:{{ theme.accent_color }};
+  --surface:#fff;
+  --surface-2:color-mix(in oklab,var(--ink) 3.5%,var(--bg));
+  --muted:color-mix(in oklab,var(--ink) 72%,var(--bg));
+  --faint:color-mix(in oklab,var(--ink) 50%,var(--bg));
+  --line:color-mix(in oklab,var(--ink) 11%,var(--bg));
+  --line-strong:color-mix(in oklab,var(--ink) 20%,var(--bg));
+  --accent-soft:color-mix(in oklab,var(--accent) 9%,#fff);
+  --accent-ink:color-mix(in oklab,var(--accent) 82%,var(--ink));
+  --ok:#15803d;--ok-soft:#ecfdf3;--ok-line:#b7e4c7;
+  --warn:#a15c07;--warn-soft:#fff8eb;--warn-line:#f3d9a4;
+  --sans:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono","Cascadia Mono","SF Mono",Consolas,ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.5rem}
+.topbar{background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:.6rem;min-height:56px;font-weight:700}
+.mark{width:12px;height:12px;border-radius:3px;background:var(--accent)}
+.topbar span.sub{color:var(--muted);font-weight:500}
+header.hero{padding:2rem 0 1.5rem}
+h1{margin:0;font-size:1.75rem;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:.5rem 0 0;color:var(--muted);max-width:72ch}
+.legend{display:flex;flex-wrap:wrap;gap:.35rem 1rem;margin:1rem 0 0;padding:0;list-style:none;font-size:.8rem;color:var(--muted)}
+.legend b{font:600 .75rem var(--mono);color:var(--ink)}
+.table{margin:1rem 0 3rem;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th,td{padding:.9rem 1rem;text-align:left;vertical-align:middle;border-top:1px solid var(--line)}
+thead th{border-top:0;font-size:.78rem;font-weight:600;color:var(--muted);background:var(--surface-2)}
+th.stage,td.stage{text-align:center;width:3.5rem;padding-inline:.25rem}
+td.title a{font-weight:650;color:var(--ink);text-decoration:none;font-size:.95rem}
+td.title a:hover{color:var(--accent-ink);text-decoration:underline}
+td.title small{display:block;color:var(--muted);font-size:.8rem;margin-top:.15rem}
+td.title code{font:500 .75rem var(--mono)}
+.tick{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:.75rem;font-weight:800}
+.tick.yes{background:var(--accent);color:#fff}
+.tick.no{border:1.5px dashed var(--line-strong);color:transparent}
+.state{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .6rem;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap;border:1px solid var(--line-strong);color:var(--muted)}
+.state.ready{color:var(--ok);background:var(--ok-soft);border-color:var(--ok-line)}
+.state.live{color:#fff;background:var(--accent);border-color:var(--accent)}
+.state.progress{color:var(--accent-ink);background:var(--accent-soft);border-color:color-mix(in oklab,var(--accent) 30%,#fff)}
+.state.error{color:var(--warn);background:var(--warn-soft);border-color:var(--warn-line)}
+td.open a{font-weight:600;white-space:nowrap}
+.empty{padding:2rem;color:var(--muted)}
+.note{max-width:80ch;color:var(--muted);font-size:.85rem;margin:0 0 3rem}
+.note code{font:500 .8rem var(--mono);color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap"><span class="mark" aria-hidden="true"></span>{{ newsroom or 'Redazione' }}<span class="sub">/ Indice degli articoli</span></div></div>
+<main class="wrap">
+  <header class="hero">
+    <h1>Articoli della redazione</h1>
+    <p class="lead">Lo stato di ogni articolo nelle fasi del ciclo editoriale, dai documenti di partenza all'approvazione finale del Direttore. Apri la console di un articolo per leggerlo, copiare i testi social e preparare la pubblicazione.</p>
+    <ul class="legend">{% for stage in stages %}<li><b>{{ stage.code }}</b> {{ stage.label }}</li>{% endfor %}</ul>
+  </header>
+  <div class="table">
+  {% if posts %}
+  <table>
+    <caption class="sr-only">Articoli e fasi completate</caption>
+    <thead><tr><th scope="col">Articolo</th>{% for stage in stages %}<th scope="col" class="stage" title="{{ stage.label }}">{{ stage.code }}</th>{% endfor %}<th scope="col">Stato</th><th scope="col"><span class="sr-only">Azioni</span></th></tr></thead>
+    <tbody>{% for post in posts %}
+      <tr>
+        {% if post.error %}
+        <td class="title"><span>{{ post.title }}</span><small>Console non generata: {{ post.error }}</small></td>
+        {% for stage in stages %}<td class="stage"><span class="tick no" aria-label="Non disponibile">·</span></td>{% endfor %}
+        <td><span class="state error">Da controllare</span></td><td></td>
+        {% else %}
+        <td class="title"><a href="{{ post.url }}">{{ post.title }}</a><small>{% if post.date_label %}{{ post.date_label }} · {% endif %}{% if post.author %}{{ post.author }} · {% endif %}<code>{{ post.post_id }}</code></small></td>
+        {% for stage in post.stages %}<td class="stage">{% if stage.done %}<span class="tick yes" title="{{ stage.label }}: completata" aria-label="{{ stage.label }}: completata">✓</span>{% else %}<span class="tick no" title="{{ stage.label }}: da completare" aria-label="{{ stage.label }}: da completare">·</span>{% endif %}</td>{% endfor %}
+        {% set kind = {'Pubblicato': 'live', 'Pronto per la pubblicazione': 'ready', 'In produzione': 'progress'}.get(post.state, '') %}
+        <td><span class="state {{ kind }}">{{ post.state }}</span></td>
+        <td class="open"><a href="{{ post.url }}">Apri la console →</a></td>
+        {% endif %}
+      </tr>{% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Nessun articolo trovato nella cartella dei contenuti.</p>
+  {% endif %}
+  </div>
+  <p class="note">Questo indice è una vista locale e non pubblica nulla. Un articolo va online solo dopo il Gate 2 confermato dal Direttore, con <code>editorial publish &lt;post_id&gt;</code> o copiando i materiali nel CMS della redazione dalla scheda «Pubblicazione» della sua console.</p>
+</main>
+</body>
+</html>

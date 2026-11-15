@@ -185,6 +185,49 @@ class AudioConfig(Schema):
     timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
 
 
+HexColor = Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]
+
+# Contrast-checked presets: accent and ink pass WCAG AA (4.5:1) on the background.
+THEME_PRESETS: dict[str, dict[str, str]] = {
+    "cobalt_tech": {
+        "accent_color": "#2563eb",
+        "background_color": "#f8fafc",
+        "ink_color": "#0f172a",
+    },
+    "emerald": {"accent_color": "#0f766e", "background_color": "#f7faf9", "ink_color": "#0f1f1c"},
+    "nordic_minimal": {
+        "accent_color": "#475569",
+        "background_color": "#ffffff",
+        "ink_color": "#111827",
+    },
+}
+
+
+class ThemeConfig(Schema):
+    """Visual identity shared by the web console and the social carousel.
+
+    ``palette`` selects a preset; colours set explicitly in ``[theme]`` override
+    it (``custom`` starts from ``cobalt_tech``). Colours are strict ``#rrggbb``
+    values because they are written into CSS.
+    """
+
+    palette: Literal["cobalt_tech", "emerald", "nordic_minimal", "custom"] = "cobalt_tech"
+    accent_color: HexColor = "#2563eb"
+    background_color: HexColor = "#f8fafc"
+    ink_color: HexColor = "#0f172a"
+    font_family: Literal["sans", "serif"] = "sans"
+
+    def resolved(self) -> dict[str, str]:
+        """Return the effective colours and font family for templates."""
+        values = dict(THEME_PRESETS.get(self.palette, THEME_PRESETS["cobalt_tech"]))
+        for key in ("accent_color", "background_color", "ink_color"):
+            if key in self.model_fields_set:
+                values[key] = getattr(self, key)
+        values["font_family"] = self.font_family
+        values["palette"] = self.palette
+        return values
+
+
 class EditorialConfig(Schema):
     schema_version: Literal[1]
     project: Project
@@ -203,6 +246,7 @@ class EditorialConfig(Schema):
     rag: RagConfig | None = None
     publishing: PublishingConfig | None = None
     audio: AudioConfig | None = None
+    theme: ThemeConfig = Field(default_factory=ThemeConfig)
 
     @property
     def register(self) -> Register:
