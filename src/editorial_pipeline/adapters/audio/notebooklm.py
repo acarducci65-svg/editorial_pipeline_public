@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Any, Literal
 
-from editorial_pipeline.adapters.audio.base import AudioProvider, AudioResult, AudioUnavailableError
+from .base import AudioProvider, AudioResult, AudioUnavailableError
 
 
 def unavailable(reason: str) -> AudioUnavailableError:

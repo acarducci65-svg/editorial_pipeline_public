@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
@@ -13,6 +14,21 @@ from tests.test_publish import snapshot
 
 if TYPE_CHECKING:
     from editorial_pipeline.adapters.audio import LocalTtsAudioProvider
+
+
+def test_notebooklm_import_in_fresh_interpreter() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from editorial_pipeline.adapters.audio.notebooklm import NotebookLMAdapter; print('OK')",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "OK"
 
 
 def _tts(root: Path, *args: str) -> "LocalTtsAudioProvider":

@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 from editorial_pipeline.adapters.audio.base import AudioProvider, AudioResult, AudioUnavailableError
-from editorial_pipeline.cli.reports import _sanitize
 
 TTS_DEPRECATION = (
     "Local TTS produces sub-standard robotic audio; Google NotebookLM Studio is the "
@@ -24,6 +23,9 @@ TTS_DEPRECATION = (
 
 def _spoken_text(text: str) -> str:
     """Remove production notes and Markdown while retaining spoken prose."""
+    # Avoid initializing the CLI dispatcher while the audio package is loading.
+    from editorial_pipeline.cli.reports import _sanitize
+
     text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", text, flags=re.DOTALL)
     text = re.sub(r"<!--.*?-->|```.*?```", "", text, flags=re.DOTALL)
     text = re.sub(r"!?\[([^\]]+)\]\([^)]*\)", r"\1", text)

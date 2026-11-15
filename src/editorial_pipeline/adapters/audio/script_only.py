@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from editorial_pipeline.adapters.audio.base import AudioProvider, AudioResult
-from editorial_pipeline.cli.reports import _sanitize
 
 
 class ScriptOnlyAdapter(AudioProvider):
@@ -16,6 +15,10 @@ class ScriptOnlyAdapter(AudioProvider):
         output_dir: Path,
         dry_run: bool = False,
     ) -> AudioResult:
+        # Loading cli.reports at module scope initializes the command dispatcher,
+        # which imports this audio package before its providers are defined.
+        from editorial_pipeline.cli.reports import _sanitize
+
         path = self.destination(post_id, output_dir, "podcast_script.md")
         result = AudioResult(
             status="DRY_RUN" if dry_run else "BUILT",
