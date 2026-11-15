@@ -4,7 +4,7 @@ Tutte le modifiche rilevanti di Editorial Pipeline sono documentate qui.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## [0.3.0] - 2026-11-15
+## [1.1.0] - 2026-11-15
 
 ### Added
 
