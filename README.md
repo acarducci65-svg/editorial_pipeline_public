@@ -149,6 +149,7 @@ package, so the command also works outside the repository.
 | --- | --- | --- |
 | `init <dir>` | Create a project with `editorial.toml` and templates; refuses an existing folder | — |
 | `install-skill <dir>` | Install the agent skill into `<dir>/editorial-pipeline/` | `--force` |
+| `view [<post_id>]` | Editorial Web Console of a post, or the newsroom index preview when `<post_id>` is omitted | `--all`, `--serve`, `--port PORT`, `--no-browser`, `--config` |
 | `status` | Folder state + style/evidence report for every post | `--config` |
 | `validate-draft <post>` | Register linter, evidence files present, versioned digest | `--json`, `--config` |
 | `validate-all` | `validate-draft` on every post | `--json`, `--config` |
@@ -156,7 +157,7 @@ package, so the command also works outside the repository.
 | `build-visual <post>` | Carousel HTML (+ PNG/PDF) with SHA-256 manifest | `--dry-run`, `--html-only`, `--aspect-ratio {4:5,1:1}`, `--config` |
 | `build-audio <post>` | Optional phase F5: podcast script or NotebookLM audio overview from verified claims, in `dist/audio/<post_id>/` | `--provider {script_only,notebooklm}`, `--dry-run`, `--json`, `--config` |
 | `check-gate {1,2} <post>` | Formal verification of the human receipt and its bundle | `--config` (`--token` is deprecated and ignored) |
-| `publish <post>` | After Gate 2 only: re-validates the receipt and runs only the authorised local actions (tar.gz package or static-site export) | `--target {dist_archive,static_site}`, `--dry-run`, `--json`, `--config` |
+| `publish <post>` | After Gate 2 only: re-validates the receipt and runs only the authorised local actions (tar.gz package, static-site export or author website page) | `--target {dist_archive,static_site,author_website}`, `--dry-run`, `--json`, `--config` |
 
 Global options: `--version` / `-v`, `--help`. `--config` defaults to `editorial.toml` in
 the current folder; that folder becomes the project root. Output is JSON with relative
@@ -262,8 +263,12 @@ any failure stops it with `GhostApprovalForbiddenError`, exit 2, nothing written
 | --- | --- | --- |
 | `dist_archive` (default) | `archive`, `dist_archive`, `export_package` | `dist/packages/<post_id>.tar.gz` with draft, both receipts, every bundle artifact and `publish_manifest.json` |
 | `static_site` | `export_markdown`, `publish_markdown`, `static_site` | `dist/published/<post_id>/` with the Markdown draft and the visual assets, for an SSG |
+| `author_website` | `author_website`, `publish_author_website`, `export_author_site` | `dist/author_site/<post_id>/index.html`: a self-contained article page with its approved assets, styled with `[theme]` |
 
-Generic actions such as `publish`, `schedule` or `sync` enable neither adapter: the command
+`author_website` is meant for the author's personal site or portfolio: the folder can be
+copied as it is to any static host, with no CMS or external SSG.
+
+Generic actions such as `publish`, `schedule` or `sync` enable no adapter: the command
 answers `SKIPPED` (exit 0) and writes nothing. Add `archive` and/or `export_markdown` to
 `[gates.gate2].allowed_actions` to make them available for approval. Before writing, the
 adapter re-reads every bundle file and re-checks its digest, and it never overwrites an
@@ -271,9 +276,10 @@ existing output. `--dry-run` returns the plan with zero writes.
 
 ```toml
 [publishing]
-target = "dist_archive"            # or "static_site"
+target = "dist_archive"            # or "static_site", "author_website"
 archive_dir = "public/packages"    # optional
 static_site_dir = "public/posts"   # optional
+author_website_dir = "public/site" # optional
 ```
 
 Default destinations are inside `[paths].dist`, so a first publication changes the Gate 2
@@ -281,6 +287,40 @@ bundle and a second `publish` exits 2; configure destinations outside `dist/` wh
 director authorises both actions. Everything stays local: uploading, sending or scheduling
 are outside the CLI. Guides: [`docs/audio_production.md`](docs/audio_production.md) and
 [`docs/publishing.md`](docs/publishing.md).
+
+## Editorial Web Console (`view`) and visual theme
+
+`view <post_id>` builds an offline Editorial Hub for one post in `dist/web/<post_id>.html`
+and opens it in the browser. One page, six views:
+
+1. **Article**: the formatted draft with its table of contents;
+2. **Social**: the copy of the social kit, channel by channel;
+3. **Podcast**: an audio player for the F5 output (or the script);
+4. **Carousel**: the slides of `build-visual`, browsable with the arrow keys;
+5. **Sources & transparency**: the RAG-verified sources and claims of `sources.json` and `factcheck.json`;
+6. **Publishing**: Gate 1 and Gate 2 receipt state and the publication outputs.
+
+Without `<post_id>` (or with `--all`) the command regenerates every post console plus the
+newsroom index `dist/web/index.html`. The pages are static HTML with relative links, so they
+work from `file://`; `--serve` serves the project on `127.0.0.1` until Ctrl+C (`--port`,
+default `8000`, `0` picks a free port), and `--no-browser` only writes the files. The console
+is a read-only preview: it approves nothing. Its files live under `[paths].dist`, so
+generate them before asking for Gate 2.
+
+**Visual identity.** The optional `[theme]` section of `editorial.toml` styles the console,
+the newsroom index, the carousel slides and the `author_website` page:
+
+```toml
+[theme]
+palette = "cobalt_tech"        # "cobalt_tech" (default), "emerald", "nordic_minimal" or "custom"
+accent_color = "#2563eb"       # optional: explicit colours override the palette
+background_color = "#f8fafc"
+ink_color = "#0f172a"
+font_family = "sans"           # or "serif"
+```
+
+The three presets are contrast-checked (WCAG AA). `custom` starts from `cobalt_tech` and
+applies the colours you set; colours must be `#rrggbb` values.
 
 ## RAG adapters
 
@@ -445,12 +485,13 @@ editorial install-skill .claude/skills          # crea .claude/skills/editorial-
 | --- | --- |
 | `init <cartella>` | — |
 | `install-skill <cartella>` | `--force` per sovrascrivere un'installazione esistente |
+| `view [<post_id>]` | Console redazionale locale / indice newsroom: `--all`, `--serve`, `--port PORT`, `--no-browser`, `--config` |
 | `status`, `validate-all` | `--json`, `--config` |
 | `validate-draft <post>`, `verify-facts <post>` | `--json`, `--config` |
 | `build-visual <post>` | `--dry-run` (nessuna scrittura), `--html-only` (niente Playwright), `--aspect-ratio {4:5,1:1}` |
 | `build-audio <post>` | Fase F5: `--provider {script_only,notebooklm}`, `--dry-run`, `--json` |
 | `check-gate {1,2} <post>` | `--config`; `--token` è deprecato e ignorato |
-| `publish <post>` | Solo dopo il Gate 2: `--target {dist_archive,static_site}`, `--dry-run` (nessuna scrittura), `--json` |
+| `publish <post>` | Solo dopo il Gate 2: `--target {dist_archive,static_site,author_website}`, `--dry-run` (nessuna scrittura), `--json` |
 
 Codici di uscita: `0` ok · `1` almeno un `BLOCK` o errore di input (anche una fase
 disattivata) · `2` gate rifiutato da `check-gate` o da `publish` (ricevuta assente, non
@@ -504,10 +545,36 @@ valida o `stale`, azioni non autorizzate).
   `GhostApprovalForbiddenError`, exit 2, senza scrivere nulla. Poi esegue **solo** le azioni
   scritte dal Direttore: `archive` → adapter `dist_archive` (`dist/packages/<post_id>.tar.gz`
   con bozza, ricevute, artefatti e `publish_manifest.json`); `export_markdown` → adapter
-  `static_site` (`dist/published/<post_id>/` con Markdown e asset visivi). Le azioni
+  `static_site` (`dist/published/<post_id>/` con Markdown e asset visivi);
+  `author_website` → adapter `author_website` (`dist/author_site/<post_id>/index.html`,
+  pagina autonoma dell'articolo con i suoi asset approvati e lo stile di `[theme]`, pronta
+  per il sito personale o il portfolio dell'autore senza CMS né SSG esterni). Le azioni
   generiche (`publish`, `schedule`, `sync`) non attivano nessun adapter: esito `SKIPPED`,
   exit 0. `--dry-run` restituisce il piano a zero scritture; le cartelle si configurano in
   `[publishing]`. Guida: [`docs/publishing.md`](docs/publishing.md).
+
+### Console redazionale (`view`) e tema visivo
+
+- `view <post_id>` genera l'Editorial Hub offline del post in `dist/web/<post_id>.html` e
+  lo apre nel browser. Una pagina, sei viste: **Articolo** formattato con indice dei
+  paragrafi; **Social** con i copy del kit per canale; **Podcast** con il player audio F5 (o
+  il copione); **Carosello** con le slide di `build-visual`, sfogliabili con le frecce;
+  **Fonti e trasparenza** con fonti e claim verificati su RAG (`sources.json`,
+  `factcheck.json`); **Pubblicazione** con lo stato delle ricevute dei gate e gli output
+  pubblicati.
+- Senza `<post_id>` (o con `--all`) rigenera tutte le console e l'indice della redazione
+  `dist/web/index.html`. Le pagine sono HTML statico con link relativi e funzionano da
+  `file://`; `--serve` serve il progetto su `127.0.0.1` fino a Ctrl+C (`--port`,
+  predefinita `8000`, `0` sceglie una porta libera); `--no-browser` scrive solo i file. La
+  console è un'anteprima in sola lettura e non approva nulla; i suoi file stanno in
+  `[paths].dist`, quindi si generano prima di chiedere il Gate 2.
+- La sezione facoltativa `[theme]` di `editorial.toml` definisce l'identità visiva di
+  console, indice, slide del carosello e pagina `author_website`: `palette`
+  (`cobalt_tech` predefinita, `emerald`, `nordic_minimal`, `custom`), i colori
+  `accent_color`, `background_color`, `ink_color` (valori `#rrggbb`, che prevalgono sulla
+  palette) e `font_family` (`sans` o `serif`). Le tre palette predefinite rispettano il
+  contrasto WCAG AA; `custom` parte da `cobalt_tech`. Esempio nella
+  [sezione inglese](#editorial-web-console-view-and-visual-theme).
 
 ### Documentazione
 
