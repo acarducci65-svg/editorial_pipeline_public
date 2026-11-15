@@ -109,7 +109,7 @@ Ogni correzione si fa **prima** del pacchetto Gate 2. Rieseguire `build-audio` s
 | Azione scritta dal Direttore | Adapter (`--target`) | Risultato |
 |---|---|---|
 | `archive` (alias `dist_archive`, `export_package`) | `dist_archive` | `<archive_dir>/<post_id>.tar.gz` (default `dist/packages/`): bozza, `gate1.json`, `gate2.json`, tutti gli artefatti del bundle, `publish_manifest.json` con `bundle_digest` e SHA-256 dei file |
-| `export_markdown` (alias `publish_markdown`, `static_site`) | `static_site` | `<static_site_dir>/<post_id>/` (default `dist/published/`): Markdown della bozza e asset visivi (immagini, PDF, HTML, CSS). Copione e audio non sono inclusi |
+| `export_markdown` (alias `publish_markdown`, `static_site`) | `static_site` | `<static_site_dir>/<post_id>/` (default `dist/published/`): Markdown della bozza (`index.md` con `static_site_layout = "hugo_bundle"`), immagini (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`), documenti `.pdf` e, con l'azione `static_site` (o `publish_audio`) nella ricevuta, l'audio approvato (`.mp3`, `.m4a`, `.ogg`, `.wav`). **Mai** `.html` né `.css`; il copione non è incluso. Dettagli: §3.6 |
 | `author_website` (alias `publish_author_website`, `export_author_site`) | `author_website` | `<author_website_dir>/<post_id>/` (default `dist/author_site/`): `index.html` long-form per il sito personale dell'autore e `assets/` con slide, PDF e podcast approvati. Il copione non è incluso |
 | `publish`, `schedule`, `sync`, altre | nessuno | `SKIPPED`, exit 0, nessuna scrittura. Sono azioni da eseguire fuori dalla CLI, con i loro strumenti, solo se autorizzate |
 
@@ -139,7 +139,7 @@ Nel pacchetto Gate 2, se il catalogo le prevede, proponete le azioni locali per 
 | `SKIPPED` | 0 | Nessuna azione autorizzata per quell'adapter | Riferire; **non** è un errore da aggirare |
 | `Gate 2: invalid or unreadable bundle` | 2 | Ricevuta assente, non valida, `stale`, azioni non permesse, `BLOCK` aperti | Eseguire `check-gate 2` per il motivo; se il bundle è cambiato, nuovo pacchetto Gate 2 |
 | `Approved publishing input changed`, `Gate 2 changed before publishing` | 2 | Un file del bundle è cambiato durante l'esecuzione | Fermarsi e riferire |
-| `Error: publishing destination already exists` | 1 | Output già presente; nulla sovrascritto | Riferire; non cancellare l'output esistente senza istruzione |
+| `Error: publishing destination already exists` | 1 | Output già presente; nulla sovrascritto (`[publishing].allow_overwrite = false`, default) | Riferire; non cancellare l'output esistente e non attivare `allow_overwrite` senza istruzione del Direttore (§3.6) |
 | `Error: publishing destination overlaps protected project inputs` (o percorso non ammesso) | 1 | Cartella di `[publishing]` non valida | Riferire; la configurazione la decide il Direttore |
 
 ### 3.4 Una pubblicazione per ricevuta
@@ -168,6 +168,38 @@ Per chi pubblica anche su un sito proprio (portfolio, blog personale) oltre che 
 
    La pagina è offline-first: niente CDN, font remoti o tracker. I colori vengono da `[theme]`, il carattere del corpo da `font_family`.
 5. **Pubblicazione in rete.** La CLI non carica nulla. Copiare la cartella sul server o sull'hosting del sito personale è un'operazione umana, fuori dalla CLI.
+
+### 3.6 Sito statico (`static_site`): contenuto dell'export e opzioni Hugo
+
+**Cosa viene esportato.** Filtro per estensione, senza distinzione tra maiuscole e minuscole, sugli artefatti del bundle Gate 2:
+
+| Categoria | Estensioni | Condizione |
+|---|---|---|
+| Testo | Markdown della bozza | Sempre. Nome originale del file con `static_site_layout = "flat"`, `index.md` con `"hugo_bundle"` |
+| Immagini | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg` | Sempre, se presenti nel bundle |
+| Documenti | `.pdf` | Sempre (es. PDF del carosello) |
+| Audio | `.mp3`, `.m4a`, `.ogg`, `.wav` | Solo se la ricevuta contiene l'azione `static_site` o `publish_audio`. Con il solo `export_markdown` l'audio **non** esce |
+| Esclusi | `.html`, `.css` e ogni altra estensione | Sempre: slide HTML del carosello, console web offline (`dist/web/`), copione `podcast_script.md`, manifest JSON |
+
+L'esclusione di `.html` e `.css` è deliberata e non si aggira: Hugo tratta un `.html` dentro `content/` come pagina da renderizzare, e l'HTML grezzo ricade sotto le policy di sicurezza di Hugo (`security.allowContent`, rendering non sicuro di Goldmark). Se servono le slide nel sito, si pubblicano come immagini o PDF, non come HTML.
+
+Gli asset mantengono il percorso relativo al progetto sotto la cartella dell'unità: `dist/social/post_07/slide_01.png` diventa `<static_site_dir>/post_07/dist/social/post_07/slide_01.png`. I collegamenti nel Markdown vanno scritti di conseguenza (in un page bundle Hugo, relativi a `index.md`).
+
+**Opzioni in `[publishing]`** (decisione di configurazione del Direttore, mai dell'agente):
+
+```toml
+[publishing]
+target = "static_site"
+static_site_dir = "site/content/posts"   # cartella content/ del sito Hugo
+static_site_layout = "hugo_bundle"       # "flat" (default) | "hugo_bundle"
+allow_overwrite = true                    # default false
+```
+
+- `static_site_layout = "hugo_bundle"`: ogni unità diventa un **leaf bundle** Hugo `<static_site_dir>/<post_id>/index.md` con i media accanto; l'URL dell'articolo è `/posts/<post_id>/` (salvo permalink diversi in `hugo.toml`) e i media sono disponibili come `.Resources`. Con `"flat"` il Markdown conserva il nome della bozza.
+- `allow_overwrite = true`: se `<static_site_dir>/<post_id>/` esiste già, i file vengono riscritti invece di uscire con `Error: publishing destination already exists`. Serve per la **ripubblicazione** di un'unità già uscita (es. dopo una correzione F6 approvata e un nuovo Gate 2). Non cancella i file che nel nuovo bundle non ci sono più: si rimuovono a mano, su istruzione del Direttore. L'opzione vale solo per `static_site`; `dist_archive` e `author_website` non sovrascrivono mai.
+- Con `static_site_dir` fuori da `[paths].dist` (come `site/content/posts`) la pubblicazione non rende `stale` il Gate 2 (§3.4). Il gate resta obbligatorio a ogni ripubblicazione: `allow_overwrite` non sostituisce una nuova ricevuta quando il bundle è cambiato.
+
+La struttura del sito Hugo che riceve l'export (configurazione, pagine di trasparenza, layout) è descritta in `SKILL.md`, §4 «Hugo Scaffolding».
 
 ## 4. Checklist rapida
 

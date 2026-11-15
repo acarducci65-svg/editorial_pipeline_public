@@ -106,7 +106,7 @@ Convenzioni:
 | `editorial-pipeline build-visual <post> [--dry-run] [--html-only] [--aspect-ratio 4:5\|1:1]` | F4 | Con `[phases.optional].F4_visual = true`, genera il carosello in `[paths].dist/social/<post_id>/` con manifest e SHA-256. `--dry-run` elenca i file senza scrivere nulla; `--html-only` produce solo HTML e manifest, senza Playwright | Con `F4_visual = false` si rifiuta (exit 1), anche in `--dry-run` |
 | `editorial build-audio <post_id> [--provider notebooklm] [--format {m4a,mp3}] [--language it] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il podcast conversazionale a due voci di **Google NotebookLM Studio** (`podcast.m4a` o `podcast.mp3`, via `nlm`) in `[paths].dist/audio/<post_id>/`. Con `--provider script_only` scrive invece il solo copione `podcast_script.md` (offline). `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm` | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non ascolta né revisiona l'audio, non approva nulla. Il provider `tts` è deprecato e **vietato** per la pubblicazione (§4, F5) |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
-| `editorial-pipeline publish <post> [--target dist_archive\|static_site\|author_website] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown e asset in `dist/published/<post_id>/`; `author_website` → pagina long-form `index.html` con asset in `dist/author_site/<post_id>/`, pronta per il sito personale dell'autore. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive |
+| `editorial-pipeline publish <post> [--target dist_archive\|static_site\|author_website] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown, immagini, PDF e audio approvato (mai `.html`/`.css`) in `dist/published/<post_id>/` o in `[publishing].static_site_dir`, come page bundle Hugo con `static_site_layout = "hugo_bundle"`; `author_website` → pagina long-form `index.html` con asset in `dist/author_site/<post_id>/`, pronta per il sito personale dell'autore. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive (unica eccezione: `static_site` con `[publishing].allow_overwrite = true`) |
 | `editorial view [<post_id>] [--all] [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 2; consultazione a fine flusso | Con `<post_id>` genera `[paths].dist/web/<post_id>.html`, la console webredazionale a schede (Articolo, Social, Podcast, Carosello, Fonti e trasparenza, Pubblicazione) nei colori di `[theme]`. Senza `<post_id>` o con `--all` rigenera le console di tutte le unità e l'indice della redazione `[paths].dist/web/index.html`, con lo stato F1–F5, Gate 1 e Gate 2 di ciascuna. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`: dopo il Gate 2 può invalidare la ricevuta |
 
 Stati dei controlli: `OK`, `WARN` (va motivato nel pacchetto), `BLOCK` (impedisce il gate).
@@ -294,7 +294,7 @@ A kit ultimato, generate la console con `editorial view <post_id>` (oppure `--no
 Procedura completa ed esiti: `references/publishing-and-audio.md` §3.
 
 1. Prerequisiti: messaggio del Direttore in questa sessione, ricevuta scritta dopo, `check-gate 2` → `RECEIPT_VALID`.
-2. Scegliete il target dalle azioni della ricevuta: `archive` → `--target dist_archive`; `export_markdown` → `--target static_site`; `author_website` → `--target author_website` (sito personale dell'autore). Se nessuna azione riguarda un adapter, `publish` risponderebbe `SKIPPED`: non c'è nulla da eseguire con la CLI.
+2. Scegliete il target dalle azioni della ricevuta: `archive` → `--target dist_archive`; `export_markdown` → `--target static_site` (sito Hugo: vedi «Hugo Scaffolding» più sotto); `author_website` → `--target author_website` (sito personale dell'autore). Se nessuna azione riguarda un adapter, `publish` risponderebbe `SKIPPED`: non c'è nulla da eseguire con la CLI.
 3. Anteprima e poi esecuzione:
    ```bash
    editorial-pipeline publish content/posts/post_07_titolo.md --target dist_archive --dry-run --json
@@ -309,6 +309,76 @@ Procedura completa ed esiti: `references/publishing-and-audio.md` §3.
    editorial publish <post_id> --target author_website --json
    ```
    La cartella `dist/author_site/<post_id>/` (o `[publishing].author_website_dir`) contiene `index.html` e `assets/`: pagina long-form con nome e bio dell'autore (da `[author].profile`), indice laterale, player del podcast, carosello sfogliabile, PDF delle slide e collegamenti a `/metodo/`, `/correzioni/`, `/per-chi-scrive/`. Il caricamento sul sito resta un'operazione umana. Dettagli: `references/publishing-and-audio.md` §3.5.
+
+### Hugo Scaffolding — il sito che riceve `publish`
+
+`editorial-pipeline publish --target static_site` alimenta solo la cartella dei contenuti (`site/content/posts/`, se `[publishing].static_site_dir` punta lì). Non crea il sito: un blog Hugo funzionante richiede tre elementi che si preparano **una volta**, prima della prima pubblicazione, e che il Direttore approva come qualsiasi altra pagina pubblica. Contenuto dell'export, `allow_overwrite` e `static_site_layout`: `references/publishing-and-audio.md` §3.6.
+
+Struttura attesa:
+
+```text
+site/
+├── hugo.toml
+├── content/
+│   ├── posts/<post_id>/index.md      # scritto da publish (hugo_bundle), con i media accanto
+│   ├── metodo/_index.md               # da templates/pages/metodo.template.md
+│   ├── correzioni/_index.md           # da templates/pages/correzioni.template.md
+│   └── per-chi-scrive/_index.md       # da templates/pages/per-chi-scrive.template.md
+├── data/corrections.json              # copia di [paths].corrections (facoltativa)
+└── layouts/
+    ├── _default/baseof.html
+    ├── _default/single.html
+    ├── _default/list.html
+    └── index.html
+```
+
+**a) `site/hugo.toml`.** Configurazione minima, con `ignoreFiles` obbligatorio:
+
+```toml
+baseURL = "https://example.org/"        # [project].base_url
+languageCode = "it-it"
+title = "Nome della testata"             # [project].name
+ignoreFiles = ['\.html$']                # nessun .html in content/ diventa pagina
+
+[permalinks]
+  posts = "/posts/:contentbasename/"     # = <post_id> con hugo_bundle (Hugo >= 0.144; prima :filename)
+
+[params]
+  monogram = "EP"                        # sigla della testata, non dati personali
+  method_url = "/metodo/"
+
+[[menu.main]]
+  name = "Metodo"
+  url = "/metodo/"
+  weight = 10
+[[menu.main]]
+  name = "Correzioni"
+  url = "/correzioni/"
+  weight = 20
+[[menu.main]]
+  name = "Per chi scrive"
+  url = "/per-chi-scrive/"
+  weight = 30
+```
+
+`ignoreFiles = ['\.html$']` è una seconda difesa: l'adapter già esclude `.html` e `.css`, ma un HTML copiato a mano in `content/` verrebbe renderizzato come pagina e aggirerebbe le policy di sicurezza di Hugo. Non attivate `markup.goldmark.renderer.unsafe` e non allargate `security` per far passare HTML grezzo. Usate le stesse URL di `[transparency]` (`method_page`, `corrections_page`, `press_page`) nel menu.
+
+**b) Le tre pagine di trasparenza.** Il comando `render-pages` non è ancora disponibile: si compilano dai template con i tre passaggi di `docs/transparency_pages.md` §3.
+
+1. Copiate `templates/pages/<pagina>.template.md` in `site/content/<pagina>/_index.md` per `metodo`, `correzioni`, `per-chi-scrive` (la cartella con `_index.md` dà la route con barra finale `/<pagina>/`).
+2. Sostituite ogni placeholder `{{NOME}}` con i valori di `editorial.toml`, `editorial_manifest.yaml` e `author_profile.yaml`, copiati alla lettera; contatti solo redazionali e pubblici. Un placeholder senza valore non si inventa: si chiede al Direttore.
+3. Espandete i blocchi `<!-- auto: ... -->` (tabella ruoli, checklist del registro, voci di `corrections.json`); in `correzioni` le voci di sezione A compaiono solo per unità già uscite.
+4. Controllo: `grep -rnE "\{\{[A-Z_]+\}\}" site/content/metodo site/content/correzioni site/content/per-chi-scrive` non deve restituire nulla.
+5. Presentate il diff al Direttore: ogni pagina richiede `Approvo pagina /<pagina>/` (vedi F6, punto 6). Senza approvazione la pagina non entra nel sito.
+
+**c) Layout editoriale minimo in `site/layouts/`.** Niente temi esterni, CDN, font remoti o tracker; colori coerenti con `[theme]`.
+
+- `_default/baseof.html`: struttura HTML, `<header>` con **testata** (`.Site.Title`) e **monogramma** (`.Site.Params.monogram`, in testo o SVG inline), `<nav>` che itera `.Site.Menus.main` (le tre pagine di trasparenza sempre raggiungibili), `{{ block "main" . }}{{ end }}`, `<footer>` con link a `/metodo/` e `/correzioni/`.
+- `_default/single.html`: titolo, data, contenuto dell'articolo e **box metodologico** in fondo: «Scritto con l'ausilio di modelli AI sotto direzione umana; ogni fatto verificato su fonte; errori e rettifiche in /correzioni/», con link a `.Site.Params.method_url`. Il box è testo di trasparenza: si fa approvare con le pagine al punto b).
+- `_default/list.html`: elenco delle pagine della sezione (`.Pages`) con titolo, data e sommario; per `metodo`, `correzioni` e `per-chi-scrive` mostra anche `.Content` dell'`_index.md`.
+- `index.html`: home con testata, ultimi articoli di `posts` (`where .Site.RegularPages "Section" "posts"`) e richiamo al metodo.
+
+Nomi, bio e firme non si scrivono nei layout: vengono da `hugo.toml` e dalle pagine approvate. Verifica locale con `hugo --source site` (build senza errori, nessun `.html` dentro `site/content/`) e anteprima con `hugo server --source site`. Il caricamento del sito pubblicato in rete resta un'operazione umana, fuori dalla CLI.
 
 ### Console webredazionale — consultazione a fine flusso
 
