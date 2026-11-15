@@ -12,7 +12,6 @@
     "artifacts": {
       "dist/audio/ai_pensioni/podcast.m4a": "v1:9262a13aecf941db0413faddc6dc16b3fc14ce069575212bf3170081a3ba42e3",
       "dist/audio/ai_pensioni/podcast_script.md": "v1:e1c2a86573fd3136e47383f3bb9dff7f332506c0fe8e393d41bbd15aa4fe702d",
-      "dist/packages/ai_pensioni.tar.gz": "v1:e3d58c245f6f5a51543ff3cc4418f73658a59952f594ee81c91eb840a7bb7ef5",
       "dist/social/ai_pensioni/deck.pdf": "v1:25e118d7180f4e2cc21cbfbb2a8e32761deb1c8ac06f258e8d658da111783838",
       "dist/social/ai_pensioni/instagram.txt": "v1:1cd2d31a2941569f002a2c1342819bb516e58fcf1905a00eb10b7320dd3776e4",
       "dist/social/ai_pensioni/linkedin.txt": "v1:25dccd1c3678f7bcdb8f4fa5ee8d35cb43e15158c8a4305609cdfa4af1851afa",
@@ -26,9 +25,7 @@
       "dist/social/ai_pensioni/slide_06.html": "v1:1659c4c581e03102edf647aa67201b1b5ee92f3487520c9568415c2c19778206",
       "dist/social/ai_pensioni/slide_07.html": "v1:7646a583fcf8ce4114b7284f3595995d257422f3f1d9464c5327dec05536bc3e",
       "dist/social/ai_pensioni/slide_08.html": "v1:9edbcc09fc7f06d95b02beed1e45a45cc6bf7440080f4b8a68ecd97467ee31ab",
-      "dist/social/ai_pensioni/twitter.txt": "v1:29199924c93ac5f915252d6a4b0d830345d2441a34f5a139b67a468ea8e2ba2c",
-      "dist/web/ai_pensioni.html": "v1:6e3b23b927c795eec232b8abdd2b8b30b254517996cce8ccda63e0240a014cd4",
-      "dist/web/index.html": "v1:9edeb4dce4cbbb94c36b27924ceebe99c410523097084b8921cfcd9a1c3f88c3"
+      "dist/social/ai_pensioni/twitter.txt": "v1:29199924c93ac5f915252d6a4b0d830345d2441a34f5a139b67a468ea8e2ba2c"
     }
   },
   "allowed_actions": [
