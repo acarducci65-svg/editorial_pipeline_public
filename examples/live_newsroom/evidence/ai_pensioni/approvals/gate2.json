@@ -1,29 +1,39 @@
 {
   "schema_version": 1,
-  "gate": 2,
   "post_id": "ai_pensioni",
   "role": "Direttore",
   "decision": "approved",
-  "timestamp": "2026-11-14T20:10:44.883275+00:00",
-  "excerpt": "Autorizzo la pubblicazione e l'archiviazione del post\nAzioni autorizzate: [\"archive\", \"export_markdown\"].",
+  "timestamp": "2026-11-15T10:26:57.771396Z",
+  "excerpt": "Autorizzo la pubblicazione e l'archiviazione del post ai_pensioni. Azioni autorizzate: archive, export_markdown, author_website.",
+  "gate": 2,
   "bundle": {
     "draft_digest": "v1:1c413b756ba7804d64f9400aaad32be5868224b53fe4da786c56257e56439fa8",
     "gate1_digest": "v1:6be5fb6afc1c07657a83f7e47a2fc031296aeb1d9ffcd5df13eb7d57d5d97d00",
     "artifacts": {
+      "dist/audio/ai_pensioni/podcast.m4a": "v1:9262a13aecf941db0413faddc6dc16b3fc14ce069575212bf3170081a3ba42e3",
       "dist/audio/ai_pensioni/podcast_script.md": "v1:e1c2a86573fd3136e47383f3bb9dff7f332506c0fe8e393d41bbd15aa4fe702d",
-      "dist/social/ai_pensioni/manifest.json": "v1:56db9834b6c023cbc15107f1980a1003c511a15387d5de78a852e1a933b75920",
-      "dist/social/ai_pensioni/slide_01.html": "v1:3aef97716898f628982437b6e7100f85cd479e1eb13100a4225d6ab30d98694e",
-      "dist/social/ai_pensioni/slide_02.html": "v1:a1295b472abf3c3f7aae19d9e3f278ab6db49be7473c21919d6c6e2e1b848c42",
-      "dist/social/ai_pensioni/slide_03.html": "v1:9575cf6c9ca4f9809e897d6ff7df37a0e34e50b11a429bc5a3c09d3b11bc075d",
-      "dist/social/ai_pensioni/slide_04.html": "v1:e782ca074e7420107b19849c7c7bb2d1b68674613ef9b7b3aaba8327ff66254b",
-      "dist/social/ai_pensioni/slide_05.html": "v1:b7e7bbb91218f390b63d4cbca005e0b9a2c831797078ed22f4a1f138055c59e7",
-      "dist/social/ai_pensioni/slide_06.html": "v1:9a09db7e7fd3b42aea45377e12b7b43821ed8c1d47bc524dd6b663148dc93a68",
-      "dist/social/ai_pensioni/slide_07.html": "v1:63c09c6334f8cd217b42d294010f999f3377310c0a92525ee39465dee7279b76",
-      "dist/social/ai_pensioni/slide_08.html": "v1:7bd72e0e8d4f52bfaad806e33154da0dd28d7227ccb5ed9b3bddb41fcf1ef192"
+      "dist/packages/ai_pensioni.tar.gz": "v1:e3d58c245f6f5a51543ff3cc4418f73658a59952f594ee81c91eb840a7bb7ef5",
+      "dist/social/ai_pensioni/deck.pdf": "v1:25e118d7180f4e2cc21cbfbb2a8e32761deb1c8ac06f258e8d658da111783838",
+      "dist/social/ai_pensioni/instagram.txt": "v1:1cd2d31a2941569f002a2c1342819bb516e58fcf1905a00eb10b7320dd3776e4",
+      "dist/social/ai_pensioni/linkedin.txt": "v1:25dccd1c3678f7bcdb8f4fa5ee8d35cb43e15158c8a4305609cdfa4af1851afa",
+      "dist/social/ai_pensioni/manifest.json": "v1:ecaeb541db2d2e04631529df545c4c9aac11ec552034054b28f484ba21f19d5d",
+      "dist/social/ai_pensioni/newsletter.txt": "v1:49149fc3797f08701225fd593404b50a55d8052385d355e3a6937b6c1233f028",
+      "dist/social/ai_pensioni/slide_01.html": "v1:8ca2361973ae08d0a16398b659069080e2a7a940917512ea03d3abc54a316be6",
+      "dist/social/ai_pensioni/slide_02.html": "v1:154abf6aec5345d32c7b4ebab8149e9816c0f64ad32f01cbc5c870323820b14a",
+      "dist/social/ai_pensioni/slide_03.html": "v1:6b14678164ad1838b14902e2dfde0ce085f32ccd73f3f728bb89459c6807456a",
+      "dist/social/ai_pensioni/slide_04.html": "v1:4fa16b1f1c03bfca7d6523a07f017ef7a2a5e00b6a342e8f50ed79c5d9a1ce85",
+      "dist/social/ai_pensioni/slide_05.html": "v1:0a9912f505ce6da0017b7e17d7b680a453999eeb703d34d7bd010f0e1bcb2fc6",
+      "dist/social/ai_pensioni/slide_06.html": "v1:1659c4c581e03102edf647aa67201b1b5ee92f3487520c9568415c2c19778206",
+      "dist/social/ai_pensioni/slide_07.html": "v1:7646a583fcf8ce4114b7284f3595995d257422f3f1d9464c5327dec05536bc3e",
+      "dist/social/ai_pensioni/slide_08.html": "v1:9edbcc09fc7f06d95b02beed1e45a45cc6bf7440080f4b8a68ecd97467ee31ab",
+      "dist/social/ai_pensioni/twitter.txt": "v1:29199924c93ac5f915252d6a4b0d830345d2441a34f5a139b67a468ea8e2ba2c",
+      "dist/web/ai_pensioni.html": "v1:6e3b23b927c795eec232b8abdd2b8b30b254517996cce8ccda63e0240a014cd4",
+      "dist/web/index.html": "v1:9edeb4dce4cbbb94c36b27924ceebe99c410523097084b8921cfcd9a1c3f88c3"
     }
   },
   "allowed_actions": [
     "archive",
-    "export_markdown"
+    "export_markdown",
+    "author_website"
   ]
 }

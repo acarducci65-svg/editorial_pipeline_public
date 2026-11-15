@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="editorial-pipeline">
+<meta name="author" content="Redazione Osservatorio">
+<meta name="description" content="I sistemi a ripartizione si reggono sui contributi versati sui salari. Se l&#39;intelligenza artificiale comprime il monte salari, qualcuno dovrà decidere dove prendere il resto.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Chi pagherà le pensioni nell&#39;era dell&#39;AI? Il nodo fiscale del lavoro automatizzato">
+<title>Chi pagherà le pensioni nell&#39;era dell&#39;AI? Il nodo fiscale del lavoro automatizzato — Redazione Osservatorio</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --ink: #0f172a;
+    --accent: #2563eb;
+    --surface: #ffffff;
+    --muted: color-mix(in oklab, var(--ink) 68%, var(--bg));
+    --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+    --accent-soft: color-mix(in oklab, var(--accent) 8%, #ffffff);
+    --sans: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Charter, Georgia, serif;
+    --read: var(--sans);
+    --measure: 68ch;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 2rem; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-underline-offset: 0.18em; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .skip { position: absolute; left: -999px; }
+  .skip:focus { left: 1rem; top: 1rem; background: var(--surface); padding: 0.5rem 1rem; z-index: 10; }
+
+  /* Masthead: the author's identity, not the newsroom's. */
+  .masthead { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .masthead .wrap { max-width: 1180px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .masthead .name { font-weight: 700; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+  .masthead nav a { color: var(--muted); text-decoration: none; font-size: 0.92rem; margin-left: 1.2rem; }
+  .masthead nav a:hover { color: var(--accent); }
+  /* On phones the same links stay reachable in the Trasparenza section. */
+  @media (max-width: 560px) { .masthead nav { display: none; } }
+
+  /* Hero */
+  .hero { max-width: 1180px; margin: 0 auto; padding: 4.5rem 1.5rem 2.5rem; }
+  .hero .eyebrow { font-size: 0.82rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(2.2rem, 4.6vw, 3.7rem); line-height: 1.06; letter-spacing: -0.03em; margin: 0.8rem 0 1.1rem; max-width: 22ch; text-wrap: balance; }
+  .hero .dek { font-family: var(--serif); font-size: clamp(1.15rem, 1.8vw, 1.4rem); line-height: 1.5; color: var(--muted); max-width: 56ch; margin: 0; }
+  .byline { display: flex; align-items: center; gap: 0.9rem; margin-top: 2rem; padding-top: 1.4rem; border-top: 1px solid var(--line); max-width: 56ch; }
+  .avatar { flex: none; width: 3rem; height: 3rem; border-radius: 50%; background: var(--ink); color: #ffffff; display: grid; place-items: center; font-weight: 700; }
+  .byline .who { font-weight: 650; }
+  .byline .meta { font-size: 0.88rem; color: var(--muted); }
+
+  /* Reading layout: lateral TOC + measure-limited column. */
+  .layout { max-width: 1180px; margin: 0 auto; padding: 1rem 1.5rem 4rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3rem; }
+  @media (min-width: 1024px) { .layout { grid-template-columns: 15rem minmax(0, 1fr); } }
+  .toc { font-size: 0.9rem; }
+  @media (min-width: 1024px) { .toc { position: sticky; top: 2rem; align-self: start; max-height: calc(100vh - 4rem); overflow: auto; } }
+  .toc h2 { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+  .toc li a { display: block; padding: 0.35rem 0 0.35rem 1rem; margin-left: -2px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; line-height: 1.35; }
+  .toc li a:hover, .toc li a[aria-current="true"] { color: var(--ink); border-left-color: var(--accent); }
+  .toc .extras { margin-top: 1.4rem; display: grid; gap: 0.4rem; }
+
+  .content { min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem 1.4rem; margin: 0 0 2.4rem; max-width: var(--measure); }
+  .card h2 { font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; }
+  .card audio { width: 100%; }
+  .card p { margin: 0.6rem 0 0; font-size: 0.88rem; color: var(--muted); }
+
+  article { font-family: var(--read); font-size: 1.16rem; line-height: 1.72; max-width: var(--measure); }
+  article h2, article h3, article h4 { font-family: var(--sans); line-height: 1.2; letter-spacing: -0.015em; }
+  article h2 { font-size: 1.7rem; margin: 3rem 0 1rem; }
+  article h3 { font-size: 1.28rem; margin: 2.2rem 0 0.8rem; }
+  article p { margin: 0 0 1.25rem; hyphens: auto; }
+  article blockquote { margin: 2rem 0; padding: 0.4rem 0 0.4rem 1.4rem; border-left: 4px solid var(--accent); font-size: 1.28rem; color: var(--ink); }
+  article ol, article ul { padding-left: 1.4rem; }
+  article li { margin-bottom: 0.5rem; }
+  article code, article pre { font-size: 0.9em; }
+  article pre { overflow: auto; background: var(--surface); border: 1px solid var(--line); padding: 1rem; border-radius: 10px; }
+  article hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
+  article sup.cites { font-family: var(--sans); font-size: 0.68em; line-height: 0; }
+  article sup.cites a { text-decoration: none; }
+
+  /* Carousel: the approved slides, browsable in place. */
+  .carousel { max-width: var(--measure); margin: 3.5rem 0; }
+  .carousel h2 { font-size: 1.3rem; margin: 0 0 1rem; }
+  .stage { position: relative; aspect-ratio: 4 / 5; max-width: 30rem; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+  .stage > * { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; object-fit: contain; }
+  .stage > .on { display: block; }
+  .controls { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.9rem; max-width: 30rem; }
+  .controls button { font: inherit; font-weight: 600; padding: 0.5rem 0.95rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .controls button:hover { border-color: var(--accent); color: var(--accent); }
+  .controls .pos { font-variant-numeric: tabular-nums; color: var(--muted); margin-right: auto; }
+
+  /* About + transparency */
+  .about { max-width: var(--measure); margin-top: 3.5rem; padding: 1.6rem; border-radius: 14px; background: var(--accent-soft); border: 1px solid color-mix(in oklab, var(--accent) 20%, #ffffff); }
+  .about h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+  .about p { margin: 0; line-height: 1.6; }
+  .trust { max-width: var(--measure); margin-top: 2rem; font-size: 0.92rem; color: var(--muted); }
+  .trust ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; }
+  .colophon { border-top: 1px solid var(--line); padding: 2rem 1.5rem 3rem; text-align: center; font-size: 0.82rem; color: var(--muted); }
+  .colophon code { font-size: 0.78rem; overflow-wrap: anywhere; }
+  @media print { .toc, .controls, .masthead nav, .skip { display: none; } .layout { display: block; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#articolo">Vai all'articolo</a>
+<header class="masthead">
+  <div class="wrap">
+    <a class="name" href="https://welfare-ai.example.org/">Redazione Osservatorio</a>
+    <nav aria-label="Sito">
+      <a href="https://welfare-ai.example.org/metodo/">Metodo</a>
+      <a href="https://welfare-ai.example.org/correzioni/">Correzioni</a>
+      <a href="https://welfare-ai.example.org/per-chi-scrive/">Per chi scrive</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Osservatorio Algoritmi &amp; Welfare</div>
+  <h1>Chi pagherà le pensioni nell&#39;era dell&#39;AI? Il nodo fiscale del lavoro automatizzato</h1>
+  <p class="dek">I sistemi a ripartizione si reggono sui contributi versati sui salari. Se l&#39;intelligenza artificiale comprime il monte salari, qualcuno dovrà decidere dove prendere il resto.</p>
+  <div class="byline">
+    <span class="avatar" aria-hidden="true">R</span>
+    <div>
+      <div class="who">Redazione Osservatorio</div>
+      <div class="meta"><time datetime="2026-11-14">2026-11-14</time> · 12 min di lettura</div>
+    </div>
+  </div>
+</section>
+
+<div class="layout">
+  <aside class="toc" aria-label="Indice">
+    <h2>In questo articolo</h2>
+    <ol>
+      <li><a href="#un-patto-che-passa-dalla-busta-paga">Un patto che passa dalla busta paga</a></li>
+      <li><a href="#dove-entra-l-intelligenza-artificiale">Dove entra l&#39;intelligenza artificiale</a></li>
+      <li><a href="#un-fisco-che-premia-la-macchina">Un fisco che premia la macchina</a></li>
+      <li><a href="#il-laboratorio-italiano-dove-la-tenaglia-demografica-morde-p">Il laboratorio italiano: dove la tenaglia demografica morde prima</a></li>
+      <li><a href="#le-proposte-sul-tavolo">Le proposte sul tavolo</a></li>
+      <li><a href="#che-cosa-sappiamo-e-che-cosa-no">Che cosa sappiamo e che cosa no</a></li>
+      <li><a href="#fonti">Fonti</a></li>
+    </ol>
+    <div class="extras"><a href="#ascolta">Ascolta il podcast</a><a href="#carosello">Sfoglia il carosello</a>
+      <a href="#trasparenza">Come è stato verificato</a>
+    </div>
+  </aside>
+
+  <main class="content" id="articolo">
+    <section class="card" id="ascolta" aria-labelledby="ascolta-titolo">
+      <h2 id="ascolta-titolo">Ascolta</h2>
+      <audio controls preload="none">
+        <source src="assets/audio/ai_pensioni/podcast.m4a" type="audio/mp4">
+        <a href="assets/audio/ai_pensioni/podcast.m4a">Scarica l'audio</a>
+      </audio>
+      <p>Conversazione audio costruita sulle stesse fonti verificate dell'articolo.</p>
+    </section>
+
+    <article>
+<p>Ogni mese, in quasi tutta Europa, una parte della busta paga di chi lavora non arriva mai sul conto corrente. Va all&#x27;ente previdenziale, che la gira subito a chi è già in pensione. Il meccanismo regge da decenni su un&#x27;ipotesi così ovvia da sembrare una legge di natura: la ricchezza di un paese passa, in buona parte, attraverso i salari. L&#x27;intelligenza artificiale mette in discussione proprio quell&#x27;ipotesi.</p>
+<h2 id="un-patto-che-passa-dalla-busta-paga">Un patto che passa dalla busta paga</h2>
+<p>Il Rapporto sull&#x27;invecchiamento 2024 della Commissione europea descrive il meccanismo senza giri di parole: i sistemi legati al lavoro sono di norma finanziati con contributi obbligatori di lavoratori e datori di lavoro <sup class="cites">[<a class="cite" href="#fonte-3" data-source="3">3</a>]</sup>. E aggiunge che la maggior parte dei sistemi pensionistici pubblici funziona a ripartizione: i contributi di oggi pagano le pensioni di oggi <sup class="cites">[<a class="cite" href="#fonte-3" data-source="3">3</a>]</sup>.</p>
+<p>Niente salvadanaio, quindi. Chi versa oggi finanzia l&#x27;assegno di un pensionato di oggi, e confida che domani qualcun altro farà lo stesso per lui. Lo Stato interviene spesso con trasferimenti dalla fiscalità generale per coprire i disavanzi, ma la base del sistema resta il lavoro dipendente e autonomo su cui si calcolano i contributi.</p>
+<p>Questa base si sta già restringendo per ragioni che con gli algoritmi non hanno nulla a che fare. Secondo le proiezioni della Commissione, l&#x27;indice di dipendenza degli anziani nell&#x27;Unione europea era al 36 per cento nel 2022 e salirebbe al 59 per cento nel 2070 <sup class="cites">[<a class="cite" href="#fonte-3" data-source="3">3</a>]</sup>. L&#x27;indice misura quante persone con più di 65 anni ci sono ogni cento persone tra i 20 e i 64. Nello stesso periodo la forza lavoro dell&#x27;Unione si ridurrebbe del 12 per cento, 25 milioni di persone, tra il 2022 e il 2070 <sup class="cites">[<a class="cite" href="#fonte-3" data-source="3">3</a>]</sup>.</p>
+<p>Il dato che pesa di più sui conti è un altro. Contando solo chi lavora davvero e chi è davvero fuori dal mercato del lavoro, la Commissione stima che per ogni dieci anziani inattivi ci sarebbero 14 occupati nel 2070, contro i 22 del 2022 <sup class="cites">[<a class="cite" href="#fonte-3" data-source="3">3</a>]</sup>. Meno spalle, più carico.</p>
+<h2 id="dove-entra-l-intelligenza-artificiale">Dove entra l&#x27;intelligenza artificiale</h2>
+<p>Fin qui la demografia. L&#x27;automazione aggiunge una seconda pressione, meno prevedibile.</p>
+<p>Il Fondo monetario internazionale stima che quasi il 40 per cento dell&#x27;occupazione mondiale è esposto all&#x27;intelligenza artificiale <sup class="cites">[<a class="cite" href="#fonte-1" data-source="1">1</a>]</sup>. Nelle economie avanzate, dove i sistemi previdenziali sono più maturi, la quota sale a circa il 60 per cento dei posti di lavoro <sup class="cites">[<a class="cite" href="#fonte-1" data-source="1">1</a>]</sup>.</p>
+<p>Esposizione non vuol dire sostituzione, e il Fondo lo precisa. Circa metà dei lavori esposti potrebbe trarre vantaggio dall&#x27;AI, con più produttività per chi la usa. Per l&#x27;altra metà le applicazioni di AI potrebbero svolgere compiti chiave oggi affidati a persone, con meno domanda di lavoro, salari più bassi e meno assunzioni <sup class="cites">[<a class="cite" href="#fonte-1" data-source="1">1</a>]</sup>.</p>
+<p>Per un sistema a ripartizione la seconda metà conta più della prima. Un aumento di produttività che finisce in buste paga più pesanti allarga la base contributiva. Un aumento di produttività che finisce in margini aziendali, licenze software e dividendi la lascia dov&#x27;è, o la riduce. E su questo punto il Fondo è esplicito: i guadagni di produttività delle imprese che adottano l&#x27;AI faranno probabilmente salire i rendimenti del capitale <sup class="cites">[<a class="cite" href="#fonte-1" data-source="1">1</a>]</sup>.</p>
+<p>Il risultato possibile è un&#x27;economia che produce di più mentre la parte del reddito su cui si calcolano i contributi cresce meno del resto. Il conto delle pensioni, intanto, continua a salire con l&#x27;età media della popolazione.</p>
+<h2 id="un-fisco-che-premia-la-macchina">Un fisco che premia la macchina</h2>
+<p>C&#x27;è poi una questione che precede l&#x27;AI generativa e ne amplifica gli effetti: il modo in cui tassiamo lavoro e capitale.</p>
+<p>Nel 2020 tre economisti, Daron Acemoglu, Andrea Manera e Pascual Restrepo, hanno pubblicato per il National Bureau of Economic Research un&#x27;analisi del codice fiscale degli Stati Uniti. La loro tesi d&#x27;apertura è netta: il sistema fiscale statunitense è sbilanciato contro il lavoro e a favore del capitale, e lo è diventato di più negli ultimi anni <sup class="cites">[<a class="cite" href="#fonte-2" data-source="2">2</a>]</sup>. Un&#x27;impresa che deve scegliere tra assumere una persona e acquistare un macchinario o un software che ne svolge i compiti trova, nel fisco, un incentivo a scegliere la seconda strada.</p>
+<p>Secondo gli autori la distorsione ha un costo misurabile. Nel loro modello, passare a una tassazione ottimale di capitale e lavoro aumenterebbe l&#x27;occupazione del 4,02 per cento <sup class="cites">[<a class="cite" href="#fonte-2" data-source="2">2</a>]</sup> rispetto al sistema in vigore negli anni Dieci. Il motivo, scrivono, è che le attività automatizzate marginali non portano grandi guadagni di produttività ma spiazzano i lavoratori <sup class="cites">[<a class="cite" href="#fonte-2" data-source="2">2</a>]</sup>: sono automazioni convenienti per il bilancio dell&#x27;impresa grazie al fisco più che alla tecnologia.</p>
+<p>Lo studio riguarda gli Stati Uniti, dove la previdenza pubblica si finanzia con un&#x27;imposta sui salari. Il ragionamento si applica con poche modifiche ai sistemi europei, che caricano sul lavoro anche i contributi previdenziali: ogni posto sostituito da una macchina sgravata toglie al sistema una quota di contributi che nessuno versa al suo posto.</p>
+<h2 id="il-laboratorio-italiano-dove-la-tenaglia-demografica-morde-p">Il laboratorio italiano: dove la tenaglia demografica morde prima</h2>
+<p>Le medie europee nascondono le differenze tra paesi. L&#x27;Italia è il caso in cui le due pressioni descritte finora, demografia e automazione, si sommano con meno margini.</p>
+<p>Il sistema italiano funziona a ripartizione, come quello descritto dalla Commissione: i contributi versati quest&#x27;anno pagano le pensioni di quest&#x27;anno. La riforma del 1995 ha legato l&#x27;importo dell&#x27;assegno a quanto ciascuno ha versato durante la carriera, e la relazione del presidente dell&#x27;INPS al XXIII Rapporto annuale, firmata il 24 settembre 2024, ricorda che tutti i giovani fruiranno di un sistema pensionistico interamente contributivo <sup class="cites">[<a class="cite" href="#fonte-4" data-source="4">4</a>]</sup>. Il metodo di calcolo decide l&#x27;importo della singola pensione. La cassa da cui escono i soldi resta alimentata dai contributi di chi lavora oggi.</p>
+<p>I conti dell&#x27;Istituto mostrano da dove arrivano quei soldi. Nel 2023 l&#x27;INPS ha accertato 269 miliardi di euro di entrate contributive e quasi 165 miliardi di trasferimenti correnti dalla fiscalità generale <sup class="cites">[<a class="cite" href="#fonte-4" data-source="4">4</a>]</sup>. La spesa complessiva lorda per le pensioni è stata di circa 347 miliardi <sup class="cites">[<a class="cite" href="#fonte-4" data-source="4">4</a>]</sup>, per circa 16 milioni di pensionati. Lo Stato copre già una parte ampia del fabbisogno, ma la voce principale resta un prelievo sui redditi da lavoro.</p>
+<p>Il dato che misura la tenuta del meccanismo è il rapporto tra chi lavora e chi riceve una pensione. Il Centro studi e ricerche Itinerari Previdenziali, che pubblica ogni anno un bilancio del sistema previdenziale, lo ha stimato a 1,4758 per il 2024 <sup class="cites">[<a class="cite" href="#fonte-7" data-source="7">7</a>]</sup>: poco meno di tre lavoratori ogni due pensionati. È il valore più alto della serie storica del rapporto, e resta comunque sotto la soglia di 1,5 che gli stessi autori indicano come necessaria per la stabilità di medio-lungo termine della previdenza obbligatoria <sup class="cites">[<a class="cite" href="#fonte-7" data-source="7">7</a>]</sup>. Se dal conto si tolgono le persone che ricevono solo prestazioni assistenziali, i pensionati scendono da 16,3 a 13,5 milioni e il rapporto sale a 1,77 <sup class="cites">[<a class="cite" href="#fonte-7" data-source="7">7</a>]</sup>.</p>
+<p>Quel record poggia su un mercato del lavoro in espansione: nel 2023 gli assicurati hanno raggiunto il record di 26,6 milioni, 21,8 milioni dei quali lavoratori dipendenti <sup class="cites">[<a class="cite" href="#fonte-4" data-source="4">4</a>]</sup>. La demografia spinge nella direzione opposta. Secondo la stessa relazione, nel 2050 i cittadini con 65 anni e più potrebbero rappresentare fino al 35 per cento della popolazione <sup class="cites">[<a class="cite" href="#fonte-4" data-source="4">4</a>]</sup>, e l&#x27;Istituto scrive che l&#x27;assicurazione delle risorse necessarie al sistema previdenziale è minacciata dalle sfide derivanti dai cambiamenti demografici in corso <sup class="cites">[<a class="cite" href="#fonte-4" data-source="4">4</a>]</sup>. Con meno ingressi di giovani e più uscite per età, tenere fermo il rapporto richiede che la massa dei salari su cui si pagano i contributi continui a crescere.</p>
+<p>Su questa base si innesta l&#x27;intelligenza artificiale. Quattro economisti della Banca d&#x27;Italia, Antonio Dalla Zuanna, Davide Dottori, Elena Gentili e Salvatore Lattanzio, hanno applicato al caso italiano il metodo proposto da Carlo Pizzinelli e coautori per distinguere i lavori che l&#x27;AI può affiancare da quelli che può sostituire. Sui dati 2023 della rilevazione sulle forze di lavoro, circa 15 milioni dei 22 milioni di occupati risultano mediamente o molto esposti all&#x27;AI, e poco meno di 9 milioni ricadono nel gruppo ad alta esposizione <sup class="cites">[<a class="cite" href="#fonte-5" data-source="5">5</a>]</sup>. Le occupazioni più esposte sono soprattutto nei servizi; i settori dei trasporti e delle comunicazioni e la finanza, che comprende tutto il sistema bancario, mostrano l&#x27;impatto più forte in termini di sostituibilità <sup class="cites">[<a class="cite" href="#fonte-5" data-source="5">5</a>]</sup>.</p>
+<p>Lo stesso studio contiene un&#x27;osservazione che riguarda da vicino i contributi. Chi lascia un&#x27;occupazione molto esposta e sostituibile tende a spostarsi verso lavori meno esposti, dove le retribuzioni sono in genere più basse <sup class="cites">[<a class="cite" href="#fonte-5" data-source="5">5</a>]</sup>. In un sistema che calcola il gettito sulle buste paga, un lavoratore ricollocato con un salario inferiore versa meno contributi anche se resta occupato.</p>
+<p>Le prime evidenze sulle imprese italiane invitano alla cautela. Secondo l&#x27;indice europeo dell&#x27;economia digitale citato dagli autori, nel 2023 usava l&#x27;AI il 5 per cento delle imprese italiane, contro circa l&#x27;8 per cento di quelle europee <sup class="cites">[<a class="cite" href="#fonte-5" data-source="5">5</a>]</sup>. Uno studio successivo della Banca d&#x27;Italia, firmato da Tiziano Ropele e Alex Tagliabracci sulle imprese con almeno 50 addetti, rileva che nel 2024 poco più del 10 per cento delle imprese dichiarava di utilizzare l&#x27;IA <sup class="cites">[<a class="cite" href="#fonte-6" data-source="6">6</a>]</sup>. Secondo gli autori l&#x27;adozione aumenta la produttività del lavoro e la redditività e determina una riallocazione dell&#x27;occupazione verso profili più qualificati, senza effetti negativi sull&#x27;occupazione complessiva <sup class="cites">[<a class="cite" href="#fonte-6" data-source="6">6</a>]</sup>. Per ora, quindi, i dati italiani descrivono imprese più produttive e nessuna perdita netta di posti. Per l&#x27;INPS la domanda aperta è quanta parte di quella produttività arriverà nelle buste paga.</p>
+<p>Messi insieme, questi dati spiegano perché l&#x27;Italia è un banco di prova. Un sistema a ripartizione con meno di un lavoratore e mezzo per pensionato, una quota di over 65 che potrebbe arrivare al 35 per cento e un&#x27;entrata che dipende in larga parte dai contributi sul lavoro ha poco spazio per assorbire una crescita che passi da margini e software invece che da salari. È una valutazione della redazione costruita sulle fonti citate; nessuna di queste fonti prevede che lo scenario si realizzi.</p>
+<h2 id="le-proposte-sul-tavolo">Le proposte sul tavolo</h2>
+<p>Le risposte discusse finora si possono raggruppare in tre famiglie. Ognuna ha costi e punti deboli.</p>
+<h3 id="tassare-i-robot">Tassare i robot</h3>
+<p>L&#x27;idea più semplice da raccontare è un prelievo specifico sull&#x27;automazione, spesso chiamato &quot;robot tax&quot;. Il lavoro di Acemoglu, Manera e Restrepo offre un argomento a favore in una versione precisa: quando una riforma fiscale completa non è praticabile, un&#x27;imposta aggiuntiva sull&#x27;automazione può aumentare l&#x27;efficienza riducendo l&#x27;automazione che non produce guadagni reali <sup class="cites">[<a class="cite" href="#fonte-2" data-source="2">2</a>]</sup>.</p>
+<p>I problemi sono pratici. Definire un &quot;robot&quot; a fini fiscali è difficile quando l&#x27;automazione consiste in un abbonamento a un servizio di AI usato da un impiegato. Un prelievo mal disegnato rischia di colpire anche gli investimenti che rendono il lavoro più produttivo, cioè la metà dei casi in cui l&#x27;AI aiuta chi lavora invece di sostituirlo.</p>
+<h3 id="spostare-il-carico-dal-lavoro-al-capitale">Spostare il carico dal lavoro al capitale</h3>
+<p>Una seconda strada interviene sul sistema fiscale nel suo complesso. Gli stessi autori indicano che ridurre le tasse sul lavoro, o combinare tasse più basse sul capitale con un&#x27;imposta sull&#x27;automazione, può far crescere l&#x27;occupazione molto più dei tagli uniformi <sup class="cites">[<a class="cite" href="#fonte-2" data-source="2">2</a>]</sup> alle imposte sul capitale decisi negli Stati Uniti tra il 2000 e il 2018.</p>
+<p>Applicata alle pensioni, questa logica porta a finanziare una quota crescente della spesa previdenziale con la fiscalità generale (imposte sui profitti, sui redditi da capitale, sui consumi) invece che con i soli contributi sui salari. Molti paesi europei lo fanno già in parte. Il nodo politico è che una pensione pagata dalle imposte generali somiglia meno a un diritto maturato con i propri versamenti e più a una scelta di bilancio, rinegoziabile a ogni legge finanziaria.</p>
+<h3 id="ripensare-il-welfare-contributivo">Ripensare il welfare contributivo</h3>
+<p>La terza famiglia di proposte guarda più lontano: fondi sovrani alimentati da una quota dei profitti generati dall&#x27;automazione, redditi di base, conti individuali di formazione. Il Fondo monetario internazionale, nella stessa analisi, raccomanda reti di protezione sociale complete e programmi di riqualificazione per i lavoratori vulnerabili <sup class="cites">[<a class="cite" href="#fonte-1" data-source="1">1</a>]</sup>.</p>
+<p>Sono proposte con orizzonti lunghi e costi incerti. Hanno però un merito: prendono sul serio l&#x27;ipotesi che il salario possa non essere più il canale principale attraverso cui il reddito di un&#x27;economia arriva alle famiglie.</p>
+<h2 id="che-cosa-sappiamo-e-che-cosa-no">Che cosa sappiamo e che cosa no</h2>
+<p>Sappiamo che i sistemi a ripartizione dipendono dal monte salari. Sappiamo che la demografia sta già riducendo il numero di occupati per pensionato. Sappiamo, dalle stime del Fondo monetario, che una quota ampia dei lavori nelle economie avanzate è esposta all&#x27;AI. E sappiamo che in Italia il margine è più stretto: gli attivi per pensionato sono sotto la soglia che gli analisti del settore considerano di sicurezza, e la Banca d&#x27;Italia conta milioni di lavoratori in occupazioni ad alta esposizione.</p>
+<p>Non sappiamo quanto di questa esposizione si tradurrà in salari più bassi e quanto in salari più alti. Le stime sull&#x27;impatto dell&#x27;AI sul lavoro sono recenti e cambiano a ogni nuova generazione di modelli. Anche le proiezioni pensionistiche della Commissione, va ricordato, includono un calo dell&#x27;adeguatezza: il rapporto tra pensione media e salario medio scenderebbe dal 43 per cento del 2022 al 36 per cento del 2070 <sup class="cites">[<a class="cite" href="#fonte-3" data-source="3">3</a>]</sup>, a legislazione invariata.</p>
+<p>La domanda del titolo, allora, è prima di tutto politica. Se una parte crescente della ricchezza prodotta passerà da macchine e software invece che da buste paga, un sistema finanziato quasi solo dalle buste paga dovrà cambiare fonte. Decidere quale, e con quale equilibrio tra lavoratori, imprese e pensionati, spetta ai parlamenti. Prima lo fanno, meno la scelta sarà dettata dall&#x27;emergenza.</p>
+<hr>
+<p><em>Nota sul metodo.</em> La prima stesura di questo articolo è stata preparata con l&#x27;assistenza di un modello linguistico sulle fonti indicate sotto, poi rivista con un passaggio separato di revisione dello stile. Ogni dato è collegato a una citazione letterale della fonte, registrata nelle evidenze dell&#x27;articolo. Il testo è approvato dal Direttore prima della pubblicazione. Dettagli nella pagina <a href="/metodo/">Metodo</a>.</p>
+<h2 id="fonti">Fonti</h2>
+<ol><li>Kristalina Georgieva, «AI Will Transform the Global Economy. Let&#x27;s Make Sure It Benefits Humanity», IMF Blog, Fondo monetario internazionale, 14 gennaio 2024. Basato su M. Cazzaniga e altri, <em>Gen-AI: Artificial Intelligence and the Future of Work</em>, IMF Staff Discussion Note SDN/2024/001 (consultato il 14 novembre 2026).</li><li>Daron Acemoglu, Andrea Manera, Pascual Restrepo, «Does the US Tax Code Favor Automation?», NBER Working Paper 27052, aprile 2020; pubblicato in <em>Brookings Papers on Economic Activity</em>, 2020(1) (consultato il 14 novembre 2026).</li><li>Commissione europea, Direzione generale Affari economici e finanziari, <em>2024 Ageing Report. Economic and Budgetary Projections for the EU Member States (2022-2070)</em>, European Economy Institutional Paper 279, aprile 2024 (consultato il 14 novembre 2026).</li><li>Istituto nazionale della previdenza sociale (INPS), <em>XXIII Rapporto annuale</em>, Relazione del Presidente, Roma, settembre 2024 (relazione datata 24 settembre 2024; consultato il 14 novembre 2026).</li><li>Antonio Dalla Zuanna, Davide Dottori, Elena Gentili, Salvatore Lattanzio, <em>An assessment of occupational exposure to artificial intelligence in Italy</em> («Una valutazione dell&#x27;esposizione del mercato del lavoro all&#x27;intelligenza artificiale in Italia»), Banca d&#x27;Italia, Questioni di Economia e Finanza n. 878, ottobre 2024 (consultato il 14 novembre 2026).</li><li>Tiziano Ropele, Alex Tagliabracci, «L&#x27;impatto economico dell&#x27;adozione dell&#x27;intelligenza artificiale: evidenza dalle imprese italiane», Banca d&#x27;Italia, Questioni di Economia e Finanza n. 1005, marzo 2026 (consultato il 14 novembre 2026).</li><li>Centro Studi e Ricerche Itinerari Previdenziali, «Il sistema pensionistico italiano è (ancora) sostenibile», comunicato stampa di presentazione del Tredicesimo Rapporto <em>Il Bilancio del Sistema Previdenziale italiano</em>, 14 gennaio 2026 (consultato il 14 novembre 2026).</li></ol>
+    </article>
+    <section class="carousel" id="carosello" aria-roledescription="carosello" aria-labelledby="carosello-titolo">
+      <h2 id="carosello-titolo">In 8 slide</h2>
+      <div class="stage" data-stage>
+        <iframe class="on" src="assets/social/ai_pensioni/slide_01.html" title="Slide 1 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_02.html" title="Slide 2 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_03.html" title="Slide 3 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_04.html" title="Slide 4 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_05.html" title="Slide 5 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_06.html" title="Slide 6 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_07.html" title="Slide 7 di 8" loading="lazy" sandbox></iframe>
+        <iframe class="" src="assets/social/ai_pensioni/slide_08.html" title="Slide 8 di 8" loading="lazy" sandbox></iframe>
+      </div>
+      <div class="controls">
+        <span class="pos" aria-live="polite" data-pos>1 / 8</span>
+        <button type="button" data-step="-1" aria-label="Slide precedente">&larr;</button>
+        <button type="button" data-step="1" aria-label="Slide successiva">&rarr;</button><a href="assets/social/ai_pensioni/deck.pdf" download>PDF</a>
+      </div>
+    </section>
+    <section class="about" aria-labelledby="autore-titolo">
+      <h2 id="autore-titolo">Chi scrive</h2>
+      <p>Gli articoli dell&#39;Osservatorio Algoritmi &amp; Welfare sono firmati collettivamente dalla Redazione Osservatorio. La firma collettiva è una scelta: ciò che conta per il lettore è la catena di verifica di ogni affermazione, non la biografia di chi l&#39;ha scritta.</p>
+    </section>
+
+    <section class="trust" id="trasparenza" aria-labelledby="trasparenza-titolo">
+      <h2 id="trasparenza-titolo">Trasparenza</h2>
+      <p>Ogni affermazione è stata riscontrata sulle fonti elencate; il testo è stato rivisto e approvato da una persona prima della pubblicazione. Segnalazioni e correzioni: <a href="mailto:correzioni@welfare-ai.example.org">correzioni@welfare-ai.example.org</a>.</p>
+      <ul>
+        <li><a href="https://welfare-ai.example.org/metodo/">Metodo</a></li>
+        <li><a href="https://welfare-ai.example.org/correzioni/">Correzioni</a></li>
+        <li><a href="https://welfare-ai.example.org/per-chi-scrive/">Per chi scrive</a></li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<footer class="colophon">
+  Osservatorio Algoritmi &amp; Welfare · Kit approvato al Gate 2 · <code>v1:dc26d5662c88fcc7d3ac44188438a41fe0c77a8b9179a6c29d85ea46df294b1e</code>
+</footer>
+<script>
+(function () {
+  var stage = document.querySelector("[data-stage]");
+  if (stage) {
+    var items = stage.children, pos = document.querySelector("[data-pos]"), i = 0;
+    var show = function (n) {
+      items[i].classList.remove("on");
+      i = (n + items.length) % items.length;
+      items[i].classList.add("on");
+      pos.textContent = (i + 1) + " / " + items.length;
+    };
+    document.querySelectorAll("[data-step]").forEach(function (b) {
+      b.addEventListener("click", function () { show(i + Number(b.dataset.step)); });
+    });
+    stage.parentElement.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") show(i + 1);
+      if (e.key === "ArrowLeft") show(i - 1);
+    });
+  }
+  var links = document.querySelectorAll(".toc ol a");
+  if (links.length && "IntersectionObserver" in window) {
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.setAttribute("aria-current", a.getAttribute("href") === "#" + entry.target.id ? "true" : "false");
+        });
+      });
+    }, { rootMargin: "0px 0px -70% 0px" });
+    links.forEach(function (a) {
+      var target = document.getElementById(a.getAttribute("href").slice(1));
+      if (target) seen.observe(target);
+    });
+  }
+})();
+</script>
+</body>
+</html>
