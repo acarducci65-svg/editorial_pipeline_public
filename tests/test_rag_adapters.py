@@ -411,6 +411,7 @@ def test_remote_supported(nlm: Mock, tmp_path: Path, field: str, references: str
         "--json",
         "--timeout",
         "12.5",
+        "--new-conversation",
     ]
     assert kwargs == {
         "check": False,

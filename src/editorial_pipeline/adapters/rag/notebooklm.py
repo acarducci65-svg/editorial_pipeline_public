@@ -62,6 +62,7 @@ class NotebookLMAdapter(RagProvider):
                 "--json",
                 "--timeout",
                 str(self._timeout),
+                "--new-conversation",
             ]
             try:
                 result = subprocess.run(
