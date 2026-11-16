@@ -449,6 +449,8 @@ timeout_seconds = 60
 | `corpus_id_env` | `"EDITORIAL_AUDIO_ID"` | **Nome** della variabile d'ambiente con l'identificativo (o l'alias `nlm`) del taccuino |
 | `corpus_id` | assente | Ha la precedenza sulla variabile. Non va valorizzato nei file versionati (zero-leak) |
 | `timeout_seconds` | `60` | Timeout di ogni chiamata a `nlm`; numero finito maggiore di zero |
+| `length` | `"short"` | Solo `notebooklm`: durata della puntata, `short`, `default` o `long` (passata a `nlm audio create --length`). `short` (indicativamente 6–10 minuti) evita le puntate da 20+ minuti piene di riempitivi; `--length` della CLI prevale |
+| `overview_format` | `"deep_dive"` | Solo `notebooklm`: stile della Audio Overview, `deep_dive`, `brief`, `critique` o `debate` (passato a `nlm audio create --format`); `--overview-format` della CLI prevale |
 
 ```toml
 [phases.optional]
@@ -458,6 +460,8 @@ F5 = true
 provider = "script_only"            # oppure "notebooklm"
 corpus_id_env = "EDITORIAL_AUDIO_ID"
 timeout_seconds = 60
+length = "short"                    # notebooklm: "short" (default), "default", "long"
+overview_format = "deep_dive"       # notebooklm: "deep_dive" (default), "brief", "critique", "debate"
 ```
 
 La sezione non attiva la fase: senza `[phases.optional].F5 = true` il comando si rifiuta comunque. Guida completa: [`audio_production.md`](audio_production.md).
@@ -1199,7 +1203,7 @@ Un `Error: ...` senza JSON indica un problema di configurazione o di percorso, n
 | `validate-all [--json]` | F6, pre-release | Come `validate-draft`, su tutte le unità | — |
 | `verify-facts <post> [--json]` | F3 | Coerenza di `sources.json`, `factcheck.json` e `draft-review.json` con la bozza corrente, secondo `[providers.rag].adapter` | Non estrae claim, non legge le fonti, non giudica la verità dei claim |
 | `build-visual <post> [--dry-run] [--html-only] [--aspect-ratio 4:5\|1:1]` | F4 | Carosello HTML (+ PNG/PDF) in `dist/social/<post_id>/` con manifest e SHA-256; si rifiuta se `F4_visual = false` | Non revisiona i testi delle slide |
-| `build-audio <post> [--provider script_only\|notebooklm] [--new] [--dry-run] [--json]` | F5 | Copione `podcast_script.md` (offline) o audio `podcast.m4a` (via `nlm`) in `dist/audio/<post_id>/`, solo dai claim verificati; si rifiuta se `F5 = false` o se le evidenze hanno `BLOCK` | Non revisiona il copione, non approva l'audio |
+| `build-audio <post> [--provider script_only\|notebooklm] [--new] [--length short\|default\|long] [--overview-format deep_dive\|brief\|critique\|debate] [--dry-run] [--json]` | F5 | Copione `podcast_script.md` (offline) o audio `podcast.m4a` (via `nlm`) in `dist/audio/<post_id>/`, solo dai claim verificati; si rifiuta se `F5 = false` o se le evidenze hanno `BLOCK` | Non revisiona il copione, non approva l'audio |
 | `check-gate <1\|2> <post>` | Gate | Verifica la ricevuta umana, ricalcola e confronta il bundle; esito `RECEIPT_VALID` | Non legge la chat, non autentica persone, non esegue azioni |
 | `publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Rifà `check-gate 2` (exit `2` se fallisce), poi esegue solo le azioni autorizzate: archivio `tar.gz` o esportazione per sito statico | Non carica nulla in rete, non esegue `publish`/`schedule`/`sync` generici, non sovrascrive |
 | `editorial view <post_id> [--serve] [--port PORT] [--no-browser]` | Preparazione pre-Gate 2; consultazione finale | Genera e apre la console webredazionale: copia social, player audio, carosello e download. Server HTTP locale facoltativo | Non genera asset mancanti, non verifica o approva gate, non pubblica. Riscrive l'HTML in `dist/`, con possibile invalidazione del Gate 2 |
@@ -1444,7 +1448,7 @@ Il comando verifica la ricevuta del gate richiesto (per il Gate 2 anche quella d
 ### 6.10 `build-audio` (F5)
 
 ```text
-editorial build-audio <post> [--provider script_only|notebooklm] [--new] [--dry-run] [--json] [--config editorial.toml]
+editorial build-audio <post> [--provider script_only|notebooklm] [--new] [--length short|default|long] [--overview-format deep_dive|brief|critique|debate] [--format m4a|mp3] [--language it] [--dry-run] [--json] [--config editorial.toml]
 ```
 
 | Argomento / opzione | Descrizione |
@@ -1452,6 +1456,8 @@ editorial build-audio <post> [--provider script_only|notebooklm] [--new] [--dry-
 | `<post>` | Unità di contenuto |
 | `--provider` | `script_only` o `notebooklm`. Precedenza: `--provider` > `[audio].provider` > `[providers.audio].adapter` > `script_only` (`none` equivale a `script_only`) |
 | `--new` | Solo con `notebooklm`: ignora gli audio già presenti nello Studio del taccuino (`completed`, `in_progress`, `queued`) e avvia una nuova generazione. Con un altro provider la CLI rifiuta il flag. Non va usato dopo `generation still pending after bounded polling`: in quel caso si rilancia senza `--new` per riprendere la puntata in corso |
+| `--length` | Solo con `notebooklm`: `short`, `default` o `long`. Precedenza: `--length` > `[audio].length` > `short`. Il default breve evita divagazioni e riempitivi |
+| `--overview-format` | Solo con `notebooklm`: `deep_dive`, `brief`, `critique` o `debate`, passato a `nlm audio create --format`. Precedenza: `--overview-format` > `[audio].overview_format` > `deep_dive`. Non va confuso con `--format`, che sceglie il contenitore del file (`m4a` o `mp3`) |
 | `--dry-run` | Restituisce il percorso previsto; nessuna scrittura, nessuna chiamata a `nlm`, nessuna credenziale richiesta |
 | `--json` | Risultato in JSON: `status` (`BUILT`, `DRY_RUN`), `provider`, `script_file`, `audio_files`, `duration_seconds`, `details` |
 
@@ -1465,7 +1471,9 @@ Sequenza dei controlli:
 | Provider | Artefatto | Note |
 |---|---|---|
 | `script_only` | `podcast_script.md` | Offline e deterministico: intro, un segmento per fonte con `[Speaker]`, `Riferimento:` e `[Pausa]`, outro con nota di licenza e promemoria di revisione umana |
-| `notebooklm` | `podcast.m4a` | Sul taccuino di `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`; consigliato il Micro-Taccuino d'Articolo `<slug>-<post_id>` con le sole fonti di `sources.json`): ricognizione dello Studio con riuso di un audio già `completed` o in corso (saltata con `--new`), altrimenti `nlm audio create`; controllo di stato limitato (120 tentativi ogni 5 secondi, 10 minuti), download atomico. Errori: messaggio `NotebookLM audio: <motivo>. Retry or use --provider script_only.`, exit `1` |
+| `notebooklm` | `podcast.m4a` | Sul taccuino di `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`; consigliato il Micro-Taccuino d'Articolo `<slug>-<post_id>` con le sole fonti di `sources.json`): ricognizione dello Studio con riuso di un audio già `completed` o in corso (saltata con `--new`), altrimenti `nlm audio create` con `--format <overview_format> --length <length>` e il `--focus` descritto sotto; controllo di stato limitato (120 tentativi ogni 5 secondi, 10 minuti), download atomico. Errori: messaggio `NotebookLM audio: <motivo>. Retry or use --provider script_only.`, exit `1` |
+
+**Il `--focus` anti-enfasi.** Con `notebooklm` il `--focus` inviato a `nlm audio create` non contiene solo i claim: comincia con vincoli editoriali per i conduttori e poi elenca le affermazioni verificate, una per riga, con fonte e locator. I vincoli: (1) registro sobrio e giornalistico; (2) niente enfasi, iperboli, domande retoriche teatrali né formule fatte («immersione profonda», «rivoluzione», «cambia tutto», «senza precedenti», …); (3) niente metafore, paragoni di vita quotidiana, esempi numerici, aliquote, età o scenari assenti dai claim; (4) rigore causale e temporale: risultati condizionati non diventano previsioni certe, definizioni (benessere o utilità non sono gettito) e orizzonti temporali si rispettano; (5) perimetro chiuso sui claim verificati. Se `[register].extra_forbidden` non è vuoto, la CLI aggiunge un sesto punto con quelle espressioni: per vietare una formula anche nell'audio basta aggiungerla lì. NotebookLM non garantisce il rispetto delle regole: l'ascolto integrale prima del Gate 2 resta obbligatorio, e un passaggio difettoso si riferisce al Direttore, che decide se rigenerare con `--new`.
 
 Esempio sulla copia della sandbox con `F5 = true` (§9.6):
 

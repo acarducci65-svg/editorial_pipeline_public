@@ -63,12 +63,13 @@ Il taccuino contiene **solo** le fonti approvate in F1 (`sources.json`): una fon
 ```bash
 editorial build-audio post_07 --provider notebooklm --dry-run --json              # percorso previsto
 editorial build-audio post_07 --provider notebooklm --format m4a --language it --json
+editorial build-audio post_07 --provider notebooklm --length short --overview-format deep_dive --json   # i default, scritti per esteso
 ```
 
 La CLI esegue nell'ordine:
 
 1. **Ricognizione dello Studio** (saltata con `--new`). `nlm studio status <taccuino> --json --mcp-compatible`: se nel taccuino esiste già un artefatto audio `completed`, lo scarica subito; se ne esiste uno `in_progress` o `queued`, si aggancia al suo polling. In entrambi i casi **non avvia una seconda generazione** (niente puntate duplicate né quota sprecata).
-2. **Generazione**, solo se lo Studio non contiene audio riutilizzabile o se è stato passato `--new`: `nlm audio create <taccuino> --language it --confirm --json --focus "<claim verificati con fonte e locator>"`.
+2. **Generazione**, solo se lo Studio non contiene audio riutilizzabile o se è stato passato `--new`: `nlm audio create <taccuino> --language it --confirm --json --format <overview_format> --length <length> --focus "<regole editoriali + claim verificati con fonte e locator>"`.
 3. **Attesa limitata**: `nlm studio status … --artifact-id <id>` fino a **120 controlli ogni 5 secondi (10 minuti)**. Uno stato diverso da `completed`, `in_progress` o `queued` è un fallimento (`audio generation failed`).
 4. **Download** con `nlm download audio` in una cartella temporanea; il file sostituisce `podcast.<formato>` in `[paths].dist/audio/<post_id>/` solo se il download è riuscito e non è vuoto.
 
@@ -96,7 +97,37 @@ Quando **non** usarlo:
 
 Le puntate precedenti restano nello Studio: eliminarle è una decisione del titolare dell'account. Rigenerare l'audio dopo il pacchetto Gate 2 rende la ricevuta `stale` (§2.5).
 
-`--format` sceglie il **contenitore del file** (`m4a`, default e formato nativo di NotebookLM; `mp3` solo se la destinazione lo richiede). Non va confuso con `--format` di `nlm audio create`, che sceglie lo stile della puntata (`deep_dive`, `brief`, …).
+**Durata e formato della puntata: `--length` e `--overview-format`.**
+
+| Opzione `build-audio` | Chiave `[audio]` | Valori | Default | Diventa in `nlm audio create` |
+|---|---|---|---|---|
+| `--length` | `length` | `short`, `default`, `long` | **`short`** | `--length` |
+| `--overview-format` | `overview_format` | `deep_dive`, `brief`, `critique`, `debate` | `deep_dive` | `--format` |
+
+Precedenza: opzione della CLI > `[audio]` di `editorial.toml` > default del modello. Un valore fuori elenco è rifiutato dalla CLI o dalla validazione di `editorial.toml`.
+
+```toml
+[audio]
+provider = "notebooklm"
+length = "short"               # default: puntata breve, indicativamente 6–10 minuti
+overview_format = "deep_dive"  # conversazione di approfondimento a due conduttori
+```
+
+- **`short` è il default editoriale.** Con `default` o `long` la puntata arriva facilmente a 20 minuti e oltre, e il tempo in più si riempie di raccordi, ripetizioni e divagazioni senza claim. Un articolo con pochi claim verificati regge una puntata breve. Passate a `default` o `long` solo su indicazione del Direttore (un'inchiesta lunga con molti claim, per esempio), non per «arricchire» l'audio.
+- **`--overview-format`** sceglie lo stile della Audio Overview: `deep_dive` (approfondimento, lo standard), `brief` (sintesi), `critique` e `debate` (commento o contraddittorio). Questi ultimi due spingono i conduttori a valutazioni proprie: usateli solo se il Direttore lo chiede, e all'ascolto controllate con più attenzione.
+- `--format` di `build-audio` resta il **contenitore del file** (`m4a`, default e formato nativo di NotebookLM; `mp3` solo se la destinazione lo richiede). Non confondetelo con `--overview-format`, che la CLI traduce in `--format` di `nlm audio create`.
+- La ricognizione dello Studio (passo 1 della sequenza qui sopra) non guarda durata, formato né `--focus`: una puntata `completed` generata con impostazioni diverse viene riscaricata com'è. Per cambiare `--length` o `--overview-format` su un taccuino che contiene già una puntata serve una nuova generazione con `--new`, quindi l'autorizzazione del Direttore (§2.5).
+
+**Regole editoriali nel `--focus` (vincolanti, inviate in automatico).** La CLI non manda a NotebookLM solo i claim. Il `--focus` comincia con un blocco di vincoli per i conduttori e poi elenca le affermazioni verificate, una per riga, nella forma `- <testo> (fonte <key>, <locator>)`. I vincoli:
+
+1. **Registro sobrio e giornalistico**: tono asciutto, pacato, analitico; niente toni entusiastici, sensazionalistici o da spettacolo.
+2. **Niente enfasi né frasi fatte**: niente iperboli, esclamazioni a effetto, domande retoriche teatrali, né formule come «immersione profonda», «viaggio illuminante», «forze titaniche», «saltare sulla sedia», «rivoluzione», «cambia tutto», «senza precedenti», «i modelli non mentono».
+3. **Niente metafore né esempi inventati**: nessun paragone di vita quotidiana (il prezzo di beni comuni, per esempio), nessun esempio numerico, aliquota, età o scenario ipotetico che non compaia nei claim.
+4. **Rigore causale e temporale**: il risultato condizionato di un modello non diventa una previsione certa né una ricetta universale. Le definizioni si rispettano alla lettera (benessere o utilità non sono gettito fiscale), e così gli orizzonti temporali (un decennio non diventa «per sempre»).
+5. **Perimetro chiuso**: solo le affermazioni verificate e i loro locator, nessun fatto esterno o non supportato.
+6. **Espressioni vietate dal progetto**, solo se ce ne sono: la CLI aggiunge l'elenco di `[register].extra_forbidden` di `editorial.toml`, le stesse formule che `validate-draft` blocca nella bozza. Per vietare un'espressione anche nell'audio non serve un'opzione a parte: va aggiunta a `extra_forbidden` prima di generare. È una decisione del Direttore, perché vale anche per la bozza.
+
+Le regole del `--focus` **non sono una garanzia**: NotebookLM di solito le segue, non sempre. Il controllo che conta resta l'ascolto integrale (§2.5). Non riscrivete né allentate il `--focus` a mano per avere una puntata più «vivace»; nella procedura manuale (§2.3) usate lo stesso testo che produrrebbe la CLI.
 
 ### 2.3 Procedura manuale `nlm` (attesa lunga)
 
@@ -122,7 +153,7 @@ Se il Direttore preferisce non attendere, la decisione (rinvio o `script_only`) 
 Se manca del tutto una generazione (nessun artefatto audio nello Studio), la procedura manuale completa usa lo stesso taccuino e lo stesso `--focus` (il testo dei claim verificati, uno per riga, con fonte e locator):
 
 ```bash
-nlm audio create podcast-post07 --language it --confirm --json --focus "Genera un podcast solo sulle seguenti affermazioni verificate. Non aggiungere fatti non supportati: ..."
+nlm audio create podcast-post07 --language it --confirm --json --format deep_dive --length short --focus "Genera un podcast esclusivamente sulle affermazioni verificate elencate in fondo. Vincoli editoriali obbligatori per i conduttori: ... Affermazioni verificate (testo, fonte, locator): ..."
 nlm studio status podcast-post07 --json --mcp-compatible --artifact-id <artifact_id>   # ripetere finché status = completed
 nlm download audio podcast-post07 --id <artifact_id> --output dist/audio/post_07/podcast.m4a --no-progress
 ```
@@ -158,11 +189,18 @@ Riferite sempre il motivo al Direttore. Con `--provider notebooklm` esplicito no
 
 ### 2.5 Dopo l'esecuzione
 
-1. **Ascoltate l'audio per intero.** I conduttori di NotebookLM parafrasano, collegano e commentano. Confrontate ogni fatto, numero, data e attribuzione con `factcheck.json`: ciò che non ha un `claim_id`, o lo travisa, blocca l'audio. Si rigenera con `build-audio --provider notebooklm --new` (senza `--new` la CLI riscaricherebbe la stessa puntata `completed`) o, con l'assenso del Direttore, si chiude F5 con `script_only`.
-2. **Annotate l'ascolto** nella prova del kit o in una prova dedicata: durata, eventuali passaggi problematici con minutaggio, esito.
-3. **Copione `script_only`:** contiene solo i claim di `factcheck.json`, uno per riga `[Speaker]`, ciascuno con il suo `Riferimento:` (locator). Verificate che nessuna frase introduca un fatto nuovo e applicate la checklist anti-cliché (`humanizer_checklist.md`) alle parti discorsive (intro, raccordi, outro).
-4. **Trasparenza:** la descrizione della puntata dichiara che le voci sono generate con Google NotebookLM a partire dalle fonti verificate dell'articolo.
-5. Inserite nel pacchetto Gate 2 il percorso dell'audio, l'esito dell'ascolto e, se presente, il copione integrale (o il suo percorso).
+1. **Ascoltate l'audio per intero.** I conduttori di NotebookLM parafrasano, collegano e commentano. Confrontate ogni fatto, numero, data e attribuzione con `factcheck.json`: ciò che non ha un `claim_id`, o lo travisa, blocca l'audio. Se l'agente non può ascoltare, una trascrizione automatica (ASR) serve come **ispezione di supporto** per preparare i rilievi con il minutaggio, ma **non sostituisce l'ascolto umano**: dichiaratelo nel pacchetto Gate 2 e lasciate l'ascolto al Direttore.
+2. **Controllo anti-cliché e anti-estrapolazione (pre-Gate 2).** Sullo stesso ascolto, o sulla trascrizione di supporto, applicate la checklist anti-cliché (`humanizer_checklist.md`) e le regole del `--focus` (§2.2). Cercate in particolare:
+   - enfasi e frasi fatte: iperboli, esclamazioni, domande retoriche teatrali, le formule del punto 2 del `--focus`, ogni voce di `[register].extra_forbidden`;
+   - metafore ed esempi inventati: paragoni di vita quotidiana, prezzi, cifre, aliquote, età o scenari ipotetici che non compaiono in nessun claim;
+   - estrapolazioni: un risultato condizionato presentato come certezza o come ricetta valida ovunque, un orizzonte temporale allargato («per sempre», «d'ora in poi» al posto del periodo studiato), una correlazione raccontata come causa;
+   - confusioni concettuali: definizioni scambiate fra loro (benessere o utilità al posto di gettito, stima al posto di misura, campione al posto di popolazione);
+   - durata fuori scala rispetto a `length` e riempitivi senza claim.
+3. **Se il controllo fallisce: finding P1, nessuna rigenerazione autonoma.** Ogni passaggio difettoso è un finding **P1** da riferire al Direttore con minutaggio, frase (testuale, o ricavata dalla trascrizione), regola violata e `claim_id` coinvolto (o «nessun claim»). La puntata non entra nel pacchetto Gate 2 come «ascoltata e conforme». **Non lanciate `build-audio --new` senza l'autorizzazione esplicita del Direttore**: ogni `--new` è una nuova generazione sulla sua quota, e le puntate precedenti restano nello Studio. Decide il Direttore: rigenerare con `--new` (senza `--new` la CLI riscaricherebbe la stessa puntata `completed`), eventualmente con `--length` più breve o con nuove voci in `extra_forbidden`; accettare la puntata dichiarando i rilievi; chiudere F5 con `script_only`; dichiarare F5 `skipped`.
+4. **Annotate l'ascolto** nella prova del kit o in una prova dedicata: durata, `length` e `overview_format` usati, passaggi problematici con minutaggio e regola violata, esito, e se l'ispezione è stata fatta con ascolto umano o su trascrizione di supporto.
+5. **Copione `script_only`:** contiene solo i claim di `factcheck.json`, uno per riga `[Speaker]`, ciascuno con il suo `Riferimento:` (locator). Verificate che nessuna frase introduca un fatto nuovo e applicate la checklist anti-cliché (`humanizer_checklist.md`) alle parti discorsive (intro, raccordi, outro).
+6. **Trasparenza:** la descrizione della puntata dichiara che le voci sono generate con Google NotebookLM a partire dalle fonti verificate dell'articolo.
+7. Inserite nel pacchetto Gate 2 il percorso dell'audio, l'esito dell'ascolto e del controllo del punto 2, gli eventuali finding P1 e, se presente, il copione integrale (o il suo percorso).
 
 Ogni correzione si fa **prima** del pacchetto Gate 2. Rieseguire `build-audio` sovrascrive l'artefatto e, dopo il Gate 2, rende la ricevuta `stale`.
 
@@ -271,10 +309,11 @@ La struttura del sito Hugo che riceve l'export (configurazione, pagine di traspa
 - [ ] Audio solo da NotebookLM Studio (`--provider notebooklm`) o, in alternativa, copione `script_only`; nessun file da TTS mono-voce in `dist/`.
 - [ ] Audio generato dal Micro-Taccuino d'Articolo `<slug>-<post_id>` (`EDITORIAL_AUDIO_ID`), non dal Taccuino Maestro.
 - [ ] Dopo un `generation still pending`: nessun ripiego autonomo su `script_only` e nessun `--new`; puntata attesa e scaricata (§2.3).
-- [ ] `--new` usato solo per sostituire una puntata superata o bocciata all'ascolto, una volta per decisione.
+- [ ] `--new` usato solo su autorizzazione esplicita del Direttore, per sostituire una puntata superata o bocciata all'ascolto, una volta per decisione.
+- [ ] `--length short` (default) salvo diversa indicazione del Direttore; `--overview-format` scelto consapevolmente; regole del `--focus` lasciate intatte, voci da vietare aggiunte a `[register].extra_forbidden`.
 - [ ] Con NotebookLM: `dist/audio/<post_id>/podcast.<m4a|mp3>` presente su disco e non vuoto **prima** di `editorial view <post_id>`.
-- [ ] `build-audio` eseguito **prima** del pacchetto Gate 2; audio ascoltato per intero e confrontato con `factcheck.json`; copione riletto, nessun claim nuovo, checklist anti-cliché applicata.
-- [ ] Pacchetto Gate 2 con percorso dell'audio, esito dell'ascolto, copione se presente, azioni proposte (`archive`, `export_markdown`) e destinazione.
+- [ ] `build-audio` eseguito **prima** del pacchetto Gate 2; audio ascoltato per intero e confrontato con `factcheck.json`; controllo anti-cliché e anti-estrapolazione fatto (§2.5, punto 2), difetti riferiti come finding P1; copione riletto, nessun claim nuovo, checklist anti-cliché applicata.
+- [ ] Pacchetto Gate 2 con percorso dell'audio, esito dell'ascolto e degli eventuali finding P1, copione se presente, azioni proposte (`archive`, `export_markdown`) e destinazione.
 - [ ] Frase del Direttore con le azioni; ricevuta scritta dopo; `check-gate 2` → `RECEIPT_VALID`.
 - [ ] `publish --dry-run` mostrato; `publish` eseguito solo per i target autorizzati.
 - [ ] Esito riferito con `bundle_digest`; nessun file aggiunto a `dist/` dopo la ricevuta.

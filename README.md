@@ -155,7 +155,7 @@ package, so the command also works outside the repository.
 | `validate-all` | `validate-draft` on every post | `--json`, `--config` |
 | `verify-facts <post>` | Consistency of `sources.json`, `factcheck.json` and `draft-review.json` with the draft | `--json`, `--config` |
 | `build-visual <post>` | Carousel HTML (+ PNG/PDF) with SHA-256 manifest | `--dry-run`, `--html-only`, `--aspect-ratio {4:5,1:1}`, `--config` |
-| `build-audio <post>` | Optional phase F5: podcast script or NotebookLM audio overview from verified claims, in `dist/audio/<post_id>/` | `--provider {script_only,notebooklm}`, `--new` (NotebookLM: force a fresh episode), `--dry-run`, `--json`, `--config` |
+| `build-audio <post>` | Optional phase F5: podcast script or NotebookLM audio overview from verified claims, in `dist/audio/<post_id>/` | `--provider {script_only,notebooklm}`, `--new` (NotebookLM: force a fresh episode), `--length {short,default,long}` (default `short`), `--overview-format {deep_dive,brief,critique,debate}` (default `deep_dive`), `--dry-run`, `--json`, `--config` |
 | `check-gate {1,2} <post>` | Formal verification of the human receipt and its bundle | `--config` (`--token` is deprecated and ignored) |
 | `publish <post>` | After Gate 2 only: re-validates the receipt and runs only the authorised local actions (tar.gz package, static-site export or author website page) | `--target {dist_archive,static_site,author_website}`, `--dry-run`, `--json`, `--config` |
 
@@ -240,7 +240,7 @@ claims in `factcheck.json` with their source and locator.
 | Provider | Output in `dist/audio/<post_id>/` | Notes |
 | --- | --- | --- |
 | `script_only` (default) | `podcast_script.md` | Offline and deterministic: intro, one segment per source with each claim and its locator, outro with licence note and a human-review reminder |
-| `notebooklm` | `podcast.m4a` | NotebookLM audio overview through `nlm audio create`, bounded status polling and atomic download. Needs `nlm login` and the notebook id in an environment variable (`EDITORIAL_AUDIO_ID` by default). Failures exit 1 with a protected message suggesting `--provider script_only` |
+| `notebooklm` | `podcast.m4a` | NotebookLM audio overview through `nlm audio create`, bounded status polling and atomic download. Needs `nlm login` and the notebook id in an environment variable (`EDITORIAL_AUDIO_ID` by default). Episodes are short by default (`--length short`) and the `--focus` sent to NotebookLM opens with binding editorial rules: sober register, no emphasis, stock phrases, invented metaphors or numbers, definitions and time horizons respected, plus `[register].extra_forbidden`. Failures exit 1 with a protected message suggesting `--provider script_only` |
 
 ```toml
 [phases.optional]
@@ -250,7 +250,11 @@ F5 = true
 provider = "script_only"              # or "notebooklm"
 corpus_id_env = "EDITORIAL_AUDIO_ID"  # name of the variable, never the id
 timeout_seconds = 60
+length = "short"                      # NotebookLM: "short" (default), "default" or "long"
+overview_format = "deep_dive"         # NotebookLM: "deep_dive" (default), "brief", "critique" or "debate"
 ```
+
+`--length` and `--overview-format` override `[audio].length` and `[audio].overview_format`.
 
 Audio files live in `[paths].dist`, so they are part of the Gate 2 bundle: generate them
 **before** asking for Gate 2. Regenerating them afterwards makes the receipt stale.
@@ -488,7 +492,7 @@ editorial install-skill .claude/skills          # crea .claude/skills/editorial-
 | `status`, `validate-all` | `--json`, `--config` |
 | `validate-draft <post>`, `verify-facts <post>` | `--json`, `--config` |
 | `build-visual <post>` | `--dry-run` (nessuna scrittura), `--html-only` (niente Playwright), `--aspect-ratio {4:5,1:1}` |
-| `build-audio <post>` | Fase F5: `--provider {script_only,notebooklm}`, `--new` (NotebookLM: nuova puntata), `--dry-run`, `--json` |
+| `build-audio <post>` | Fase F5: `--provider {script_only,notebooklm}`, `--new` (NotebookLM: nuova puntata), `--length {short,default,long}` (default `short`), `--overview-format {deep_dive,brief,critique,debate}` (default `deep_dive`), `--dry-run`, `--json` |
 | `check-gate {1,2} <post>` | `--config`; `--token` è deprecato e ignorato |
 | `publish <post>` | Solo dopo il Gate 2: `--target {dist_archive,static_site,author_website}`, `--dry-run` (nessuna scrittura), `--json` |
 
@@ -537,7 +541,9 @@ valida o `stale`, azioni non autorizzate).
   hanno `BLOCK`, e usa solo i claim di `factcheck.json` con fonte e locator. Provider:
   `script_only` (predefinito, offline) scrive il copione `podcast_script.md`; `notebooklm`
   genera `podcast.m4a` con `nlm audio create`, con il taccuino nella variabile
-  `EDITORIAL_AUDIO_ID` (`[audio].corpus_id_env`). Gli artefatti stanno in
+  `EDITORIAL_AUDIO_ID` (`[audio].corpus_id_env`), per default in versione breve
+  (`--length short`, `[audio].length`) e con `--overview-format deep_dive`; il `--focus`
+  impone ai conduttori regole anti-enfasi e le voci di `[register].extra_forbidden`. Gli artefatti stanno in
   `dist/audio/<post_id>/`, quindi nel bundle del Gate 2: si generano **prima** del Gate 2.
   Guida: [`docs/audio_production.md`](docs/audio_production.md).
 - `publish` ripete la verifica completa di `check-gate 2`: se fallisce si ferma con

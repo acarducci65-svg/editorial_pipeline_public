@@ -20,8 +20,19 @@ e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   (`NotebookLM RAG: usage limit reached …`), senza ulteriori interrogazioni (T-086).
 - Applicazione di `[providers.rag].max_claims_per_turn` (default `8`) anche nella
   CLI: oltre il tetto `verify-facts` non lancia interrogazioni remote.
+- Opzioni `--length {short,default,long}` e
+  `--overview-format {deep_dive,brief,critique,debate}` per `editorial build-audio`
+  e chiavi `[audio].length` / `[audio].overview_format` (precedenza: CLI >
+  `[audio]` > default), passate a `nlm audio create` come `--length` e `--format` (T-091).
 
 ### Changed
+
+- `build-audio` con NotebookLM genera per default puntate brevi (`length = "short"`,
+  `overview_format = "deep_dive"`) e apre il `--focus` con regole editoriali
+  vincolanti per i conduttori: registro sobrio, niente enfasi, frasi fatte,
+  metafore o esempi numerici inventati, rispetto di definizioni e orizzonti
+  temporali, perimetro chiuso sui claim verificati, più le voci di
+  `[register].extra_forbidden` (T-091).
 
 - Polling dell'audio NotebookLM esteso a 10 minuti (120 controlli ogni 5 s) e
   riuso degli artefatti audio già presenti nello Studio, completati o in corso,
@@ -36,7 +47,7 @@ e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - Il loader di `editorial.toml` tollera il BOM UTF-8 aggiunto da alcuni editor
   su Windows (T-085).
 - La console `editorial view` trova le bozze anche in sottocartelle annidate di
-  `content/`.
+  `content/`: `web_hub.discover_post_ids` cerca i post in modo ricorsivo.
 - Import circolare nell'adapter audio NotebookLM.
 
 ### Documentation
@@ -56,6 +67,13 @@ e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - Guida allo scaffolding del sito Hugo che riceve `publish` (T-081) e al deploy
   con Docker/Coolify, con regola UTF-8 senza BOM e date localizzate (T-084).
 - Linee guida contro l'iper-frammentazione dei claim in F3.
+- Skill: `editorial view` obbligatorio prima del pacchetto Gate 1, per mostrare
+  al Direttore bozza, fonti e claim nella console (T-090).
+- Skill: `--length short`, `--overview-format` e regole anti-enfasi del `--focus`
+  documentati in F5; il controllo pre-Gate 2 dell'audio include la checklist
+  anti-cliché e la ricerca di estrapolazioni, esempi inventati e confusioni
+  concettuali, da riferire come finding P1; `--new` solo su autorizzazione del
+  Direttore (T-092).
 - README e manuale utente allineati alla versione 1.2.0.
 
 ## [1.1.0] - 2026-11-15
