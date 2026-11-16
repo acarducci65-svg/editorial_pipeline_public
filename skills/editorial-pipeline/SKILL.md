@@ -107,7 +107,7 @@ Convenzioni:
 | `editorial build-audio <post_id> [--provider notebooklm] [--new] [--format {m4a,mp3}] [--language it] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il podcast conversazionale a due voci di **Google NotebookLM Studio** (`podcast.m4a` o `podcast.mp3`, via `nlm`) in `[paths].dist/audio/<post_id>/`. Con `--provider script_only` scrive invece il solo copione `podcast_script.md` (offline). `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm`; `--new` (solo `notebooklm`) ignora le puntate già presenti nello Studio e avvia una nuova generazione | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non ascolta né revisiona l'audio, non approva nulla. Il provider `tts` è deprecato e **vietato** per la pubblicazione (§4, F5) |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
 | `editorial-pipeline publish <post> [--target dist_archive\|static_site\|author_website] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown, immagini, PDF e audio approvato (mai `.html`/`.css`) in `dist/published/<post_id>/` o in `[publishing].static_site_dir`, come page bundle Hugo con `static_site_layout = "hugo_bundle"`; `author_website` → pagina long-form `index.html` con asset in `dist/author_site/<post_id>/`, pronta per il sito personale dell'autore. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive (unica eccezione: `static_site` con `[publishing].allow_overwrite = true`) |
-| `editorial view [<post_id>] [--all] [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 2; consultazione a fine flusso | Con `<post_id>` genera `[paths].dist/web/<post_id>.html`, la console webredazionale a schede (Articolo, Social, Podcast, Carosello, Fonti e trasparenza, Pubblicazione) nei colori di `[theme]`. Senza `<post_id>` o con `--all` rigenera le console di tutte le unità e l'indice della redazione `[paths].dist/web/index.html`, con lo stato F1–F5, Gate 1 e Gate 2 di ciascuna. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`: dopo il Gate 2 può invalidare la ricevuta |
+| `editorial view [<post_id>] [--all] [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 1 (bozza, fonti e claim) e del Gate 2; consultazione a fine flusso | Con `<post_id>` genera `[paths].dist/web/<post_id>.html`, la console webredazionale a schede (Articolo, Social, Podcast, Carosello, Fonti e trasparenza, Pubblicazione) nei colori di `[theme]`. Senza `<post_id>` o con `--all` rigenera le console di tutte le unità e l'indice della redazione `[paths].dist/web/index.html`, con lo stato F1–F5, Gate 1 e Gate 2 di ciascuna. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`: dopo il Gate 2 può invalidare la ricevuta |
 
 Stati dei controlli: `OK`, `WARN` (va motivato nel pacchetto), `BLOCK` (impedisce il gate).
 
@@ -136,6 +136,7 @@ F2b  De-aizing e revisione di stile, draft-review.json
 F3   Fact-checking con RAG, factcheck.json, verify-facts senza BLOCK
      solo fatti materiali (8–15 claim ogni 1.200–1.500 parole), niente iper-frammentazione,
      al massimo max_claims_per_turn (8) interrogazioni RAG per turno, sul Micro-Taccuino
+     editorial-pipeline view <post_id> --no-browser: console con bozza, fonti e claim per il Gate 1
      ══ GATE 1 — Bozza verificata (Direttore) ══
 F4   Visual & Social   ‖   F5   Podcast / Audio, build-audio dal Micro-Taccuino   (in parallelo; F5 facoltativa)
      editorial view <post_id>: preparazione console prima del bundle Gate 2
@@ -221,16 +222,21 @@ All'inizio di ogni sessione: eseguite `editorial-pipeline status`, individuate l
 ### ══ GATE 1 — Bozza verificata ══
 
 1. Rieseguite `validate-draft --json` e `verify-facts --json` sull'ultima versione e annotate il `digest`.
-2. Componete il **pacchetto Gate 1** (`references/gates_and_evidence.md` §2): percorso del file integrale con invito a leggerlo, esito del linter, `draft-review.json`, tabella dei claim da `factcheck.json` con esito, fonte e locator, claim esclusi, errori intercettati e frasi cambiate da F3, digest abbreviato.
-3. Ponete la domanda configurata (`[gates.gate1].question`), ad esempio:
+2. **Console per il Direttore (obbligatoria).** Generate la console webredazionale dell'unità e l'indice della redazione:
+   ```bash
+   editorial-pipeline view <post_id> --no-browser
+   ```
+   Il comando scrive `[paths].dist/web/<post_id>.html` (bozza impaginata, fonti primarie con i link ai documenti, claim verificati) e aggiorna `[paths].dist/web/index.html`. `view` non modifica l'unità né le evidenze di F2b/F3: non invalida alcun digest del bundle Gate 1 e non approva alcun gate. Se il comando fallisce, riferitelo nel pacchetto invece di saltarlo in silenzio.
+3. Componete il **pacchetto Gate 1** (`references/gates_and_evidence.md` §2): percorso del file integrale con invito a leggerlo, percorsi `dist/web/<post_id>.html` e `dist/web/index.html` con invito ad aprirli nel browser per leggere bozza, fonti e claim nella console offline, esito del linter, `draft-review.json`, tabella dei claim da `factcheck.json` con esito, fonte e locator, claim esclusi, errori intercettati e frasi cambiate da F3, digest abbreviato.
+4. Ponete la domanda configurata (`[gates.gate1].question`), ad esempio:
    > Approvi questa bozza verificata (digest `3f9a1c2e…`) per passare alla promozione? Rispondi «Approvo Gate 1 #post_07» oppure indica le correzioni.
-4. **Fermatevi e attendete** (§1, regole 1 e 12).
-5. Con l'approvazione (§1, regola 2): ricevuta `evidence/<post_id>/approvals/gate1.json` (schema v1, estratto parola per parola, bundle con i digest di bozza, `sources.json`, `factcheck.json`, `draft-review.json`), poi
+5. **Fermatevi e attendete** (§1, regole 1 e 12).
+6. Con l'approvazione (§1, regola 2): ricevuta `evidence/<post_id>/approvals/gate1.json` (schema v1, estratto parola per parola, bundle con i digest di bozza, `sources.json`, `factcheck.json`, `draft-review.json`), poi
    ```bash
    editorial-pipeline check-gate 1 content/posts/post_07_titolo.md
    ```
    Atteso `"status": "RECEIPT_VALID"`. Se la CLI rifiuta (exit 2), il messaggio dice perché: `BLOCK` aperti, ricevuta non conforme o bundle `stale` (un file è cambiato dopo il pacchetto: rimostratelo).
-6. Con un rifiuto o correzioni: ricevuta `changes_requested`, ritorno alla fase indicata, nuovo Gate 1.
+7. Con un rifiuto o correzioni: ricevuta `changes_requested`, ritorno alla fase indicata, nuovo Gate 1 (con una nuova esecuzione di `view`).
 
 ### F4 — Visual & Social ‖ F5 — Podcast / Audio
 

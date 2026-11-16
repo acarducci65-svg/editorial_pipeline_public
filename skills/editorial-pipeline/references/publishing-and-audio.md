@@ -2,7 +2,7 @@
 
 Reference per **F5** (`build-audio`), per l'esecuzione delle azioni autorizzate al **Gate 2** (`publish`) e per la console webredazionale (`view`, §5). Integra `gates_and_evidence.md`, che resta la norma per pacchetti, ricevute e invalidazione: questi comandi non cambiano le regole dei gate, le applicano.
 
-Posizione nel ciclo: `F3 → Gate 1 → F4 ‖ F5 → view (preparazione console) → controlli finali → Gate 2 → publish → consultazione console → F6`.
+Posizione nel ciclo: `F3 → view (bozza, fonti e claim) → Gate 1 → F4 ‖ F5 → view (kit e audio, preparazione console) → controlli finali → Gate 2 → publish → consultazione console → F6`.
 
 ---
 
@@ -310,6 +310,8 @@ editorial view post_07 --no-browser
 ```
 
 Il comando genera `[paths].dist/web/post_07.html` (default `dist/web/post_07.html`) e, senza `--no-browser`, lo apre nel browser come file locale. `--no-browser` genera comunque l'HTML e stampa il percorso relativo. Serve Jinja2, incluso nell'extra `editorial-pipeline[social]`. CSS e JavaScript sono incorporati; audio e download usano collegamenti relativi: mantenete la struttura delle cartelle quando spostate la console.
+
+**Preparazione e Gate 1.** Prima di porre la domanda del Gate 1 eseguite `editorial-pipeline view <post_id> --no-browser` e indicate al Direttore `dist/web/<post_id>.html` e `dist/web/index.html`: la console mostra bozza, fonti primarie e claim verificati. I file di `dist/` non fanno parte del bundle Gate 1, quindi `view` non invalida alcun digest di quel gate e non approva nulla.
 
 **Preparazione e Gate 2.** Generate la console prima di calcolare il bundle del Gate 2, dopo aver ultimato kit e audio. `view` riscrive il file anche se esiste già; generarlo o rigenerarlo dopo la ricevuta può renderla `stale`. Dopo il Gate 2/pubblicazione, aprite direttamente l'HTML già preparato per consultarlo senza scritture. Se serve aggiornarlo con nuovi asset, riferite il cambiamento e presentate un nuovo pacchetto Gate 2 prima di ulteriori azioni soggette al gate. Non correggete la ricevuta per adattarla alla console.
 
