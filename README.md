@@ -1,7 +1,7 @@
 # Editorial Pipeline
 
 [![CI](https://github.com/acarducci65-svg/editorial_pipeline_public/actions/workflows/ci.yml/badge.svg)](https://github.com/acarducci65-svg/editorial_pipeline_public/actions/workflows/ci.yml)
-[![Status: Production/Stable v1.1.0](https://img.shields.io/badge/status-Production%2FStable%20v1.1.0-brightgreen)](pyproject.toml)
+[![Status: Production/Stable v1.2.0](https://img.shields.io/badge/status-Production%2FStable%20v1.2.0-brightgreen)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10–3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](pyproject.toml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -18,7 +18,7 @@ style registers that flag clichés, offline consistency checks on registered evi
 promotional carousels with integrity manifests, and two **binding human gates** that no
 agent can cross on its own.
 
-> **Status: Production/Stable (`v1.1.0`).** The core, CLI and local adapters are tested.
+> **Status: Production/Stable (`v1.2.0`).** The core, CLI and local adapters are tested.
 > The `notebooklm` RAG adapter is **optional**: it needs the external `nlm` CLI from
 > `notebooklm-mcp-cli` and a Google NotebookLM notebook (see [RAG adapters](#rag-adapters)).
 
@@ -155,7 +155,7 @@ package, so the command also works outside the repository.
 | `validate-all` | `validate-draft` on every post | `--json`, `--config` |
 | `verify-facts <post>` | Consistency of `sources.json`, `factcheck.json` and `draft-review.json` with the draft | `--json`, `--config` |
 | `build-visual <post>` | Carousel HTML (+ PNG/PDF) with SHA-256 manifest | `--dry-run`, `--html-only`, `--aspect-ratio {4:5,1:1}`, `--config` |
-| `build-audio <post>` | Optional phase F5: podcast script or NotebookLM audio overview from verified claims, in `dist/audio/<post_id>/` | `--provider {script_only,notebooklm}`, `--dry-run`, `--json`, `--config` |
+| `build-audio <post>` | Optional phase F5: podcast script or NotebookLM audio overview from verified claims, in `dist/audio/<post_id>/` | `--provider {script_only,notebooklm}`, `--new` (NotebookLM: force a fresh episode), `--dry-run`, `--json`, `--config` |
 | `check-gate {1,2} <post>` | Formal verification of the human receipt and its bundle | `--config` (`--token` is deprecated and ignored) |
 | `publish <post>` | After Gate 2 only: re-validates the receipt and runs only the authorised local actions (tar.gz package, static-site export or author website page) | `--target {dist_archive,static_site,author_website}`, `--dry-run`, `--json`, `--config` |
 
@@ -419,7 +419,7 @@ registri di stile che segnalano i cliché, controllo offline della coerenza dell
 registrate, caroselli promozionali con manifest di integrità e due **gate umani
 vincolanti** che nessun agente può attraversare da solo.
 
-> **Stato: stabile (`v1.1.0`).** Nucleo, CLI e adapter locali sono testati.
+> **Stato: stabile (`v1.2.0`).** Nucleo, CLI e adapter locali sono testati.
 > L'adapter RAG `notebooklm` è **opzionale**: richiede la CLI esterna `nlm`
 > (`notebooklm-mcp-cli`) e un taccuino Google NotebookLM.
 
@@ -488,7 +488,7 @@ editorial install-skill .claude/skills          # crea .claude/skills/editorial-
 | `status`, `validate-all` | `--json`, `--config` |
 | `validate-draft <post>`, `verify-facts <post>` | `--json`, `--config` |
 | `build-visual <post>` | `--dry-run` (nessuna scrittura), `--html-only` (niente Playwright), `--aspect-ratio {4:5,1:1}` |
-| `build-audio <post>` | Fase F5: `--provider {script_only,notebooklm}`, `--dry-run`, `--json` |
+| `build-audio <post>` | Fase F5: `--provider {script_only,notebooklm}`, `--new` (NotebookLM: nuova puntata), `--dry-run`, `--json` |
 | `check-gate {1,2} <post>` | `--config`; `--token` è deprecato e ignorato |
 | `publish <post>` | Solo dopo il Gate 2: `--target {dist_archive,static_site,author_website}`, `--dry-run` (nessuna scrittura), `--json` |
 

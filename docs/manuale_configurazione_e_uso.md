@@ -1,6 +1,6 @@
 # Editorial Pipeline — Manuale ufficiale di configurazione e uso
 
-> **Versione del manuale:** 1.4.0 · **Data:** 15 novembre 2026 · **Software:** 1.1.0 · **Licenza:** Apache 2.0
+> **Versione del manuale:** 1.5.0 · **Data:** 16 novembre 2026 · **Software:** 1.2.0 · **Licenza:** Apache 2.0
 >
 > Framework open source per la redazione aumentata: libreria Python, CLI `editorial` / `editorial-pipeline` e skill per agenti AI (Antigravity IDE, Claude Code, Codex CLI). La pipeline fa verificare i fatti su fonti primarie, sottopone i testi a una revisione anti-cliché e lascia a una persona le due decisioni che contano: approvare la bozza e approvare la pubblicazione.
 
@@ -199,7 +199,7 @@ Versione installata (stessa risposta per entrambi i comandi):
 
 ```bash
 $ editorial --version
-editorial-pipeline 1.1.0
+editorial-pipeline 1.2.0
 ```
 
 Dalla radice del repository del framework, la sandbox inclusa offre un controllo immediato:
@@ -1199,7 +1199,7 @@ Un `Error: ...` senza JSON indica un problema di configurazione o di percorso, n
 | `validate-all [--json]` | F6, pre-release | Come `validate-draft`, su tutte le unità | — |
 | `verify-facts <post> [--json]` | F3 | Coerenza di `sources.json`, `factcheck.json` e `draft-review.json` con la bozza corrente, secondo `[providers.rag].adapter` | Non estrae claim, non legge le fonti, non giudica la verità dei claim |
 | `build-visual <post> [--dry-run] [--html-only] [--aspect-ratio 4:5\|1:1]` | F4 | Carosello HTML (+ PNG/PDF) in `dist/social/<post_id>/` con manifest e SHA-256; si rifiuta se `F4_visual = false` | Non revisiona i testi delle slide |
-| `build-audio <post> [--provider script_only\|notebooklm] [--dry-run] [--json]` | F5 | Copione `podcast_script.md` (offline) o audio `podcast.m4a` (via `nlm`) in `dist/audio/<post_id>/`, solo dai claim verificati; si rifiuta se `F5 = false` o se le evidenze hanno `BLOCK` | Non revisiona il copione, non approva l'audio |
+| `build-audio <post> [--provider script_only\|notebooklm] [--new] [--dry-run] [--json]` | F5 | Copione `podcast_script.md` (offline) o audio `podcast.m4a` (via `nlm`) in `dist/audio/<post_id>/`, solo dai claim verificati; si rifiuta se `F5 = false` o se le evidenze hanno `BLOCK` | Non revisiona il copione, non approva l'audio |
 | `check-gate <1\|2> <post>` | Gate | Verifica la ricevuta umana, ricalcola e confronta il bundle; esito `RECEIPT_VALID` | Non legge la chat, non autentica persone, non esegue azioni |
 | `publish <post> [--target dist_archive\|static_site] [--dry-run] [--json]` | Dopo il Gate 2 | Rifà `check-gate 2` (exit `2` se fallisce), poi esegue solo le azioni autorizzate: archivio `tar.gz` o esportazione per sito statico | Non carica nulla in rete, non esegue `publish`/`schedule`/`sync` generici, non sovrascrive |
 | `editorial view <post_id> [--serve] [--port PORT] [--no-browser]` | Preparazione pre-Gate 2; consultazione finale | Genera e apre la console webredazionale: copia social, player audio, carosello e download. Server HTTP locale facoltativo | Non genera asset mancanti, non verifica o approva gate, non pubblica. Riscrive l'HTML in `dist/`, con possibile invalidazione del Gate 2 |
@@ -1444,13 +1444,14 @@ Il comando verifica la ricevuta del gate richiesto (per il Gate 2 anche quella d
 ### 6.10 `build-audio` (F5)
 
 ```text
-editorial build-audio <post> [--provider script_only|notebooklm] [--dry-run] [--json] [--config editorial.toml]
+editorial build-audio <post> [--provider script_only|notebooklm] [--new] [--dry-run] [--json] [--config editorial.toml]
 ```
 
 | Argomento / opzione | Descrizione |
 |---|---|
 | `<post>` | Unità di contenuto |
 | `--provider` | `script_only` o `notebooklm`. Precedenza: `--provider` > `[audio].provider` > `[providers.audio].adapter` > `script_only` (`none` equivale a `script_only`) |
+| `--new` | Solo con `notebooklm`: ignora gli audio già presenti nello Studio del taccuino (`completed`, `in_progress`, `queued`) e avvia una nuova generazione. Con un altro provider la CLI rifiuta il flag. Non va usato dopo `generation still pending after bounded polling`: in quel caso si rilancia senza `--new` per riprendere la puntata in corso |
 | `--dry-run` | Restituisce il percorso previsto; nessuna scrittura, nessuna chiamata a `nlm`, nessuna credenziale richiesta |
 | `--json` | Risultato in JSON: `status` (`BUILT`, `DRY_RUN`), `provider`, `script_file`, `audio_files`, `duration_seconds`, `details` |
 
@@ -1464,7 +1465,7 @@ Sequenza dei controlli:
 | Provider | Artefatto | Note |
 |---|---|---|
 | `script_only` | `podcast_script.md` | Offline e deterministico: intro, un segmento per fonte con `[Speaker]`, `Riferimento:` e `[Pausa]`, outro con nota di licenza e promemoria di revisione umana |
-| `notebooklm` | `podcast.m4a` | `nlm audio create` sul taccuino di `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`), controllo di stato limitato (30 tentativi ogni 2 secondi), download atomico. Errori: messaggio `NotebookLM audio: <motivo>. Retry or use --provider script_only.`, exit `1` |
+| `notebooklm` | `podcast.m4a` | Sul taccuino di `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`; consigliato il Micro-Taccuino d'Articolo `<slug>-<post_id>` con le sole fonti di `sources.json`): ricognizione dello Studio con riuso di un audio già `completed` o in corso (saltata con `--new`), altrimenti `nlm audio create`; controllo di stato limitato (120 tentativi ogni 5 secondi, 10 minuti), download atomico. Errori: messaggio `NotebookLM audio: <motivo>. Retry or use --provider script_only.`, exit `1` |
 
 Esempio sulla copia della sandbox con `F5 = true` (§9.6):
 
@@ -2253,6 +2254,8 @@ nlm auth storage set protected            # credenziali conservate in modalità 
 nlm alias set redazione-corpus "<identificativo del taccuino>"   # facoltativo
 export EDITORIAL_RAG_ID="redazione-corpus"   # oppure l'identificativo; PowerShell: $env:EDITORIAL_RAG_ID = "..."
 ```
+
+**Due livelli di taccuino (consigliato dalla versione 1.2.0).** Il **Taccuino Maestro** raccoglie le fonti storiche e gli articoli già pubblicati: l'agente lo interroga in F0/F1 per la ricerca trasversale e lo aggiorna in F6. Il **Micro-Taccuino d'Articolo** `<slug>-<post_id>` contiene solo le fonti approvate in `sources.json`: l'agente lo crea a fine F1, dopo la conferma delle fonti (`nlm notebook create`, `nlm alias set`, `nlm source add … --wait`), e lo indica in `EDITORIAL_RAG_ID` ed `EDITORIAL_AUDIO_ID` per F3 e F5. Così le verifiche non citano articoli già pubblicati né edizioni sbagliate dei rapporti, e il podcast resta sull'articolo. Chi usa un solo taccuino può continuare a farlo. Procedura completa: `skills/editorial-pipeline/references/verification-and-rag.md` §0 e §2.1.
 
 ```toml
 [rag]

@@ -4,6 +4,60 @@ Tutte le modifiche rilevanti di Editorial Pipeline sono documentate qui.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.2.0] - 2026-11-16
+
+### Added
+
+- Flag `--new` per `editorial build-audio --provider notebooklm`: salta la
+  ricognizione dello Studio e avvia una nuova Audio Overview anche se nel
+  taccuino esiste già un artefatto `completed`, `in_progress` o `queued`.
+  Con un provider diverso da `notebooklm` la CLI rifiuta il flag (T-088).
+- Layout `static_site_layout = "hugo_bundle"` (`<post_id>/index.md` con i media
+  accanto), export degli asset audio approvati con l'azione `static_site` o
+  `publish_audio` e ripubblicazione con `[publishing].allow_overwrite = true`.
+- Interruzione immediata di `verify-facts` con `provider = "notebooklm"` quando
+  NotebookLM segnala un limite di utilizzo o di frequenza
+  (`NotebookLM RAG: usage limit reached …`), senza ulteriori interrogazioni (T-086).
+- Applicazione di `[providers.rag].max_claims_per_turn` (default `8`) anche nella
+  CLI: oltre il tetto `verify-facts` non lancia interrogazioni remote.
+
+### Changed
+
+- Polling dell'audio NotebookLM esteso a 10 minuti (120 controlli ogni 5 s) e
+  riuso degli artefatti audio già presenti nello Studio, completati o in corso,
+  senza generazioni duplicate (T-082).
+- `nlm query notebook` viene invocato con `--new-conversation` per citazioni
+  deterministiche e indipendenti dalle interrogazioni precedenti (T-006).
+
+### Fixed
+
+- L'export `static_site` esclude gli artefatti `.html` e `.css` (slide HTML,
+  console web), che Hugo tratterebbe come pagine da renderizzare (T-080).
+- Il loader di `editorial.toml` tollera il BOM UTF-8 aggiunto da alcuni editor
+  su Windows (T-085).
+- La console `editorial view` trova le bozze anche in sottocartelle annidate di
+  `content/`.
+- Import circolare nell'adapter audio NotebookLM.
+
+### Documentation
+
+- Skill `editorial-pipeline`: architettura NotebookLM a due livelli. Il
+  **Taccuino Maestro** (archivio di fonti storiche e articoli pubblicati) serve
+  la ricerca trasversale in F0/F1 e si aggiorna in F6; il **Micro-Taccuino
+  d'Articolo** `<slug>-<post_id>`, creato in automatico a fine F1 dopo la
+  conferma delle fonti (`notebook_create`, `nlm alias set`, `source_add` delle
+  sole fonti di `sources.json`, `EDITORIAL_RAG_ID`/`EDITORIAL_AUDIO_ID`), è lo
+  standard per il fact-checking F3 e l'audio F5. Documentato l'uso di `--new` (T-089).
+- Divieto di rilanci ripetuti di `verify-facts` dopo errori remoti di NotebookLM:
+  una sola esecuzione remota per turno (T-087).
+- Divieto di ripiego autonomo su `script_only` dopo l'avvio di una generazione
+  NotebookLM e obbligo di verificare il file audio su disco prima della
+  console (T-083).
+- Guida allo scaffolding del sito Hugo che riceve `publish` (T-081) e al deploy
+  con Docker/Coolify, con regola UTF-8 senza BOM e date localizzate (T-084).
+- Linee guida contro l'iper-frammentazione dei claim in F3.
+- README e manuale utente allineati alla versione 1.2.0.
+
 ## [1.1.0] - 2026-11-15
 
 ### Added

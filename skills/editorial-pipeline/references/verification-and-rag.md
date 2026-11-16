@@ -1,12 +1,31 @@
 # Verifica dei fatti con NotebookLM: strumenti MCP e CLI
 
-Reference per **F1** (inventario delle fonti) e **F3** (fact-checking della bozza) quando la redazione usa Google NotebookLM. Integra `factchecking_protocol.md`, che resta la norma per fonti, esiti, locator e schemi JSON: NotebookLM cambia il modo di **trovare** i passaggi, non le regole con cui si **registrano**.
+Reference per **F1** (inventario delle fonti e creazione del Micro-Taccuino d'Articolo) e **F3** (fact-checking della bozza) quando la redazione usa Google NotebookLM, con il modello a due livelli Taccuino Maestro / Micro-Taccuino (§0). Integra `factchecking_protocol.md`, che resta la norma per fonti, esiti, locator e schemi JSON: NotebookLM cambia il modo di **trovare** i passaggi, non le regole con cui si **registrano**.
 
-Posizione nel ciclo: `F0 → F1 → F2a → F2b → F3 → Gate 1 → F4 ‖ F5 → Gate 2 → F6`. NotebookLM interviene in F1 e F3, sempre prima del Gate 1.
+Posizione nel ciclo: `F0 → F1 → F2a → F2b → F3 → Gate 1 → F4 ‖ F5 → Gate 2 → F6`. NotebookLM interviene in F0/F1 (ricerca e inventario), in F3 (fact-checking, prima del Gate 1), in F5 (audio) e in F6 (aggiornamento dell'archivio).
 
 ---
 
-## 1. Due livelli, due responsabilità
+## 0. Architettura dei taccuini: Taccuino Maestro e Micro-Taccuino d'Articolo
+
+La redazione lavora con **due livelli di taccuino**, con compiti distinti:
+
+| Taccuino | Contenuto | Fasi | Variabile |
+|---|---|---|---|
+| **Taccuino Maestro** (archivio di redazione; opzionale ma raccomandato) | Tutte le fonti primarie storiche della testata e gli articoli già pubblicati | **F0 / F1**: ricerca trasversale, continuità editoriale, controllo delle ripetizioni. **F6**: si arricchisce a pubblicazione avvenuta | Nessuna variabile della CLI: lo indica il Direttore (alias `nlm`) |
+| **Micro-Taccuino d'Articolo** (`<slug>-<post_id>`) | **Solo** le 4–7 fonti primarie approvate in `evidence/<post_id>/sources.json` | **F3** (`verify-facts`, `notebook_query`) e **F5** (`build-audio`) | `EDITORIAL_RAG_ID` ed `EDITORIAL_AUDIO_ID` = `<slug>-<post_id>` |
+
+Perché due livelli:
+
+- **F3 senza fonti circolari.** Nel Maestro ci sono anche gli articoli già pubblicati e più edizioni dello stesso rapporto: una query di verifica rischia di «confermare» un claim citando un nostro vecchio post, o l'edizione sbagliata di un dataset. Nel Micro-Taccuino ci sono solo le fonti approvate per questa unità, quindi ogni citazione rimanda a una voce di `sources.json`.
+- **F5 focalizzato.** I conduttori di NotebookLM Studio parlano di ciò che trovano nel taccuino: con il Micro-Taccuino il podcast resta al 100% sull'articolo, senza divagazioni su post precedenti.
+- **Continuità nel Maestro.** Ricerca dell'angolo, collegamenti con articoli passati e controllo delle ripetizioni richiedono la vista d'insieme, che solo il Maestro offre.
+
+`<slug>` è lo slug breve dell'articolo concordato in F0 (minuscole, trattini, senza spazi né accenti); `<post_id>` è l'identificativo dell'unità. Esempio: `lavoro-remoto-post_07`.
+
+**Compatibilità con un solo taccuino.** Se il Direttore usa un unico taccuino per tutto (nessun Maestro, oppure nessun Micro-Taccuino), le procedure di §2–§4 restano valide su quel taccuino: `EDITORIAL_RAG_ID` ed `EDITORIAL_AUDIO_ID` puntano al suo alias. In questo caso dichiarate nel pacchetto Gate 1 che le verifiche F3 sono state fatte su un taccuino condiviso e controllate con più attenzione che le citazioni rimandino a fonti di `sources.json`, non ad articoli già pubblicati. Il Micro-Taccuino non si crea se il Direttore non lo vuole.
+
+## 1. Agente (MCP) e CLI: due responsabilità
 
 | Livello | Strumento | Chi lo aziona | Che cosa produce |
 |---|---|---|---|
@@ -17,15 +36,52 @@ Sono indipendenti: potete usare gli strumenti MCP con `provider = "local"`, oppu
 
 **Come capire se gli strumenti MCP ci sono.** Cercate nell'elenco degli strumenti dell'harness nomi come `notebook_list`, `notebook_query`, `source_add` (in Claude Code compaiono con prefisso `mcp__notebooklm-mcp__`). Se mancano, non simulate le risposte: lavorate sulle copie locali in `[paths].sources` e lo dite al Direttore.
 
-## 2. Livello agente: F1 — inventario delle fonti
+## 2. Livello agente: F0/F1 — ricerca nel Maestro e inventario delle fonti
 
-1. **Individuate il taccuino.** `notebook_list`, poi `notebook_get` o `notebook_describe` sul taccuino indicato dal Direttore. Se il Direttore non ve l'ha indicato, chiedetelo: non scegliete voi fra taccuini diversi.
-2. **Caricate solo fonti già scelte.** `source_add` (`source_type` = `url`, `text`, `file` o `drive`) per le fonti primarie individuate secondo `factchecking_protocol.md` §1. Il taccuino non è un motore di scoperta: una fonte proposta da NotebookLM (per esempio da `research_start`) entra solo dopo che l'avete aperta e classificata come primaria o secondaria.
-3. **Controllate ogni fonte.** `source_describe` e `source_get_content` per verificare titolo, edizione, data e completezza dell'indicizzazione prima di scriverla in `sources.json`.
-4. **Registrate in `sources.json`** con `key`, `type`, `title`, `url` o `local_copy`, `accessed`, `primary` (schema in `factchecking_protocol.md` §4). Gli identificativi delle fonti in NotebookLM **non** vanno in `sources.json`.
-5. **Sottoponete l'elenco al Direttore**, che decide quali fonti entrano.
+1. **Individuate il Taccuino Maestro.** `notebook_list`, poi `notebook_get` o `notebook_describe` sul taccuino indicato dal Direttore. Se il Direttore non ve l'ha indicato, chiedetelo: non scegliete voi fra taccuini diversi.
+2. **Interrogate il Maestro per la ricerca trasversale (F0/F1).** Con `notebook_query` cercate articoli già pubblicati sullo stesso tema (per evitare ripetizioni e collegare i pezzi), fonti primarie già acquisite dalla redazione e l'edizione più recente dei rapporti ricorrenti. Le risposte del Maestro orientano la scelta delle fonti; non sono evidenze per F3.
+3. **Caricate solo fonti già scelte.** `source_add` (`source_type` = `url`, `text`, `file` o `drive`) per le fonti primarie individuate secondo `factchecking_protocol.md` §1. Il taccuino non è un motore di scoperta: una fonte proposta da NotebookLM (per esempio da `research_start`) entra solo dopo che l'avete aperta e classificata come primaria o secondaria.
+4. **Controllate ogni fonte.** `source_describe` e `source_get_content` per verificare titolo, edizione, data e completezza dell'indicizzazione prima di scriverla in `sources.json`.
+5. **Registrate in `sources.json`** con `key`, `type`, `title`, `url` o `local_copy`, `accessed`, `primary` (schema in `factchecking_protocol.md` §4). Gli identificativi delle fonti in NotebookLM **non** vanno in `sources.json`.
+6. **Sottoponete l'elenco al Direttore**, che decide quali fonti entrano. Nello stesso messaggio proponete lo slug del Micro-Taccuino (`<slug>-<post_id>`).
+7. **Dopo la conferma delle fonti, create il Micro-Taccuino** (§2.1).
+
+### 2.1 Creazione automatica del Micro-Taccuino d'Articolo (fine F1)
+
+Si esegue **solo dopo** che il Direttore ha approvato in chat l'elenco di `sources.json`, e solo se usa il modello a due livelli (§0). Non serve un'ulteriore conferma per creare il taccuino: la conferma delle fonti la include. Le operazioni distruttive o di condivisione restano soggette a conferma esplicita (§3, ultimo paragrafo).
+
+1. **Create il taccuino** con titolo `"<slug>-<post_id>"`:
+   - MCP: `notebook_create` con `title = "<slug>-<post_id>"`;
+   - CLI: `nlm notebook create "<slug>-<post_id>" --json`.
+   Se un taccuino con quel titolo esiste già (`notebook_list`), non createne un secondo: riferite al Direttore e chiedete se riusarlo.
+2. **Registrate l'alias locale**, così nessun UUID finisce nei file versionati:
+   ```bash
+   nlm alias set <slug>-<post_id> <notebook_id>     # MCP: alias con action="set"
+   ```
+   L'identificativo restituito da `notebook_create` serve solo in questo comando; da qui in avanti si usa l'alias.
+3. **Caricate le sole fonti di `sources.json`** (di norma 4–7 fonti primarie), una per voce, con attesa dell'indicizzazione:
+   - MCP: `source_add` con `notebook_id = "<slug>-<post_id>"`, `source_type` coerente (`url`, `file` per `local_copy`, `drive`, `text`) e `wait = true`;
+   - CLI: `nlm source add <slug>-<post_id> --url <url> --wait`.
+   Nessuna fonte del Maestro, nessun articolo già pubblicato, nessuna fonte esclusa dal Direttore. Al termine controllate con `notebook_get` che il numero di fonti coincida con `sources.json` e che ognuna sia indicizzata (`source_describe`).
+4. **Impostate le variabili d'ambiente della sessione** sull'alias:
+   ```bash
+   export EDITORIAL_RAG_ID=<slug>-<post_id>
+   export EDITORIAL_AUDIO_ID=<slug>-<post_id>
+   ```
+   ```powershell
+   $env:EDITORIAL_RAG_ID = "<slug>-<post_id>"
+   $env:EDITORIAL_AUDIO_ID = "<slug>-<post_id>"
+   ```
+   Valgono solo per la sessione: non si scrivono in `editorial.toml`, in `.env` versionati, negli script del progetto né nei pacchetti di gate.
+5. **Riferite al Direttore**: alias creato, numero di fonti caricate e indicizzate, eventuali fonti non caricabili (paywall, file troppo grande) con il motivo. Una fonte che non entra nel Micro-Taccuino non si può verificare in F3 con NotebookLM: va verificata sulla copia locale e dichiarata nel pacchetto Gate 1.
+
+Se gli strumenti MCP mancano e `nlm` non è disponibile, non simulate la creazione: dite al Direttore che il Micro-Taccuino non è stato creato e proseguite con le copie locali.
+
+Se in F3 una fonte nuova entra in `sources.json` (con l'assenso del Direttore), aggiungetela anche al Micro-Taccuino con lo stesso passo 3, prima di rieseguire le verifiche.
 
 ## 3. Livello agente: F3 — fact-checking della bozza
+
+**Taccuino da interrogare: il Micro-Taccuino d'Articolo** (`<slug>-<post_id>`, §2.1), non il Maestro. Le citazioni devono rimandare a fonti di `sources.json`; una citazione che rimanda a un articolo già pubblicato della testata non è una fonte del claim (`unsupported` se non c'è altro riscontro). Con un solo taccuino condiviso vale la nota di compatibilità di §0.
 
 Per ogni claim estratto dalla bozza (perimetro e procedura in `factchecking_protocol.md` §6.1–6.3, passi 1–2):
 
@@ -63,7 +119,7 @@ max_claims_per_turn = 8              # tetto di interrogazioni remote per esecuz
 
 Il tetto vale anche per la CLI: con `provider = "notebooklm"`, se `factcheck.json` contiene più claim di `max_claims_per_turn`, `verify-facts` non lancia alcuna interrogazione e termina con exit `1` e il messaggio `Error: RAG claims count (N) exceeds maximum allowed per turn (8). …` (un `RagUnavailableError`); tra un'interrogazione e l'altra applica una breve pausa. La prima risposta è ridurre `claims` ai fatti materiali (`factchecking_protocol.md` §6.1–6.2). Alzare `max_claims_per_turn` è una decisione del Direttore, non un modo per far passare il controllo.
 
-Prerequisiti sull'host: `nlm` nel `PATH` (`uv tool install notebooklm-mcp-cli`), sessione aperta con `nlm login`, variabile `EDITORIAL_RAG_ID` con l'identificativo o un alias `nlm` del taccuino.
+Prerequisiti sull'host: `nlm` nel `PATH` (`uv tool install notebooklm-mcp-cli`), sessione aperta con `nlm login`, variabile `EDITORIAL_RAG_ID` con l'alias `nlm` del taccuino. Nel modello a due livelli è l'alias del **Micro-Taccuino** `<slug>-<post_id>` creato in F1 (§2.1); mai l'alias del Maestro, che contiene articoli già pubblicati ed edizioni diverse degli stessi rapporti. Prima di lanciare `verify-facts` controllate che la variabile punti all'unità giusta (`echo $EDITORIAL_RAG_ID`; PowerShell: `$env:EDITORIAL_RAG_ID`): dopo il lavoro su un'altra unità può essere rimasta impostata sul taccuino precedente.
 
 ```bash
 editorial-pipeline verify-facts content/posts/post_07_titolo.md --json
@@ -101,6 +157,14 @@ Dopo l'esecuzione, se il report contiene `BLOCK` remoti che non sapete spiegare 
 
 Il messaggio della CLI `Wait before retrying or use --provider manual` è rivolto al Direttore: non autorizza l'agente a ritentare né a cambiare provider (§4, ultima riga della tabella). Un `BLOCK` remoto spiegabile (il passaggio manca davvero nella fonte) si tratta invece come da tabella: correggete la bozza o `factcheck.json`, e la riverifica avviene al turno successivo, con una sola esecuzione.
 
+## 4-bis. F6 — Aggiornamento del Taccuino Maestro
+
+A pubblicazione avvenuta (dopo il Gate 2 e `publish`), il Maestro si arricchisce perché le unità successive possano trovarlo in F0/F1:
+
+1. **Su indicazione del Direttore**, aggiungete al Maestro con `source_add` (`wait = true`) l'articolo pubblicato (URL definitivo o Markdown della versione approvata) e le fonti primarie del Micro-Taccuino che il Maestro non contiene ancora. Controllate con `notebook_get` che non creiate doppioni della stessa fonte o della stessa edizione.
+2. **Il Micro-Taccuino resta com'è**: serve per eventuali correzioni F6 (riverifica di un claim contestato) e per rigenerare l'audio dopo una correzione approvata. Eliminarlo (`notebook_delete`) è una decisione del Direttore, con conferma esplicita in chat.
+3. Le correzioni pubblicate (`COR-<unità>-<n>`) si riflettono anche nel Maestro: sostituite la versione dell'articolo con quella corretta, su istruzione del Direttore, così le unità future non riprendono il dato errato.
+
 ## 5. Zero-leak
 
 - Identificativi di taccuino, fonte e conversazione restano nella sessione o nella variabile d'ambiente. Mai in `editorial.toml`, evidenze, ricevute, pacchetti di gate, commit o messaggi pubblici.
@@ -124,5 +188,8 @@ NotebookLM, da MCP o da CLI, produce indizi e finding automatici. Non cambia nul
 - Scrivere l'identificativo del taccuino in `editorial.toml` (`corpus_id`) per «comodità».
 - Trattare un `RagUnavailableError` come un `BLOCK` sui claim e riscrivere la bozza: è un problema di configurazione o di sessione.
 - Interrogare il taccuino con domande che contengono più fatti: una domanda, un claim.
+- Verificare in F3 sul Taccuino Maestro invece che sul Micro-Taccuino: la risposta può citare un articolo già pubblicato o l'edizione sbagliata di un rapporto (§0, §3).
+- Caricare nel Micro-Taccuino fonti che non sono in `sources.json`, o creare il Micro-Taccuino prima che il Direttore abbia confermato le fonti (§2.1).
+- Lasciare `EDITORIAL_RAG_ID`/`EDITORIAL_AUDIO_ID` impostate sull'alias di un'unità precedente.
 - Superare `max_claims_per_turn` interrogazioni in un messaggio, o interrogare frasi di raccordo, premesse e definizioni generali: satura la quota dell'account e blocca la sessione (§3).
 - Rilanciare `verify-facts` più volte di seguito, o lanciare raffiche di `nlm query notebook`, dopo un `BLOCK` inspiegabile o un `usage limit`: una sola esecuzione per turno, poi stop, finding e Direttore (§4.1).

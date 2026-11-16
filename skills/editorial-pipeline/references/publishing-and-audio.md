@@ -37,20 +37,26 @@ Conseguenze per l'agente:
 - Leggete `[phases.optional].F5`. Con `false` la fase è `skipped`: dichiaratelo nel pacchetto Gate 2 e **non** lanciate il comando (si rifiuterebbe comunque: `Error: Phase F5 is disabled in editorial.toml`, exit 1, anche con `--dry-run`).
 - `check-gate 1 <post>` deve dare `RECEIPT_VALID` e `verify-facts <post>` nessun `BLOCK`: con evidenze non valide il comando risponde `Error: Audio requires current validated draft evidence` (exit 1).
 - Provider: `--provider` > `[audio].provider` > `[providers.audio].adapter` > `script_only`. Passate sempre `--provider notebooklm` in modo esplicito: così un problema di NotebookLM produce un errore visibile invece di un ripiego automatico.
-- Prerequisiti NotebookLM: `nlm` nel `PATH` (`uv tool install notebooklm-mcp-cli`), `nlm login` eseguito **dal titolare dell'account** (mai dall'agente con credenziali altrui), identificativo o alias del taccuino nella variabile `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`). Il testo dei claim e i locator vengono inviati a Google.
+- Prerequisiti NotebookLM: `nlm` nel `PATH` (`uv tool install notebooklm-mcp-cli`), `nlm login` eseguito **dal titolare dell'account** (mai dall'agente con credenziali altrui), alias del Micro-Taccuino d'Articolo `<slug>-<post_id>` nella variabile `[audio].corpus_id_env` (default `EDITORIAL_AUDIO_ID`). Il testo dei claim e i locator vengono inviati a Google.
 
 ### 2.2 Procedura NotebookLM Studio
 
-**Passo 1 — Taccuino e alias** (una volta per unità o per serie, dal titolare dell'account o su sua indicazione):
+**Passo 1 — Taccuino: il Micro-Taccuino d'Articolo.** Lo standard per F5 è il **Micro-Taccuino** `<slug>-<post_id>` creato a fine F1 e già usato in F3 (`verification-and-rag.md` §0 e §2.1): contiene solo le fonti di `sources.json`, quindi la puntata resta calzante sull'articolo, senza divagazioni su post già pubblicati o su fonti di altre unità. **Non** usate il Taccuino Maestro per l'audio.
 
 ```bash
-nlm notebook create "Podcast post_07" --json           # oppure riusate il taccuino già usato in F1/F3
-nlm alias set podcast-post07 <notebook_id>              # alias locale: l'identificativo non finisce nei file
-nlm source add podcast-post07 --url https://fonte.example/documento --wait   # solo fonti di sources.json
-export EDITORIAL_AUDIO_ID=podcast-post07                # PowerShell: $env:EDITORIAL_AUDIO_ID = "podcast-post07"
+export EDITORIAL_AUDIO_ID=lavoro-remoto-post_07          # PowerShell: $env:EDITORIAL_AUDIO_ID = "lavoro-remoto-post_07"
+nlm studio status "$EDITORIAL_AUDIO_ID" --json --mcp-compatible   # controllo dello Studio prima di generare
 ```
 
-Il taccuino contiene **solo** le fonti approvate in F1 (`sources.json`): una fonte in più è materiale che i conduttori possono citare senza claim. `build-audio` non carica fonti. Identificativi di taccuino, fonti e artefatti non si scrivono mai in file versionati, report o pacchetti: si usano alias e variabili d'ambiente.
+Se il Micro-Taccuino non esiste (redazione con un solo taccuino, oppure F1 svolta senza NotebookLM), createlo ora con la stessa procedura, dal titolare dell'account o su sua indicazione:
+
+```bash
+nlm notebook create "lavoro-remoto-post_07" --json
+nlm alias set lavoro-remoto-post_07 <notebook_id>       # alias locale: l'identificativo non finisce nei file
+nlm source add lavoro-remoto-post_07 --url https://fonte.example/documento --wait   # solo fonti di sources.json
+```
+
+Il taccuino contiene **solo** le fonti approvate in F1 (`sources.json`): una fonte in più è materiale che i conduttori possono citare senza claim. `build-audio` non carica fonti. Identificativi di taccuino, fonti e artefatti non si scrivono mai in file versionati, report o pacchetti: si usano alias e variabili d'ambiente. Con un taccuino condiviso fra più unità vale l'avvertenza sul riuso degli artefatti in fondo al passo 2.
 
 **Passo 2 — Generazione con la CLI della pipeline** (strada ordinaria):
 
@@ -61,12 +67,34 @@ editorial build-audio post_07 --provider notebooklm --format m4a --language it -
 
 La CLI esegue nell'ordine:
 
-1. **Ricognizione dello Studio.** `nlm studio status <taccuino> --json --mcp-compatible`: se nel taccuino esiste già un artefatto audio `completed`, lo scarica subito; se ne esiste uno `in_progress` o `queued`, si aggancia al suo polling. In entrambi i casi **non avvia una seconda generazione** (niente puntate duplicate né quota sprecata).
-2. **Generazione**, solo se lo Studio non contiene audio riutilizzabile: `nlm audio create <taccuino> --language it --confirm --json --focus "<claim verificati con fonte e locator>"`.
+1. **Ricognizione dello Studio** (saltata con `--new`). `nlm studio status <taccuino> --json --mcp-compatible`: se nel taccuino esiste già un artefatto audio `completed`, lo scarica subito; se ne esiste uno `in_progress` o `queued`, si aggancia al suo polling. In entrambi i casi **non avvia una seconda generazione** (niente puntate duplicate né quota sprecata).
+2. **Generazione**, solo se lo Studio non contiene audio riutilizzabile o se è stato passato `--new`: `nlm audio create <taccuino> --language it --confirm --json --focus "<claim verificati con fonte e locator>"`.
 3. **Attesa limitata**: `nlm studio status … --artifact-id <id>` fino a **120 controlli ogni 5 secondi (10 minuti)**. Uno stato diverso da `completed`, `in_progress` o `queued` è un fallimento (`audio generation failed`).
 4. **Download** con `nlm download audio` in una cartella temporanea; il file sostituisce `podcast.<formato>` in `[paths].dist/audio/<post_id>/` solo se il download è riuscito e non è vuoto.
 
-Esito atteso: `"status": "BUILT"`, `"provider": "notebooklm"`. Conseguenza del riuso: rilanciare `build-audio --provider notebooklm` dopo un timeout **riprende** la generazione in corso e scarica la puntata appena è pronta. Per contro, il riuso guarda il taccuino, non l'unità: se nel taccuino resta una puntata `completed` di un tentativo precedente (un `--focus` ormai superato) o di un'altra unità che condivide lo stesso taccuino, la CLI riusa quella. Prima di lanciare `build-audio` controllate `nlm studio status` e, se c'è una puntata che non appartiene a questa unità, riferitelo: va eliminata dallo Studio dal titolare dell'account, o con il suo assenso, prima di generare.
+Esito atteso: `"status": "BUILT"`, `"provider": "notebooklm"`. Conseguenza del riuso: rilanciare `build-audio --provider notebooklm` dopo un timeout **riprende** la generazione in corso e scarica la puntata appena è pronta. Per contro, il riuso guarda il taccuino, non l'unità: se nel taccuino resta una puntata `completed` di un tentativo precedente (un `--focus` ormai superato) o di un'altra unità che condivide lo stesso taccuino, la CLI riusa quella. Prima di lanciare `build-audio` controllate `nlm studio status` e, se c'è una puntata che non appartiene a questa unità, riferitelo: va eliminata dallo Studio dal titolare dell'account, o con il suo assenso, prima di generare, oppure si rigenera con `--new`. Con il Micro-Taccuino d'Articolo il problema delle altre unità non si pone.
+
+**Flag `--new`: forzare una nuova puntata.**
+
+```bash
+editorial build-audio post_07 --provider notebooklm --new --dry-run --json
+editorial build-audio post_07 --provider notebooklm --new --format m4a --language it --json
+```
+
+`--new` salta la ricognizione dello Studio e avvia sempre una nuova `nlm audio create`, ignorando gli artefatti `completed` (e anche quelli `in_progress`/`queued`) già presenti nel taccuino. Vale solo con `--provider notebooklm`: con un altro provider la CLI esce con errore (`--new is supported only by the notebooklm audio provider`).
+
+Quando usarlo:
+
+- la puntata `completed` nello Studio è stata generata con un `--focus` superato (claim corretti in F3, bozza cambiata e riapprovata al Gate 1);
+- l'ascolto integrale (§2.5) ha bocciato la puntata e il Direttore ha chiesto di rigenerarla;
+- lo Studio contiene una puntata di un'altra unità (taccuino condiviso) e il Direttore preferisce non eliminarla.
+
+Quando **non** usarlo:
+
+- dopo `generation still pending after bounded polling`: la puntata è ancora in produzione, si rilancia `build-audio` **senza** `--new` per agganciarla (§2.3). Con `--new` si avvia una seconda generazione, si spreca quota e la prima resta orfana nello Studio;
+- come rilancio ripetuto: ogni esecuzione con `--new` è una nuova generazione sulla quota del Direttore. Una per decisione, non una serie.
+
+Le puntate precedenti restano nello Studio: eliminarle è una decisione del titolare dell'account. Rigenerare l'audio dopo il pacchetto Gate 2 rende la ricevuta `stale` (§2.5).
 
 `--format` sceglie il **contenitore del file** (`m4a`, default e formato nativo di NotebookLM; `mp3` solo se la destinazione lo richiede). Non va confuso con `--format` di `nlm audio create`, che sceglie lo stile della puntata (`deep_dive`, `brief`, …).
 
@@ -79,7 +107,7 @@ Una Audio Overview può superare anche i 10 minuti di attesa di `build-audio`, c
    nlm studio status "$EDITORIAL_AUDIO_ID" --json --mcp-compatible        # PowerShell: nlm studio status $env:EDITORIAL_AUDIO_ID --json --mcp-compatible
    ```
    `in_progress` o `queued`: attendete qualche minuto e ripetete. Qualsiasi altro stato diverso da `completed` è un fallimento da riferire al Direttore.
-2. **Scaricate la puntata.** Strada preferita: rilanciate `editorial build-audio post_07 --provider notebooklm --format m4a --json`, che trova l'artefatto `completed` (o ancora in corso) e lo scarica senza rigenerarlo. In alternativa, a mano:
+2. **Scaricate la puntata.** Strada preferita: rilanciate `editorial build-audio post_07 --provider notebooklm --format m4a --json` (**senza** `--new`), che trova l'artefatto `completed` (o ancora in corso) e lo scarica senza rigenerarlo. In alternativa, a mano:
    ```bash
    nlm download audio "$EDITORIAL_AUDIO_ID" --id <artifact_id> --output dist/audio/post_07/podcast.m4a --no-progress
    ```
@@ -114,7 +142,7 @@ Gli errori arrivano come `NotebookLM audio: <motivo>. Retry or use --provider sc
 | `CLI 'nlm' is unavailable` | Installare `notebooklm-mcp-cli`; riferite se non potete farlo |
 | `authentication required; run 'nlm login'` | Il titolare ripete `nlm login`: l'agente non gestisce credenziali |
 | `CLI request timed out` | Riprovare o alzare `[audio].timeout_seconds` (decisione del Direttore) |
-| `generation still pending after bounded polling` | La puntata è ancora in produzione sul cloud: attendete, rilanciate `build-audio --provider notebooklm` (riprende l'artefatto) o scaricate con `nlm download audio`, verificate il file (§2.3). **Mai** `--provider script_only` di propria iniziativa |
+| `generation still pending after bounded polling` | La puntata è ancora in produzione sul cloud: attendete, rilanciate `build-audio --provider notebooklm` senza `--new` (riprende l'artefatto) o scaricate con `nlm download audio`, verificate il file (§2.3). **Mai** `--provider script_only` di propria iniziativa |
 | `audio generation failed`, `download did not produce an audio file` | Riprovare; se persiste, riferite |
 
 Il suggerimento `Retry or use --provider script_only` stampato dalla CLI è rivolto al Direttore, non è un'autorizzazione per l'agente: dopo l'avvio di una generazione NotebookLM il ripiego su `script_only` richiede il suo assenso esplicito (§2.0).
@@ -130,7 +158,7 @@ Riferite sempre il motivo al Direttore. Con `--provider notebooklm` esplicito no
 
 ### 2.5 Dopo l'esecuzione
 
-1. **Ascoltate l'audio per intero.** I conduttori di NotebookLM parafrasano, collegano e commentano. Confrontate ogni fatto, numero, data e attribuzione con `factcheck.json`: ciò che non ha un `claim_id`, o lo travisa, blocca l'audio. Si rigenera con un `--focus` più stretto o, con l'assenso del Direttore, si chiude F5 con `script_only`.
+1. **Ascoltate l'audio per intero.** I conduttori di NotebookLM parafrasano, collegano e commentano. Confrontate ogni fatto, numero, data e attribuzione con `factcheck.json`: ciò che non ha un `claim_id`, o lo travisa, blocca l'audio. Si rigenera con `build-audio --provider notebooklm --new` (senza `--new` la CLI riscaricherebbe la stessa puntata `completed`) o, con l'assenso del Direttore, si chiude F5 con `script_only`.
 2. **Annotate l'ascolto** nella prova del kit o in una prova dedicata: durata, eventuali passaggi problematici con minutaggio, esito.
 3. **Copione `script_only`:** contiene solo i claim di `factcheck.json`, uno per riga `[Speaker]`, ciascuno con il suo `Riferimento:` (locator). Verificate che nessuna frase introduca un fatto nuovo e applicate la checklist anti-cliché (`humanizer_checklist.md`) alle parti discorsive (intro, raccordi, outro).
 4. **Trasparenza:** la descrizione della puntata dichiara che le voci sono generate con Google NotebookLM a partire dalle fonti verificate dell'articolo.
@@ -241,7 +269,9 @@ La struttura del sito Hugo che riceve l'export (configurazione, pagine di traspa
 
 - [ ] F5 attiva? Se no: `F5: skipped` nel pacchetto Gate 2.
 - [ ] Audio solo da NotebookLM Studio (`--provider notebooklm`) o, in alternativa, copione `script_only`; nessun file da TTS mono-voce in `dist/`.
-- [ ] Dopo un `generation still pending`: nessun ripiego autonomo su `script_only`; puntata attesa e scaricata (§2.3).
+- [ ] Audio generato dal Micro-Taccuino d'Articolo `<slug>-<post_id>` (`EDITORIAL_AUDIO_ID`), non dal Taccuino Maestro.
+- [ ] Dopo un `generation still pending`: nessun ripiego autonomo su `script_only` e nessun `--new`; puntata attesa e scaricata (§2.3).
+- [ ] `--new` usato solo per sostituire una puntata superata o bocciata all'ascolto, una volta per decisione.
 - [ ] Con NotebookLM: `dist/audio/<post_id>/podcast.<m4a|mp3>` presente su disco e non vuoto **prima** di `editorial view <post_id>`.
 - [ ] `build-audio` eseguito **prima** del pacchetto Gate 2; audio ascoltato per intero e confrontato con `factcheck.json`; copione riletto, nessun claim nuovo, checklist anti-cliché applicata.
 - [ ] Pacchetto Gate 2 con percorso dell'audio, esito dell'ascolto, copione se presente, azioni proposte (`archive`, `export_markdown`) e destinazione.
