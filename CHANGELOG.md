@@ -4,6 +4,53 @@ Tutte le modifiche rilevanti di Editorial Pipeline sono documentate qui.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.2.5] - 2026-11-16
+
+### Added
+
+- Export `publish --target static_site`: se la bozza non ha già un titolo
+  `## Fonti` o `### Fonti`, la copia esportata riceve una sezione `## Fonti`
+  generata da `[paths].evidence/<post_id>/sources.json`, con un punto
+  `- [Titolo](link) — Autori/Istituzione (Anno)` per fonte. Il link è il primo
+  URL `http(s)` fra `url`, `pdf` e `open_access_url`, altrimenti
+  `https://doi.org/<doi>`. Campi interni come `local_copy`, `consulted_sha256` e
+  `notes` non vengono mai pubblicati, e la bozza in `content/` resta intatta (T-097).
+- `PlaywrightVisualBuilder` prova in ordine Chromium di Playwright, Google Chrome
+  di sistema (`channel="chrome"`) e Microsoft Edge di sistema (`channel="msedge"`)
+  prima di ripiegare sul solo HTML, così PNG e PDF del carosello si generano anche
+  senza `playwright install chromium` (T-099).
+
+### Changed
+
+- Regole `--focus` dell'audio NotebookLM più strette: definizioni rispettate
+  anche nel riepilogo finale, nessuna estensione del risultato di una coorte a
+  tutta la forza lavoro, nessuna correlazione presentata come causa, unità e
+  scale dei numeri pronunciate con esattezza.
+
+### Documentation
+
+- Skill F5: i finding della revisione audio si classificano per materialità.
+  Sono P1 bloccanti numeri, date o scale inventati o alterati, fatti contraddetti
+  da claim o fonti, inversioni concettuali gravi e tono enfatico; le frasi di
+  raccordo del dialogo naturale senza `claim_id` restano al più note P3 (T-093).
+- Skill F5: dopo un `--new` autorizzato, gli episodi superati vanno rimossi dallo
+  Studio (a mano o con `nlm studio delete` dopo conferma esplicita) finché resta
+  un solo artefatto audio attivo (T-094).
+- Skill: `editorial-pipeline view <post_id> --no-browser` obbligatorio dopo il
+  Gate 2 e dopo l'ultimo `publish`, per mostrare in console il badge Gate 2 e lo
+  stato pubblicato (T-095).
+- Skill F4: testi social e slide del carosello sono puliti, senza `claim_id`,
+  tag interni o note redazionali; il tracciamento va in
+  `evidence/<post_id>/social-review.md`. Struttura per canale e URL reale
+  dell'articolo obbligatori (T-096).
+- Skill: sezione `## Fonti` automatica dell'export `static_site` documentata, con
+  le istruzioni per l'agente e l'avviso sui titoli `## Sources` in inglese (T-098).
+- Skill F4: un carosello è completo solo con tutti i `slide_NN.png` e il
+  `<post_id>_carousel.pdf` su disco e `artifact_type = "carousel"` nel manifest.
+  Documentati l'ordine di fallback dei browser e la procedura per slide HTML
+  modificate a mano (T-100).
+- README e manuale utente allineati alla versione 1.2.5.
+
 ## [1.2.0] - 2026-11-16
 
 ### Added

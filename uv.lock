@@ -952,7 +952,7 @@ wheels = [
 
 [[package]]
 name = "editorial-pipeline"
-version = "1.2.0"
+version = "1.2.5"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
