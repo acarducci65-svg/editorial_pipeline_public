@@ -88,6 +88,19 @@ Come leggere i finding remoti:
 
 Il testo dei claim viene inviato a Google. Se la bozza è riservata, chiedete al Direttore prima di usare `provider = "notebooklm"`.
 
+### 4.1 Una sola esecuzione remota per turno: divieto di rilanci ripetuti
+
+> **Regola vincolante.** Con `provider = "notebooklm"`, `editorial-pipeline verify-facts` si esegue **al massimo una volta per turno dell'agente** (un turno = un vostro messaggio, fino alla risposta del Direttore). Ogni esecuzione lancia fino a `max_claims_per_turn` interrogazioni sull'account Google del Direttore: cinque rilanci consecutivi più una serie di controprove manuali bastano a saturare la quota e a bloccare NotebookLM per tutta la redazione.
+
+Dopo l'esecuzione, se il report contiene `BLOCK` remoti che non sapete spiegare dalla lettura della fonte, oppure la CLI termina con un errore remoto (`NotebookLM RAG: usage limit reached …`, `query failed`, timeout, risposta non JSON):
+
+1. **Non rilanciate `verify-facts`** nello stesso turno, né subito dopo, sperando in un exit `0` casuale: le risposte di NotebookLM non sono deterministiche e un rilancio non è una verifica.
+2. **Non sparate interrogazioni di controprova** con `nlm query notebook` da terminale, né in serie né in parallelo, e non ripiegate su `notebook_query` MCP oltre il tetto di §3: è la stessa quota.
+3. **Fermatevi subito.** Registrate il finding nell'handover o nel resoconto (severità `P1` per `usage limit` o un'anomalia che si ripete; indicate comando, esito e numero di claim interrogati, senza identificativi di taccuino o conversazione).
+4. **Riferite al Direttore** e attendete. Un nuovo `verify-facts` si lancia solo nel turno successivo e solo dopo che il Direttore l'ha autorizzato (in caso di `usage limit`, dopo il cooldown che indica lui): **un** rilancio, non una serie.
+
+Il messaggio della CLI `Wait before retrying or use --provider manual` è rivolto al Direttore: non autorizza l'agente a ritentare né a cambiare provider (§4, ultima riga della tabella). Un `BLOCK` remoto spiegabile (il passaggio manca davvero nella fonte) si tratta invece come da tabella: correggete la bozza o `factcheck.json`, e la riverifica avviene al turno successivo, con una sola esecuzione.
+
 ## 5. Zero-leak
 
 - Identificativi di taccuino, fonte e conversazione restano nella sessione o nella variabile d'ambiente. Mai in `editorial.toml`, evidenze, ricevute, pacchetti di gate, commit o messaggi pubblici.
@@ -112,3 +125,4 @@ NotebookLM, da MCP o da CLI, produce indizi e finding automatici. Non cambia nul
 - Trattare un `RagUnavailableError` come un `BLOCK` sui claim e riscrivere la bozza: è un problema di configurazione o di sessione.
 - Interrogare il taccuino con domande che contengono più fatti: una domanda, un claim.
 - Superare `max_claims_per_turn` interrogazioni in un messaggio, o interrogare frasi di raccordo, premesse e definizioni generali: satura la quota dell'account e blocca la sessione (§3).
+- Rilanciare `verify-facts` più volte di seguito, o lanciare raffiche di `nlm query notebook`, dopo un `BLOCK` inspiegabile o un `usage limit`: una sola esecuzione per turno, poi stop, finding e Direttore (§4.1).
