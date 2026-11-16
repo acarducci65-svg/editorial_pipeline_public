@@ -301,6 +301,21 @@ L'esclusione di `.html` e `.css` è deliberata e non si aggira: Hugo tratta un `
 
 Gli asset mantengono il percorso relativo al progetto sotto la cartella dell'unità: `dist/social/post_07/slide_01.png` diventa `<static_site_dir>/post_07/dist/social/post_07/slide_01.png`. I collegamenti nel Markdown vanno scritti di conseguenza (in un page bundle Hugo, relativi a `index.md`).
 
+**Sezione `## Fonti` automatica.** Con `--target static_site` la CLI legge `[paths].evidence/<post_id>/sources.json` e, se il Markdown della bozza non ha già un titolo `## Fonti` o `### Fonti` (anche con un seguito, es. `## Fonti principali`), aggiunge in fondo al file **esportato** la sezione `## Fonti`, una voce per fonte:
+
+```markdown
+## Fonti
+
+- [Titolo della fonte](https://esempio.org/rapporto) — Autori o Istituzione (2024)
+```
+
+- **Link:** il primo indirizzo `http(s)` tra `url`, `pdf` e `open_access_url`; in mancanza, `https://doi.org/<doi>`. Una fonte senza link pubblico compare come titolo semplice. Schemi diversi da `http(s)` (es. `javascript:`) vengono scartati.
+- **Credito e anno:** `authors` (lista o stringa), altrimenti `institution`, `publisher` o `organization`; anno da `year`, `date` o `published`, mai da `accessed` (la data di consultazione non è l'anno di pubblicazione).
+- **Campi mai pubblicati:** `local_copy`, `consulted_sha256`, `locator_convention`, `notes`, `tags`. Percorsi locali e hash restano fuori dal sito.
+- **La bozza non cambia.** La sezione si aggiunge solo alla copia in `<static_site_dir>/`: il file in `content/` resta identico byte per byte, `draft_digest` e ricevute restano validi. Le fonti vengono dal `sources.json` approvato al Gate 1 (coperto da `sources_digest`).
+- **Nessun aggiustamento manuale.** Se `sources.json` manca, non è JSON valido o non contiene fonti utilizzabili, il Markdown esce invariato. Non aggiungete a mano la sezione nell'export e non scrivetela nella bozza solo per l'export: se il Direttore vuole un elenco diverso, lo si corregge in `sources.json` o nella bozza, prima del Gate 2.
+- **Al Gate 2.** La sezione generata non compare nel pacchetto: segnalate al Direttore che l'export la conterrà e da quante fonti, così sa cosa uscirà sul sito. Il controllo del titolo riconosce solo «Fonti»: una bozza con `## Sources` riceverebbe una seconda sezione in italiano, da segnalare.
+
 **Opzioni in `[publishing]`** (decisione di configurazione del Direttore, mai dell'agente):
 
 ```toml
