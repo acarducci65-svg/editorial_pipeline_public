@@ -361,6 +361,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             p.add_argument("--format", dest="audio_format", choices=("m4a", "mp3"), default="m4a")
             p.add_argument("--language", default="it", help="NotebookLM audio language")
             p.add_argument(
+                "--length",
+                choices=("short", "default", "long"),
+                default=None,
+                help="NotebookLM episode length (default from [audio], otherwise short)",
+            )
+            p.add_argument(
+                "--overview-format",
+                choices=("deep_dive", "brief", "critique", "debate"),
+                default=None,
+                help="NotebookLM overview format (default from [audio], otherwise deep_dive)",
+            )
+            p.add_argument(
                 "--new",
                 action="store_true",
                 help="NotebookLM only: ignore existing Studio audio and generate a new episode",
@@ -532,6 +544,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     audio_config.timeout_seconds,
                     language=args.language,
                     audio_format=args.audio_format,
+                    length=args.length or audio_config.length,
+                    overview_format=args.overview_format or audio_config.overview_format,
+                    forbidden_phrases=tuple(config.register.extra_forbidden),
                 )
                 audio_provider = notebooklm
                 if args.provider is None and not args.dry_run:

@@ -186,6 +186,8 @@ class AudioConfig(Schema):
     corpus_id: str | None = Field(default=None, repr=False)
     corpus_id_env: str = "EDITORIAL_AUDIO_ID"
     timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
+    length: Literal["short", "default", "long"] = "short"
+    overview_format: Literal["deep_dive", "brief", "critique", "debate"] = "deep_dive"
 
 
 HexColor = Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]

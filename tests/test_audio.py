@@ -9,6 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from editorial_pipeline.cli.commands import main
+from editorial_pipeline.config.models import AudioConfig
 from tests.test_cli import ROOT, _refresh_evidence, _write_gate_receipt
 from tests.test_publish import snapshot
 
@@ -213,6 +214,13 @@ def project(tmp_path: Path) -> Path:
     )
     _refresh_evidence(root)
     return root
+
+
+SAMPLE_FORBIDDEN = (
+    "nel panorama in continua evoluzione",
+    "è fondamentale sottolineare",
+    "non è la tecnologia, ma le persone",
+)
 
 
 def run(root: Path, *args: str) -> int:
@@ -657,7 +665,15 @@ def test_audio_section_passes_runtime_options(
         )
         assert run(project, "--dry-run") == 0
     adapter.assert_called_once_with(
-        project.resolve(), None, "TEST_AUDIO_CORPUS", 12.0, language="it", audio_format="m4a"
+        project.resolve(),
+        None,
+        "TEST_AUDIO_CORPUS",
+        12.0,
+        language="it",
+        audio_format="m4a",
+        length="short",
+        overview_format="deep_dive",
+        forbidden_phrases=SAMPLE_FORBIDDEN,
     )
     passed_sources = adapter.return_value.build.call_args.args[2]
     assert len(passed_sources) == 2
@@ -726,6 +742,9 @@ def test_notebooklm_audio_adapter_creates_and_downloads(
     create = calls[1]
     assert create[1:4] == ["audio", "create", "sandbox-corpus"]
     assert create[4:7] == ["--language", language, "--confirm"]
+    assert create[create.index("--format") + 1] == "deep_dive"
+    assert create[create.index("--length") + 1] == "short"
+    assert create[-2] == "--focus"
     assert "Fatto verificato. (fonte src, p. 1)" in create[-1]
     assert [call[1:3] for call in calls] == [
         ["studio", "status"],
@@ -735,7 +754,12 @@ def test_notebooklm_audio_adapter_creates_and_downloads(
     ]
     assert result.status == "BUILT" and result.provider == "notebooklm"
     assert result.audio_files == [f"dist/audio/post_01/podcast.{audio_format}"]
-    assert result.details == {"language": language, "format": audio_format}
+    assert result.details == {
+        "language": language,
+        "format": audio_format,
+        "length": "short",
+        "overview_format": "deep_dive",
+    }
     assert (project / result.audio_files[0]).read_bytes() == b"two-voice podcast"
     assert [p.name for p in output.iterdir()] == [f"podcast.{audio_format}"]
 
@@ -747,6 +771,10 @@ def test_notebooklm_audio_adapter_creates_and_downloads(
         ({"language": ""}, "language"),
         ({"language": "-x"}, "language"),
         ({"audio_format": "wav"}, "format"),
+        ({"length": "medium"}, "length"),
+        ({"length": ""}, "length"),
+        ({"overview_format": "summary"}, "overview_format"),
+        ({"overview_format": "--json"}, "overview_format"),
     ],
 )
 def test_notebooklm_rejects_invalid_options(
@@ -756,6 +784,16 @@ def test_notebooklm_rejects_invalid_options(
 
     with pytest.raises(ValueError, match=match):
         NotebookLMAdapter(project, **kwargs)  # type: ignore[arg-type]
+    if "length" in kwargs or "overview_format" in kwargs:
+        with pytest.raises(ValueError, match=match):
+            AudioConfig.model_validate(kwargs)
+
+
+def test_notebooklm_rejects_bare_string_forbidden_phrases(project: Path) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    with pytest.raises(TypeError, match="forbidden_phrases"):
+        NotebookLMAdapter(project, forbidden_phrases="cambia tutto")
 
 
 def test_cli_mp3_format_dry_run(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -764,7 +802,12 @@ def test_cli_mp3_format_dry_run(project: Path, capsys: pytest.CaptureFixture[str
     assert run(project, *options, "--dry-run", "--json") == 0
     result = json.loads(capsys.readouterr().out)
     assert result["audio_files"] == ["dist/audio/post_01/podcast.mp3"]
-    assert result["details"] == {"language": "en", "format": "mp3"}
+    assert result["details"] == {
+        "language": "en",
+        "format": "mp3",
+        "length": "short",
+        "overview_format": "deep_dive",
+    }
     assert snapshot(project) == before
 
 
@@ -1010,3 +1053,129 @@ def test_cli_build_audio_new_flag(project: Path, capsys: pytest.CaptureFixture[s
     assert run(project, "--provider", "script_only", "--new") == 1
     assert "--new is supported only" in capsys.readouterr().err
     assert not (project / "dist/audio/post_01").exists()
+
+
+# --- T-091: anti-emphasis --focus brief, --length and --overview-format ---------------
+
+
+def _created(calls: list[list[str]]) -> list[str]:
+    (create,) = [call for call in calls if call[1:3] == ["audio", "create"]]
+    return create
+
+
+def test_notebooklm_length_and_format_flags(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    calls = _studio_mock(project, monkeypatch, [], ["completed"])
+    result = NotebookLMAdapter(
+        project, corpus_id="sandbox-corpus", length="default", overview_format="critique"
+    ).build("post_01", "Draft", [], project / "dist/audio/post_01", force_new=True)
+    create = _created(calls)
+    assert create[create.index("--length") + 1] == "default"
+    assert create[create.index("--format") + 1] == "critique"
+    assert result.details["length"] == "default"
+    assert result.details["overview_format"] == "critique"
+
+
+def test_notebooklm_defaults_to_short_deep_dive(project: Path) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+    from editorial_pipeline.config.models import AudioConfig
+
+    adapter = NotebookLMAdapter(project, corpus_id="sandbox-corpus")
+    assert (adapter.length, adapter.overview_format) == ("short", "deep_dive")
+    assert adapter.forbidden_phrases == ()
+    config = AudioConfig()
+    assert (config.length, config.overview_format) == ("short", "deep_dive")
+
+
+def test_focus_imposes_anti_emphasis_rules(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    calls = _studio_mock(project, monkeypatch, [], ["completed"])
+    NotebookLMAdapter(
+        project,
+        corpus_id="sandbox-corpus",
+        forbidden_phrases=("a tutto tondo", "  ", "game\n changer"),
+    ).build(
+        "post_01",
+        "Draft",
+        [{"key": "src", "claims": [{"text": "Il gettito cresce.", "locator": "tab. 2"}]}],
+        project / "dist/audio/post_01",
+        force_new=True,
+    )
+    focus = _created(calls)[-1]
+    for directive in (
+        "Registro sobrio e giornalistico",
+        "Divieto di enfasi e frasi fatte",
+        "immersione profonda",
+        "forze titaniche",
+        "i modelli non mentono",
+        "Divieto di metafore ed esempi inventati",
+        "prezzi di beni comuni",
+        "aliquote",
+        "previsioni deterministiche",
+        "gettito fiscale",
+        "per sempre",
+        "Perimetro chiuso",
+    ):
+        assert directive in focus
+    assert "'a tutto tondo', 'game changer'" in focus
+    assert "- Il gettito cresce. (fonte src, tab. 2)" in focus
+    assert focus.index("Perimetro chiuso") < focus.index("Il gettito cresce.")
+
+
+def test_focus_omits_project_list_without_forbidden_phrases(project: Path) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    focus = NotebookLMAdapter(project, corpus_id="sandbox-corpus")._build_focus([])
+    assert "Espressioni vietate dal progetto" not in focus
+    assert "senza precedenti" in focus
+
+
+@pytest.mark.parametrize(
+    ("toml", "options", "expected"),
+    [
+        ("", (), ("short", "deep_dive")),
+        ('length = "long"\noverview_format = "debate"\n', (), ("long", "debate")),
+        (
+            'length = "long"\noverview_format = "debate"\n',
+            ("--length", "default", "--overview-format", "brief"),
+            ("default", "brief"),
+        ),
+    ],
+)
+def test_cli_resolves_length_and_format(
+    project: Path,
+    capsys: pytest.CaptureFixture[str],
+    toml: str,
+    options: tuple[str, ...],
+    expected: tuple[str, str],
+) -> None:
+    config = project / "editorial.toml"
+    config.write_text(config.read_text(encoding="utf-8") + "\n[audio]\n" + toml, encoding="utf-8")
+    before = snapshot(project)
+    assert run(project, "--provider", "notebooklm", *options, "--dry-run", "--json") == 0
+    details = json.loads(capsys.readouterr().out)["details"]
+    assert (details["length"], details["overview_format"]) == expected
+    assert snapshot(project) == before
+
+
+def test_cli_passes_register_forbidden_phrases(project: Path) -> None:
+    from unittest.mock import patch
+
+    from editorial_pipeline.adapters.audio import AudioResult
+
+    with patch("editorial_pipeline.cli.commands.NotebookLMAdapter") as adapter:
+        adapter.return_value.build.return_value = AudioResult(
+            status="DRY_RUN", provider="notebooklm", audio_files=[]
+        )
+        assert run(project, "--provider", "notebooklm", "--length", "long", "--dry-run") == 0
+    kwargs = adapter.call_args.kwargs
+    assert kwargs["forbidden_phrases"] == SAMPLE_FORBIDDEN
+    assert kwargs["length"] == "long" and kwargs["overview_format"] == "deep_dive"
+
+
+def test_cli_rejects_invalid_length(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        run(project, "--provider", "notebooklm", "--length", "medium")
+    assert "invalid choice" in capsys.readouterr().err
