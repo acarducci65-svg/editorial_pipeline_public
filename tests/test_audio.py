@@ -968,3 +968,45 @@ def test_notebooklm_rejects_invalid_polling(project: Path, kwargs: dict[str, obj
 
     with pytest.raises(ValueError, match="poll_"):
         NotebookLMAdapter(project, **kwargs)  # type: ignore[arg-type]
+
+
+# --- T-088: explicit regeneration with --new / force_new ------------------------------
+
+
+def test_notebooklm_force_new_skips_existing_artifact(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from editorial_pipeline.adapters.audio import NotebookLMAdapter
+
+    discovery = [{"artifact_id": "ready-audio", "type": "audio", "status": "completed"}]
+    calls = _studio_mock(project, monkeypatch, discovery, ["completed"])
+    NotebookLMAdapter(project, corpus_id="sandbox-corpus").build(
+        "post_01", "Draft", [], project / "dist/audio/post_01", force_new=True
+    )
+    assert [call[1:3] for call in calls] == [
+        ["audio", "create"],
+        ["studio", "status"],
+        ["download", "audio"],
+    ]
+    assert calls[-1][calls[-1].index("--id") + 1] == "fresh-audio"
+
+
+def test_cli_build_audio_new_flag(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from unittest.mock import patch
+
+    from editorial_pipeline.adapters.audio import AudioResult
+
+    built = AudioResult(
+        status="BUILT", provider="notebooklm", audio_files=["dist/audio/post_01/podcast.m4a"]
+    )
+    with patch("editorial_pipeline.cli.commands.NotebookLMAdapter") as adapter:
+        adapter.return_value.build.return_value = built
+        assert run(project, "--provider", "notebooklm", "--new") == 0
+        assert adapter.return_value.build.call_args.kwargs == {"force_new": True}
+        adapter.return_value.build.reset_mock()
+        assert run(project, "--provider", "notebooklm") == 0
+        assert "force_new" not in adapter.return_value.build.call_args.kwargs
+    capsys.readouterr()
+    assert run(project, "--provider", "script_only", "--new") == 1
+    assert "--new is supported only" in capsys.readouterr().err
+    assert not (project / "dist/audio/post_01").exists()

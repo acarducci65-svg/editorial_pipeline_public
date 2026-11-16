@@ -195,6 +195,7 @@ class NotebookLMAdapter(AudioProvider):
         sources: list[dict[str, Any]],
         output_dir: Path,
         dry_run: bool = False,
+        force_new: bool = False,
     ) -> AudioResult:
         path = self.destination(post_id, output_dir, self.filename)
         result = AudioResult(
@@ -206,7 +207,8 @@ class NotebookLMAdapter(AudioProvider):
         if dry_run:
             return result
         corpus = self.preflight()
-        existing = self._existing_artifact(corpus)
+        # force_new skips Studio discovery: always generate a fresh episode.
+        existing = None if force_new else self._existing_artifact(corpus)
         if existing is None:
             artifact = self._create_artifact(corpus, sources)
             self._wait_completed(corpus, artifact)

@@ -360,6 +360,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             p.add_argument("--format", dest="audio_format", choices=("m4a", "mp3"), default="m4a")
             p.add_argument("--language", default="it", help="NotebookLM audio language")
+            p.add_argument(
+                "--new",
+                action="store_true",
+                help="NotebookLM only: ignore existing Studio audio and generate a new episode",
+            )
             p.add_argument("--dry-run", action="store_true")
         if name == "build-visual":
             p.add_argument("--dry-run", action="store_true")
@@ -510,6 +515,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 config.audio.provider if config.audio else config.providers.audio.adapter
             )
             audio_provider: AudioProvider
+            notebooklm: NotebookLMAdapter | None = None
             if adapter in ("script_only", "none"):
                 audio_provider = ScriptOnlyAdapter(root)
             elif adapter == "tts":
@@ -538,9 +544,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                         audio_provider = ScriptOnlyAdapter(root)
             else:
                 raise ValueError("Unsupported audio provider")
-            audio_result = audio_provider.build(
-                post_id, post.read_text(encoding="utf-8"), sources, output_dir, args.dry_run
-            )
+            if args.new and adapter != "notebooklm":
+                raise ValueError("--new is supported only by the notebooklm audio provider")
+            draft_text = post.read_text(encoding="utf-8")
+            if args.new and notebooklm is not None and audio_provider is notebooklm:
+                audio_result = notebooklm.build(
+                    post_id, draft_text, sources, output_dir, args.dry_run, force_new=True
+                )
+            else:
+                audio_result = audio_provider.build(
+                    post_id, draft_text, sources, output_dir, args.dry_run
+                )
             if args.json:
                 print(serialize(audio_result.model_dump()))
             else:
