@@ -268,6 +268,16 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
    editorial-pipeline build-visual content/posts/post_07_titolo.md --aspect-ratio 4:5   # HTML, PNG e PDF
    ```
    Controllate il manifest (percorsi relativi, SHA-256) e che nessuna slide tronchi il testo.
+
+   **Browser per il rendering.** Con `--aspect-ratio 4:5` (o `1:1`) e senza `--html-only`, `build-visual` prova da solo, nell'ordine, Chromium di Playwright, Google Chrome di sistema e Microsoft Edge di sistema, e usa il primo che si avvia. Non serve installare un browser a mano né indicarne uno.
+
+   > **PNG e PDF del carosello sono obbligatori (regola vincolante).** Un carosello destinato a LinkedIn o Instagram è completo solo quando `[paths].dist/social/<post_id>/` contiene, oltre a `slide_NN.html`, anche **ogni `slide_NN.png`** e **`<post_id>_carousel.pdf`**, e `manifest.json` ha `"artifact_type": "carousel"` con tutti questi file elencati. Verificatelo su disco dopo ogni `build-visual`.
+   >
+   > - **`artifact_type = "carousel_html"`.** Nessun browser si è avviato oppure Playwright manca: le `notes` del manifest dicono quale dei due. Risolvete la causa e rilanciate `build-visual --aspect-ratio 4:5`; `--html-only` vale solo come anteprima.
+   > - **Slide HTML curate o rigenerate a mano dopo `build-visual`.** Non rilanciate `build-visual`, perché riscriverebbe gli HTML dalla bozza e cancellerebbe le modifiche. Renderizzate gli HTML approvati con un browser Chromium headless (Playwright, Chrome o Edge) alle dimensioni del formato (4:5 = 1080×1350 px): un `slide_NN.png` per slide e un unico `<post_id>_carousel.pdf` con tutte le slide nell'ordine. Aggiornate poi `manifest.json`: una voce per file con `path` relativo a `[paths].dist/social/`, `kind` e `sha256`; `digest` ricalcolato come SHA-256 delle coppie `path:sha256` ordinate e unite da `\n`; `artifact_type` impostato a `"carousel"`.
+   > - **Se non riuscite a produrli, ditelo.** Il pacchetto Gate 2 deve dichiarare in modo esplicito «PNG/PDF del carosello assenti», con il motivo, così il Direttore sa che la console web mostrerà «PDF non disponibile». Non presentate al Gate 2 come completo un deck solo HTML.
+   >
+   > PNG, PDF e manifest stanno in `[paths].dist` e quindi nel bundle del Gate 2: completate il rendering **prima** del pacchetto Gate 2. Rifarlo dopo rende la ricevuta `stale`.
 4. Applicate la checklist anti-cliché ai testi promozionali (sono testi nuovi). Registrate `social-review.json` + prova (`social-review.md`, con la tabella che collega ogni dato pubblico al suo `claim_id` e locator).
 5. Formule vietate in ogni canale: «zero allucinazioni», «verificato al 100%», «scritto da una persona», «non rilevabile».
 
