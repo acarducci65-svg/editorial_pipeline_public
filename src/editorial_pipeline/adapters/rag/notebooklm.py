@@ -11,6 +11,39 @@ from pathlib import Path
 from editorial_pipeline.adapters.rag.base import RagProvider, RagUnavailableError
 from editorial_pipeline.domain.models import Finding, VerificationState
 
+USAGE_LIMIT_MESSAGE = (
+    "NotebookLM RAG: usage limit reached. Wait before retrying or use --provider manual."
+)
+_RATE_LIMIT_MARKERS = (
+    "usage limit",
+    "rate limit",
+    "rate-limit",
+    "ratelimit",
+    "too many requests",
+    "quota",
+    "resource_exhausted",
+    "429",
+)
+
+
+def _is_rate_limited(*texts: str) -> bool:
+    return any(marker in text.casefold() for text in texts for marker in _RATE_LIMIT_MARKERS)
+
+
+def _json_error_text(output: str) -> str | None:
+    """Return the error text of an nlm JSON error payload, or None if it is not one."""
+    try:
+        payload = json.loads(output)
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    status = payload.get("status")
+    if not (isinstance(status, str) and status.casefold() == "error") and "error" not in payload:
+        return None
+    parts = [payload.get(key) for key in ("error", "detail", "message", "status")]
+    return " ".join(json.dumps(part) if not isinstance(part, str) else part for part in parts)
+
 
 class NotebookLMAdapter(RagProvider):
     def __init__(
@@ -83,6 +116,9 @@ class NotebookLMAdapter(RagProvider):
             except UnicodeError:
                 raise RagUnavailableError("NotebookLM returned an invalid text response") from None
             if result.returncode != 0:
+                # Abort the whole batch: further queries would only burn more quota.
+                if _is_rate_limited(result.stderr, result.stdout):
+                    raise RagUnavailableError(USAGE_LIMIT_MESSAGE)
                 if any(word in result.stderr.casefold() for word in ("login", "auth", "cookie")):
                     raise RagUnavailableError(
                         "NotebookLM authentication required (run 'nlm login')"
@@ -91,6 +127,12 @@ class NotebookLMAdapter(RagProvider):
                 raise RagUnavailableError(
                     f"NotebookLM query failed: CLI exit code {result.returncode}"
                 )
+            error_text = _json_error_text(result.stdout)
+            if error_text is not None:
+                if _is_rate_limited(error_text):
+                    raise RagUnavailableError(USAGE_LIMIT_MESSAGE)
+                # The error payload may echo corpus IDs or host paths. Discard it.
+                raise RagUnavailableError("NotebookLM query failed: CLI reported an error")
             findings.append(self._finding(result.stdout, index))
         return findings
 

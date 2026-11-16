@@ -494,6 +494,56 @@ def test_remote_error_privacy(nlm: Mock, tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
+    "response",
+    [
+        subprocess.CompletedProcess([], 1, "", "Error: usage limit was reached for test-corpus"),
+        subprocess.CompletedProcess([], 1, "", "HTTP 429 Too Many Requests"),
+        subprocess.CompletedProcess([], 2, "Rate limit exceeded", ""),
+        subprocess.CompletedProcess([], 1, "", "Quota exhausted, please wait"),
+        subprocess.CompletedProcess(
+            [], 0, '{"status":"error","error":"The usage limit was reached"}', ""
+        ),
+        subprocess.CompletedProcess(
+            [], 0, '{"status":"error","detail":"429 RESOURCE_EXHAUSTED quota"}', ""
+        ),
+        subprocess.CompletedProcess([], 1, '{"status":"error","message":"Too many requests"}', ""),
+    ],
+)
+def test_notebooklm_rag_aborts_immediately_on_usage_limit(
+    nlm: Mock,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    response: subprocess.CompletedProcess[str],
+) -> None:
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    nlm.return_value = response
+    with pytest.raises(RagUnavailableError, match="usage limit reached") as caught:
+        NotebookLMAdapter("test-corpus").verify([f"claim {i}" for i in range(5)], tmp_path)
+    assert nlm.call_count == 1
+    message = str(caught.value)
+    assert message == (
+        "NotebookLM RAG: usage limit reached. Wait before retrying or use --provider manual."
+    )
+    assert "test-corpus" not in message
+
+
+def test_remote_json_error_without_rate_limit(nlm: Mock, tmp_path: Path) -> None:
+    nlm.return_value.stdout = '{"status":"error","error":"private failure test-corpus"}'
+    with pytest.raises(RagUnavailableError, match="reported an error") as caught:
+        NotebookLMAdapter("test-corpus").verify(["claim"], tmp_path)
+    assert "private" not in str(caught.value)
+    assert "test-corpus" not in str(caught.value)
+
+
+def test_remote_answer_mentioning_quota_is_not_rate_limit(nlm: Mock, tmp_path: Path) -> None:
+    nlm.return_value.stdout = json.dumps(
+        {"answer": "The 429 quota law is supported by the document", "citations": ["s"]}
+    )
+    findings = NotebookLMAdapter("test-corpus").verify(["claim"], tmp_path)
+    assert findings[0].state is VerificationState.OK
+
+
+@pytest.mark.parametrize(
     "error,message",
     [
         (subprocess.TimeoutExpired("nlm", 60), "timed out after 60.0s"),
