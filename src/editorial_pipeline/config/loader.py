@@ -10,5 +10,7 @@ from editorial_pipeline.config.models import EditorialConfig
 
 
 def load_config(path: Path | str) -> EditorialConfig:
-    with Path(path).open("rb") as stream:
-        return EditorialConfig.model_validate(tomllib.load(stream))
+    # "utf-8-sig" strips a leading UTF-8 BOM (common on Windows editors) that
+    # tomllib would otherwise reject as an invalid statement at line 1.
+    text = Path(path).read_text(encoding="utf-8-sig")
+    return EditorialConfig.model_validate(tomllib.loads(text))

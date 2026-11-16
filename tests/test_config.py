@@ -36,6 +36,15 @@ def test_missing_and_invalid_toml(tmp_path: Path) -> None:
         load_config(path)
 
 
+def test_load_config_tolerates_utf8_bom(tmp_path: Path) -> None:
+    source = Path("editorial.example.toml").read_bytes()
+    path = tmp_path / "editorial.toml"
+    path.write_bytes(b"\xef\xbb\xbf" + source)
+    assert path.read_bytes().startswith(b"\xef\xbb\xbf")
+    config = load_config(path)
+    assert config == load_config("editorial.example.toml")
+
+
 def test_gate2_and_nested_paths_are_validated() -> None:
     config = load_config("editorial.example.toml")
     data = config.model_dump()
