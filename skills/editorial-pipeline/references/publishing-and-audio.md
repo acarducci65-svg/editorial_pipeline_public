@@ -2,7 +2,7 @@
 
 Reference per **F5** (`build-audio`), per l'esecuzione delle azioni autorizzate al **Gate 2** (`publish`) e per la console webredazionale (`view`, §5). Integra `gates_and_evidence.md`, che resta la norma per pacchetti, ricevute e invalidazione: questi comandi non cambiano le regole dei gate, le applicano.
 
-Posizione nel ciclo: `F3 → view (bozza, fonti e claim) → Gate 1 → F4 ‖ F5 → view (kit e audio, preparazione console) → controlli finali → Gate 2 → publish → consultazione console → F6`.
+Posizione nel ciclo: `F3 → view (bozza, fonti e claim) → Gate 1 → F4 ‖ F5 → view (kit e audio, preparazione console) → controlli finali → Gate 2 → publish → view (aggiornamento obbligatorio dopo Gate 2 e publish) → consultazione console → F6`.
 
 ---
 
@@ -11,7 +11,7 @@ Posizione nel ciclo: `F3 → view (bozza, fonti e claim) → Gate 1 → F4 ‖ F
 1. `build-audio` **non approva nulla**. Un copione o un audio generato è materiale da rivedere e da mostrare al Direttore nel pacchetto Gate 2.
 2. `publish` **non decide nulla**. Esegue solo le azioni che il Direttore ha scritto nella frase di Gate 2 e che sono state copiate da quella frase in `allowed_actions` della ricevuta.
 3. Non scrivete, correggete o completate `gate2.json` per far funzionare `publish`. Non aggiungete azioni al catalogo `[gates.gate2].allowed_actions` né alla ricevuta. Non cambiate provider o target per aggirare un errore: riferite al Direttore.
-4. Dopo il Gate 2 non si genera né si modifica nulla in `[paths].dist`: ogni file di `dist/` (report esclusi) fa parte del bundle.
+4. Dopo il Gate 2 non si genera né si modifica nulla in `[paths].dist`: ogni file di `dist/` (report esclusi) fa parte del bundle. Uniche scritture ammesse: quelle di `publish` per le azioni della ricevuta e, **come ultimo passo**, la rigenerazione della console con `view` (§5.2, «Aggiornamento dopo Gate 2 e `publish`»).
 
 ## 2. F5 — `build-audio`
 
@@ -243,13 +243,14 @@ Nel pacchetto Gate 2, se il catalogo le prevede, proponete le azioni locali per 
    ```bash
    editorial-pipeline publish <post> --target dist_archive --json
    ```
-5. Riferite `status`, `executed_actions`, `published_files` e `details.bundle_digest`. Poi F6.
+5. Riferite `status`, `executed_actions`, `published_files` e `details.bundle_digest`.
+6. Eseguite tutte le azioni CLI della ricevuta, rigenerate la console: `editorial-pipeline view <post_id> --no-browser` (o `--all --no-browser`), §5.2. Poi F6.
 
 ### 3.3 Esiti
 
 | Esito | Exit | Significato | Cosa fare |
 |---|---|---|---|
-| `PUBLISHED` | 0 | File scritti dal bundle approvato | Riferire e passare a F6 |
+| `PUBLISHED` | 0 | File scritti dal bundle approvato | Riferire; dopo l'ultima azione CLI rigenerare la console (§5.2), poi F6 |
 | `DRY_RUN` | 0 | Piano calcolato, nulla scritto | Mostrare il piano |
 | `SKIPPED` | 0 | Nessuna azione autorizzata per quell'adapter | Riferire; **non** è un errore da aggirare |
 | `Gate 2: invalid or unreadable bundle` | 2 | Ricevuta assente, non valida, `stale`, azioni non permesse, `BLOCK` aperti | Eseguire `check-gate 2` per il motivo; se il bundle è cambiato, nuovo pacchetto Gate 2 |
@@ -330,7 +331,8 @@ La struttura del sito Hugo che riceve l'export (configurazione, pagine di traspa
 - [ ] Pacchetto Gate 2 con percorso dell'audio, esito dell'ascolto, eventuali finding P1 e note P3, copione se presente, azioni proposte (`archive`, `export_markdown`) e destinazione.
 - [ ] Frase del Direttore con le azioni; ricevuta scritta dopo; `check-gate 2` → `RECEIPT_VALID`.
 - [ ] `publish --dry-run` mostrato; `publish` eseguito solo per i target autorizzati.
-- [ ] Esito riferito con `bundle_digest`; nessun file aggiunto a `dist/` dopo la ricevuta.
+- [ ] Esito riferito con `bundle_digest`; nessun file aggiunto a `dist/` dopo la ricevuta, salvo l'output di `publish` e la console finale.
+- [ ] Console rigenerata come ultimo passo (`editorial-pipeline view <post_id> --no-browser` o `--all --no-browser`) dopo l'ultimo `publish`, o dopo `check-gate 2` se non c'erano azioni CLI: Gate 2 verde e file pubblicati visibili in `dist/web/<post_id>.html` e `dist/web/index.html` (§5.2).
 
 ## 5. Console Webredazionale (Editorial Hub)
 
@@ -351,7 +353,7 @@ Gli stati dei gate derivano dai report o dalle ricevute disponibili: **non sono 
 
 ### 5.1-bis Indice della redazione
 
-`editorial view` senza `<post_id>`, oppure `editorial view --all`, rigenera le console di tutte le unità e scrive `[paths].dist/web/index.html`: un catalogo con titolo, data, autore, fasi completate (F1 Fonti, F2 Bozza, F3 Verifica, G1, F4 Visual e social, F5 Audio, G2), stato sintetico («In lavorazione», «In produzione», «Pronto per la pubblicazione», «Pubblicato») e il link alla console di ciascun articolo. Ogni console rimanda all'indice con «← Tutti gli articoli». Un'unità illeggibile compare con il motivo, senza bloccare le altre. Anche l'indice è in `dist/`: rigenerarlo dopo la ricevuta Gate 2 la rende `stale`.
+`editorial view` senza `<post_id>`, oppure `editorial view --all`, rigenera le console di tutte le unità e scrive `[paths].dist/web/index.html`: un catalogo con titolo, data, autore, fasi completate (F1 Fonti, F2 Bozza, F3 Verifica, G1, F4 Visual e social, F5 Audio, G2), stato sintetico («In lavorazione», «In produzione», «Pronto per la pubblicazione», «Pubblicato») e il link alla console di ciascun articolo. Ogni console rimanda all'indice con «← Tutti gli articoli». Un'unità illeggibile compare con il motivo, senza bloccare le altre. Anche l'indice è in `dist/`: rigenerarlo dopo la ricevuta Gate 2 la rende `stale`, perciò dopo il Gate 2 lo si rigenera solo come ultimo passo (§5.2, «Aggiornamento dopo Gate 2 e `publish`»).
 
 ### 5.2 Modalità standard: file locale
 
@@ -366,7 +368,19 @@ Il comando genera `[paths].dist/web/post_07.html` (default `dist/web/post_07.htm
 
 **Preparazione e Gate 1.** Prima di porre la domanda del Gate 1 eseguite `editorial-pipeline view <post_id> --no-browser` e indicate al Direttore `dist/web/<post_id>.html` e `dist/web/index.html`: la console mostra bozza, fonti primarie e claim verificati. I file di `dist/` non fanno parte del bundle Gate 1, quindi `view` non invalida alcun digest di quel gate e non approva nulla.
 
-**Preparazione e Gate 2.** Generate la console prima di calcolare il bundle del Gate 2, dopo aver ultimato kit e audio. `view` riscrive il file anche se esiste già; generarlo o rigenerarlo dopo la ricevuta può renderla `stale`. Dopo il Gate 2/pubblicazione, aprite direttamente l'HTML già preparato per consultarlo senza scritture. Se serve aggiornarlo con nuovi asset, riferite il cambiamento e presentate un nuovo pacchetto Gate 2 prima di ulteriori azioni soggette al gate. Non correggete la ricevuta per adattarla alla console.
+**Preparazione e Gate 2.** Generate la console prima di calcolare il bundle del Gate 2, dopo aver ultimato kit e audio. `view` riscrive il file anche se esiste già; generarlo o rigenerarlo fra la ricevuta e l'ultima azione CLI la rende `stale` e blocca i `publish` successivi. Se serve aggiornarla con nuovi asset, riferite il cambiamento e presentate un nuovo pacchetto Gate 2 prima di ulteriori azioni soggette al gate. Non correggete la ricevuta per adattarla alla console.
+
+**Aggiornamento dopo Gate 2 e `publish`.** La console preparata prima del Gate 2 è un'istantanea pre-approvazione: senza aggiornamento continua a mostrare «Gate 2 · Pubblicazione — Non disponibile» e non elenca i file appena pubblicati. Rigeneratela quindi **obbligatoriamente**, una volta e come ultimo passo:
+
+- dopo l'ultimo `publish` autorizzato dalla ricevuta (tutti i target eseguiti), oppure
+- subito dopo `check-gate 2` → `RECEIPT_VALID`, se la ricevuta non contiene azioni eseguibili con la CLI (`publish` risponderebbe `SKIPPED`).
+
+```bash
+editorial-pipeline view <post_id> --no-browser
+editorial-pipeline view --all --no-browser   # con più unità: anche l'indice
+```
+
+Il comando riscrive `dist/web/<post_id>.html` e `dist/web/index.html` con il badge verde del Gate 2 (letto dal rapporto `reports/gates/<post_id>/gate2.json` scritto da `check-gate 2`), le azioni autorizzate, i file pubblicati e l'archivio `dist/packages/<post_id>.tar.gz` se esiste. Non tocca unità, evidenze né ricevute e non approva nulla. Poiché `dist/web/` fa parte del bundle, un nuovo `check-gate 2` darà poi ricevuta `stale`: è atteso, perché le azioni CLI della ricevuta sono già state consumate (con le cartelle predefinite la ricevuta è `stale` già dopo il primo `publish`, §3.4). Per lo stesso motivo non lanciatelo mai prima di un `publish` ancora da eseguire. A valle non resta nulla da invalidare: F6 e ogni ripubblicazione richiedono comunque un nuovo Gate 2. Indicate al Direttore i due percorsi da aprire nel browser; se il comando fallisce, riferitelo invece di saltarlo. Da qui in poi, per consultare la console senza scritture, aprite direttamente l'HTML.
 
 ### 5.3 Modalità di rete: server HTTP locale
 
@@ -376,7 +390,7 @@ editorial view post_07 --serve --port 8080 --no-browser
 editorial view post_07 --serve --port 0
 ```
 
-`--serve` rigenera la console e avvia un server HTTP locale fino a `Ctrl+C`, stampando l'URL da aprire. La porta predefinita è `8000`; `--port PORT` accetta `0`–`65535`, con `0` per una porta libera scelta dal sistema. Una porta esplicita occupata produce errore; `--port` ha effetto sul server solo con `--serve`. `--no-browser` mantiene attivo il server senza aprire automaticamente una finestra. Anche questa modalità va preparata prima del Gate 2 per evitare la rigenerazione dopo l'approvazione.
+`--serve` rigenera la console e avvia un server HTTP locale fino a `Ctrl+C`, stampando l'URL da aprire. La porta predefinita è `8000`; `--port PORT` accetta `0`–`65535`, con `0` per una porta libera scelta dal sistema. Una porta esplicita occupata produce errore; `--port` ha effetto sul server solo con `--serve`. `--no-browser` mantiene attivo il server senza aprire automaticamente una finestra. Anche `--serve` rigenera la console: dopo l'approvazione usatelo solo al posto dell'aggiornamento finale (§5.2), mai fra la ricevuta e l'ultimo `publish`.
 
 Il server ascolta **solo su `127.0.0.1`** e serve la console con i file collegati, senza elenchi di directory né configurazione. È utile per le prove HTTP sul computer della redazione. Il collegamento diretto da cellulare o da un altro computer della rete locale **non è supportato**: non esiste un'opzione per esporre il server sulla LAN. Per verificare il layout mobile sullo stesso computer usate l'emulazione dispositivi del browser; l'accesso da un dispositivo reale richiede un inoltro o un servizio separato configurato dalla redazione. La sola scelta della porta non abilita l'accesso dalla rete.
 
