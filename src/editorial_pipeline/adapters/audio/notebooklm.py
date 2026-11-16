@@ -42,12 +42,17 @@ FOCUS_RULES = (
     "3. Divieto di metafore ed esempi inventati: non introdurre paragoni di vita quotidiana "
     "(per esempio prezzi di beni comuni), né esempi numerici, aliquote, età o scenari "
     "ipotetici assenti dalle affermazioni.\n"
-    "4. Rigore causale e temporale: non trasformare risultati condizionati di un modello in "
-    "previsioni deterministiche o ricette universali; rispetta esattamente le definizioni "
-    "(per esempio non confondere benessere o utilità con gettito fiscale) e gli orizzonti "
-    "temporali (un singolo decennio non diventa 'per sempre').\n"
-    "5. Perimetro chiuso: basati solo sulle affermazioni verificate e sui relativi locator "
-    "elencati di seguito, senza aggiungere fatti esterni o non supportati."
+    "4. Rigore causale, definitorio e temporale (anche nella conclusione): non trasformare "
+    "risultati condizionati di un modello in previsioni deterministiche o ricette universali; "
+    "rispetta esattamente le definizioni sia nel corpo che nel riepilogo finale (non "
+    "confondere benessere o utilità con gettito fiscale o 'benefici finanziari', non "
+    "generalizzare l'azzeramento dell'aliquota di una coorte specifica all'intera forza "
+    "lavoro, non trasformare una varianza spiegata o correlazione in un nesso causale unico) "
+    "e gli orizzonti temporali (un singolo decennio non diventa 'per sempre').\n"
+    "5. Perimetro chiuso e fedeltà numerica: basati solo sulle affermazioni verificate e "
+    "sui relativi locator elencati di seguito, senza aggiungere fatti esterni, inferenze "
+    "causali o strumenti fiscali non supportati, e pronunciando con esattezza unità e scale "
+    "dei numeri (es. milioni e miliardi)."
 )
 
 
