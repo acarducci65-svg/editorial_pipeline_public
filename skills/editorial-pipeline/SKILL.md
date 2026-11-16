@@ -247,7 +247,20 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
 **F4 — Visual & Social**
 
 1. Preparate i testi per i canali configurati: abstract, copy social (post, primo commento, didascalia, story), anteprima newsletter, testo alternativo delle immagini.
-2. Ogni numero o dato deve citare un claim `grounded_primary` o `verified_external` con locator (TP6). Annotate per ciascuno il `claim_id`.
+2. Ogni numero o dato deve citare un claim `grounded_primary` o `verified_external` con locator (TP6). Annotate per ciascuno il `claim_id` **solo** nella documentazione redazionale: `evidence/<post_id>/social-review.md` (tabella di tracciamento) o una sezione redazionale separata di `copy.md`.
+
+> **Testo pubblico pulito (regola vincolante).** Nei file di canale (`linkedin.md`, `twitter.md`, `instagram.md`, `newsletter.md` in `[paths].dist/social/<post_id>/`) e **sulle slide HTML/PNG del carosello** è **vietato** scrivere `claim_id`, tag come `[C1]` o `[C7]`, locator interni, note di stesura, intestazioni redazionali («Bozza LinkedIn», «Note», «Fonti verificate») o tabelle. Quei file sono ciò che il lettore vede: la console `dist/web/<post_id>.html` li espone così come sono nel box di copia.
+>
+> - **File di canale**: contiene solo il testo pronto al copia-incolla, niente altro. Struttura:
+>   - **LinkedIn**: gancio iniziale chiaro, 2–3 paragrafi brevi in prosa scorrevole (i dati si integrano nella frase, mai appunti telegrafici o elenchi di numeri), invito alla lettura con l'URL canonico dell'articolo.
+>   - **Twitter/X**: un post o un mini-thread, ogni post entro 280 caratteri, con il dato chiave e l'URL.
+>   - **Instagram**: didascalia breve e leggibile a supporto del carosello, con rimando all'articolo.
+>   - **Newsletter**: oggetto, breve introduzione editoriale, punti chiave, link all'articolo.
+> - **URL dell'articolo**: `[project].base_url` + slug/percorso dell'articolo pubblicato (es. `https://example.org/posts/titolo-articolo/`). Mai segnaposto come `<link>` o `[URL]` nel file consegnato.
+> - **Slide del carosello**: la riga di fonte è leggibile per un lettore umano, es. `Fonte: Commissione europea, Ageing Report 2024, p. 5`; mai `claim_id C1` né sigle interne.
+> - **Stile**: gancio e raccordi sono frasi vere, non righe staccate da comunicato statistico; restano sobri, fedeli alle fonti e senza i cliché di `references/humanizer_checklist.md`.
+>
+> Prima di consegnare, cercate nei file di canale e negli HTML delle slide `\[C\d+\]`, `claim_id`, `C\d+` isolati, `|---` e intestazioni redazionali: ogni occorrenza è un errore da correggere.
 3. Generate il carosello (se `F4_visual` è attiva; altrimenti dichiarate la fase `skipped`):
    ```bash
    editorial-pipeline build-visual content/posts/post_07_titolo.md --dry-run      # elenco dei file, nessuna scrittura
@@ -255,7 +268,7 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
    editorial-pipeline build-visual content/posts/post_07_titolo.md --aspect-ratio 4:5   # HTML, PNG e PDF
    ```
    Controllate il manifest (percorsi relativi, SHA-256) e che nessuna slide tronchi il testo.
-4. Applicate la checklist anti-cliché ai testi promozionali (sono testi nuovi). Registrate `social-review.json` + prova.
+4. Applicate la checklist anti-cliché ai testi promozionali (sono testi nuovi). Registrate `social-review.json` + prova (`social-review.md`, con la tabella che collega ogni dato pubblico al suo `claim_id` e locator).
 5. Formule vietate in ogni canale: «zero allucinazioni», «verificato al 100%», «scritto da una persona», «non rilevabile».
 
 **F5 — Podcast / Audio** (solo se `[phases.optional].F5 = true`; altrimenti `skipped` nel pacchetto Gate 2). Procedura completa: `references/publishing-and-audio.md` §2.

@@ -275,6 +275,7 @@ Ammesse le frasi brevi di ambientazione in apertura («Lunedì, ore 6. Il mercat
 - Spia: più di un grassetto ogni 80 parole.
 - Nei registri tecnici comandi, file e variabili vanno in `codice`, non in grassetto.
 - Sui social che non rendono il Markdown i marcatori `**` sono un errore: toglieteli.
+- Nei testi pubblici di F4 (file di canale e slide) niente `claim_id`, tag `[C1]` o tabelle: il tracciamento sta in `social-review.md` (§6).
 - Titoli e slide senza maiuscole all'inglese (§3.8).
 
 | Prima | Dopo |
@@ -385,6 +386,16 @@ Revisore: <agente>, passaggio separato dalla stesura.
 ```
 
 `social-review.md` ha in più una riga per ogni unità di testo promozionale (slide, post, primo commento, didascalia, story, abstract, copione), con esito e, per ogni numero, il `claim_id` che lo copre.
+
+**Separazione netta fra testo pubblico e tracciamento (F4).** Il `claim_id` vive solo qui, in `social-review.md` (o in una sezione redazionale separata di `copy.md`). I file di canale (`linkedin.md`, `twitter.md`, `instagram.md`, `newsletter.md`) e le slide HTML/PNG del carosello contengono solo testo pubblico pulito: nessun tag `[C1]`/`[C7]`, nessun `claim_id`, nessun locator interno, nessuna nota di stesura, intestazione redazionale o tabella. Sulle slide la fonte si scrive per il lettore (`Fonte: Commissione europea, Ageing Report 2024, p. 5`); nei file di canale il testo è pronto al copia-incolla, in prosa scorrevole, e chiude con l'URL dell'articolo (`[project].base_url` + slug). Un tag interno trovato nel testo pubblico è un errore da correggere prima della consegna, non una voce da giustificare.
+
+```markdown
+## Tracciamento dati del kit social
+| Unità | Testo pubblico (estratto) | claim_id | Locator | Esito |
+|---|---|---|---|---|
+| linkedin.md §2 | «…la spesa salirebbe di N punti di PIL…» | C7 | Ageing Report 2024, p. 5 | ok |
+| slide 3 | «Fonte: Commissione europea, Ageing Report 2024, p. 5» | C1 | p. 5, tab. 1 | ok |
+```
 
 La CLI legge `post_id`, `draft_digest` e `items` (le chiavi di `[humanizer].required_items` devono valere `pass`); gli altri campi sono documentali. `social-review.json` non è letto dalla CLI.
 
