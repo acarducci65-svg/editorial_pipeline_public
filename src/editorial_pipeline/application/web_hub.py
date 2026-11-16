@@ -820,7 +820,7 @@ def generate_web_hub(
     return _build(root, post_id, paths, options)[0]
 
 
-def discover_post_ids(content: Path) -> list[str]:
+def discover_post_ids(content: Path, exclude: Path | None = None) -> list[str]:
     """Post identifiers under the content directory, in stable order.
 
     A post is either ``<id>/draft.md`` or a flat ``<id>.md`` /
@@ -831,10 +831,18 @@ def discover_post_ids(content: Path) -> list[str]:
     found: set[str] = set()
     if not content.is_dir():
         return []
-    for entry in content.iterdir():
+    excluded = exclude.resolve() if exclude is not None and exclude.exists() else None
+    for entry in content.rglob("*"):
+        if excluded is not None and entry.resolve().is_relative_to(excluded):
+            continue
         if entry.is_dir() and (entry / "draft.md").is_file():
             found.add(entry.name)
-        elif entry.is_file() and entry.suffix == ".md" and "." not in entry.stem:
+        elif (
+            entry.is_file()
+            and entry.suffix == ".md"
+            and entry.name != "draft.md"
+            and "." not in entry.stem
+        ):
             parts = entry.stem.split("_")
             found.add("_".join(parts[:2]) if len(parts) > 2 and parts[1].isdigit() else entry.stem)
     return sorted(p for p in found if POST_ID.fullmatch(p) and not p.startswith("_"))
@@ -880,7 +888,7 @@ def generate_index(
         "timezone": timezone,
     }
     posts: list[dict[str, Any]] = []
-    for post_id in discover_post_ids(content):
+    for post_id in discover_post_ids(content, exclude=(paths or {}).get("paths.pages")):
         try:
             posts.append(_build(root, post_id, paths, options)[1])
         except ValueError as exc:
