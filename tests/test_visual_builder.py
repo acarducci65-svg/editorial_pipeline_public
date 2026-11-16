@@ -256,9 +256,13 @@ class FakePage:
 
 
 def install_fake_playwright(
-    monkeypatch: pytest.MonkeyPatch, *, fail_on_pdf: bool = False, fail_launch: bool = False
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    fail_on_pdf: bool = False,
+    fail_launch: bool = False,
+    failing_channels: tuple[str | None, ...] = (),
 ) -> dict[str, Any]:
-    state: dict[str, Any] = {"closed": False}
+    state: dict[str, Any] = {"closed": False, "launches": []}
     page = FakePage(fail_on_pdf)
     state["page"] = page
 
@@ -271,9 +275,11 @@ def install_fake_playwright(
             state["closed"] = True
 
     class Chromium:
-        def launch(self) -> Browser:
-            if fail_launch:
+        def launch(self, channel: str | None = None) -> Browser:
+            state["launches"].append(channel)
+            if fail_launch or channel in failing_channels:
                 raise FakePlaywrightError("Executable doesn't exist")
+            state["channel"] = channel
             return Browser()
 
     class Context:
@@ -319,8 +325,49 @@ def test_build_browser_failure_cleans_partial_outputs(
     assert state["closed"]
     assert not list((tmp_path / "post_01").glob("*.png"))
     _assert_manifest(manifest, tmp_path)
-    install_fake_playwright(monkeypatch, fail_launch=True)
-    assert builder().build_carousel(make_spec(), tmp_path).artifact_type == "carousel_html"
+    state = install_fake_playwright(monkeypatch, fail_launch=True)
+    manifest = builder().build_carousel(make_spec(), tmp_path)
+    assert manifest.artifact_type == "carousel_html"
+    assert manifest.notes == [
+        "Browser rendering unavailable (FakePlaywrightError): HTML preview only"
+    ]
+    assert state["launches"] == [None, "chrome", "msedge"]
+
+
+def test_build_falls_back_to_system_chrome(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    state = install_fake_playwright(monkeypatch, failing_channels=(None,))
+    manifest = builder().build_carousel(make_spec(), tmp_path)
+    assert manifest.artifact_type == "carousel"
+    assert state["launches"] == [None, "chrome"]
+    assert state["channel"] == "chrome" and state["closed"]
+    kinds = [f["kind"] for f in manifest.files]
+    assert kinds == ["html"] * 3 + ["png"] * 3 + ["pdf"]
+    assert (tmp_path / "post_01" / "post_01_carousel.pdf").is_file()
+    _assert_manifest(manifest, tmp_path)
+
+
+def test_build_falls_back_to_system_edge(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    state = install_fake_playwright(monkeypatch, failing_channels=(None, "chrome"))
+    manifest = builder().build_carousel(make_spec(), tmp_path)
+    assert manifest.artifact_type == "carousel"
+    assert state["launches"] == [None, "chrome", "msedge"]
+    assert state["channel"] == "msedge"
+    assert len(list((tmp_path / "post_01").glob("*.png"))) == 3
+    _assert_manifest(manifest, tmp_path)
+
+
+def test_launch_browser_os_error_is_caught() -> None:
+    calls: list[str | None] = []
+
+    def launch(channel: str | None = None) -> str:
+        calls.append(channel)
+        if channel != "msedge":
+            raise OSError("spawn failed")
+        return "edge"
+
+    playwright = types.SimpleNamespace(chromium=types.SimpleNamespace(launch=launch))
+    assert pb._launch_browser(playwright, FakePlaywrightError) == "edge"
+    assert calls == [None, "chrome", "msedge"]
 
 
 def test_playwright_module_without_factory(monkeypatch: pytest.MonkeyPatch) -> None:

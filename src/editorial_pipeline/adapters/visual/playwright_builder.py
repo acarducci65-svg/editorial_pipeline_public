@@ -1,7 +1,8 @@
 """Carousel builder: Jinja2 HTML rendering, optional Playwright rasterisation.
 
 HTML slides are always produced. PNG and PDF files are produced only when
-Playwright and a Chromium browser are available locally; otherwise the build
+Playwright and a Chromium-based browser are available locally (Playwright's
+bundled Chromium, else a system Google Chrome or Microsoft Edge); otherwise the build
 degrades to an HTML-only manifest with an explanatory note and never raises
 for a missing browser. All network requests from the page are blocked.
 """
@@ -42,6 +43,27 @@ def _load_sync_playwright() -> tuple[Callable[[], Any], type[Exception]] | None:
     if not callable(factory) or not (isinstance(error, type) and issubclass(error, Exception)):
         return None
     return factory, error
+
+
+# Tried in order: Playwright's bundled Chromium, then system Chrome, then Edge.
+BROWSER_CHANNELS: tuple[str | None, ...] = (None, "chrome", "msedge")
+
+
+def _launch_browser(playwright: Any, playwright_error: type[Exception]) -> Any:
+    """Launch the first available Chromium-based browser.
+
+    Raises the last launch error when no candidate can be started.
+    """
+    last_error: Exception | None = None
+    for channel in BROWSER_CHANNELS:
+        try:
+            if channel is None:
+                return playwright.chromium.launch()
+            return playwright.chromium.launch(channel=channel)
+        except (playwright_error, OSError) as exc:
+            last_error = exc
+    assert last_error is not None
+    raise last_error
 
 
 def _block_request(route: Any) -> None:
@@ -183,7 +205,7 @@ class PlaywrightVisualBuilder(VisualBuilder):
         outputs: list[Path] = []
         try:
             with sync_playwright() as playwright:
-                browser = playwright.chromium.launch()
+                browser = _launch_browser(playwright, playwright_error)
                 try:
                     page = browser.new_page(viewport={"width": width, "height": height})
                     page.route("**/*", _block_request)
