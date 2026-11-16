@@ -444,3 +444,68 @@ def test_sanitized_draft_and_selective_files(
     assert host_path not in output
     assert "private_path: [redacted]" in output
     assert host_path in post.read_text(encoding="utf-8")
+
+
+def _strip_sources_heading(project: Path) -> Path:
+    draft = project / "content/posts/post_01_valid.md"
+    text = draft.read_text(encoding="utf-8")
+    draft.write_text(text.split("## Fonti", 1)[0].rstrip() + "\n", encoding="utf-8")
+    return draft
+
+
+def test_static_site_appends_sources_section(project: Path) -> None:
+    draft = _strip_sources_heading(project)
+    sources_path = project / "evidence/post_01/sources.json"
+    data = json.loads(sources_path.read_text(encoding="utf-8"))
+    data["sources"][0].update(
+        {"institution": "Python Software Foundation", "year": 2026, "consulted_sha256": "ab" * 32}
+    )
+    data["sources"].append(
+        {
+            "key": "doi-paper",
+            "title": "Lazy [imports] study",
+            "authors": ["Rossi, A.", "Bianchi, B."],
+            "date": "2024-05-01",
+            "doi": "10.1000/xyz123",
+            "url": "javascript:alert(1)",
+            "local_copy": "evidence/post_01/paper.pdf",
+        }
+    )
+    sources_path.write_text(json.dumps(data), encoding="utf-8")
+    (project / "evidence/post_01/paper.pdf").write_bytes(b"%PDF-1.4")
+    _refresh_evidence(project)
+    _write_gate_receipt(project, 1)
+    approve(project, ["export_markdown"])
+    original = draft.read_bytes()
+    assert run(project, "--target", "static_site") == 0
+    output = (project / "dist/published/post_01/post_01_valid.md").read_text(encoding="utf-8")
+    assert output.count("## Fonti") == 1
+    section = output.split("## Fonti", 1)[1]
+    assert (
+        "- [Python documentation - Command line and environment (-X importtime)]"
+        "(https://docs.python.org/3/using/cmdline.html#cmdoption-X)"
+        " — Python Software Foundation (2026)"
+    ) in section
+    assert "- Log di misura simulato: cinque avvii dello script di prova" in section
+    assert (
+        r"- [Lazy \[imports\] study](https://doi.org/10.1000/xyz123) — Rossi, A., Bianchi, B. (2024)"
+    ) in section
+    for leak in (
+        "local_copy",
+        "evidence/",
+        "paper.pdf",
+        "consulted_sha256",
+        "ab" * 32,
+        "javascript:",
+    ):
+        assert leak not in section
+    assert draft.read_bytes() == original
+
+
+def test_static_site_skips_duplicate_sources_heading(project: Path) -> None:
+    draft = project / "content/posts/post_01_valid.md"
+    assert "## Fonti" in draft.read_text(encoding="utf-8")
+    assert run(project, "--target", "static_site") == 0
+    output = (project / "dist/published/post_01/post_01_valid.md").read_bytes()
+    assert output == draft.read_bytes()
+    assert output.count(b"## Fonti") == 1
