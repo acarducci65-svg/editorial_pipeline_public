@@ -32,6 +32,9 @@ a{color:var(--accent-ink);text-underline-offset:3px}
 .topbar .wrap{display:flex;align-items:center;gap:.6rem;min-height:56px;font-weight:700}
 .mark{width:12px;height:12px;border-radius:3px;background:var(--accent)}
 .topbar span.sub{color:var(--muted);font-weight:500}
+.topbar .links{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem 1.25rem;font-size:.875rem;font-weight:600}
+.topbar .links a{text-decoration:none;white-space:nowrap}
+.topbar .links a.plan{padding:.25rem .7rem;border-radius:999px;background:var(--accent-soft);border:1px solid color-mix(in oklab,var(--accent) 30%,#fff)}
 header.hero{padding:2rem 0 1.5rem}
 h1{margin:0;font-size:1.75rem;letter-spacing:-.02em;line-height:1.2}
 .lead{margin:.5rem 0 0;color:var(--muted);max-width:72ch}
@@ -61,7 +64,7 @@ td.open a{font-weight:600;white-space:nowrap}
 </style>
 </head>
 <body>
-<div class="topbar"><div class="wrap"><span class="mark" aria-hidden="true"></span>{{ newsroom or 'Redazione' }}<span class="sub">/ Indice degli articoli</span></div></div>
+<div class="topbar"><div class="wrap"><span class="mark" aria-hidden="true"></span>{{ newsroom or 'Redazione' }}<span class="sub">/ Indice degli articoli</span>{% if editorial_plan_href or (redazione_service and redazione_service.blog_url) %}<nav class="links" aria-label="Collegamenti della redazione">{% if editorial_plan_href %}<a class="plan" href="{{ editorial_plan_href }}">Piano editoriale</a>{% endif %}{% if redazione_service and redazione_service.blog_url %}<a href="{{ redazione_service.blog_url }}">← Torna al Blog</a>{% endif %}</nav>{% endif %}</div></div>
 <main class="wrap">
   <header class="hero">
     <h1>Articoli della redazione</h1>

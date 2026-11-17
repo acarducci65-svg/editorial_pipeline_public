@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' file: data:; media-src 'self' file:; frame-src 'self' about:; connect-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' file: data:; media-src 'self' file:; frame-src 'self' about:; connect-src {% if redazione_service %}'self'{% else %}'none'{% endif %}; font-src 'none'; base-uri 'none'; form-action {% if redazione_service %}'self'{% else %}'none'{% endif %}">
 <title>{{ title }} · {{ newsroom or 'Console redazionale' }}</title>
 {#- Theme values are validated hex colours / keywords (see web_hub._theme). -#}
 <style>
@@ -254,6 +254,22 @@ summary{cursor:pointer;font-weight:600;color:var(--accent-ink);list-style-positi
 .files .path{min-width:0;flex:1;font:500 .8rem var(--mono);overflow-wrap:anywhere}
 .files .size{color:var(--muted);font:500 .75rem var(--mono);white-space:nowrap}
 .files a{font-weight:600;white-space:nowrap}
+.back-links{display:flex;flex-wrap:wrap;gap:.4rem 1.25rem}
+.decision{margin:0 0 2.25rem;padding:1.25rem 1.35rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.decision .panel-head{margin-bottom:.75rem}
+.decision-state{margin:0 0 1rem;padding:.6rem .85rem;border-radius:var(--radius-sm);background:var(--surface-2);font-size:.875rem}
+.decision-state[data-state="scheduled"]{background:var(--accent-soft);color:var(--accent-ink)}
+.decision-state[data-state="published"]{background:var(--ok-soft);color:var(--ok)}
+.decision-state[data-state="error"]{background:var(--warn-soft);color:var(--warn)}
+.decision-form{display:grid;gap:.75rem}
+.decision-form label{font-weight:600;font-size:.875rem}
+.decision-form label span{font-weight:500;color:var(--muted)}
+.decision-form input[type="datetime-local"]{justify-self:start;min-height:40px;padding:.4rem .7rem;border:1px solid var(--line-strong);border-radius:var(--radius-sm);font:500 .9rem var(--sans);color:var(--ink);background:var(--surface)}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.chip{min-height:32px;padding:.25rem .75rem;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font:500 .8rem var(--sans);cursor:pointer}
+.chip:hover{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent-ink)}
+.decision-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.25rem}
+.decision .hint{margin:0;font-size:.8rem;color:var(--muted)}
 .scope{font-size:.85rem;color:var(--muted);margin:.25rem 0 1rem;max-width:80ch}
 footer.page{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--muted);font-size:.8rem}
 
@@ -271,7 +287,7 @@ footer.page{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(-
 <a class="skip" href="#main">Vai ai contenuti</a>
 <div class="topbar"><div class="wrap">
   <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">{{ newsroom or 'Redazione' }}</span><span class="brand-sub">/ Console redazionale</span></div>
-  {% if index_url %}<a class="back" href="{{ index_url }}">← Tutti gli articoli</a>{% endif %}
+  <div class="back-links">{% if redazione_service and redazione_service.blog_url %}<a class="back" href="{{ redazione_service.blog_url }}">← Torna al Blog</a>{% endif %}{% if index_url %}<a class="back" href="{{ index_url }}">← Tutti gli articoli</a>{% endif %}</div>
 </div></div>
 
 <header class="hero"><div class="wrap hero-grid">
@@ -436,6 +452,29 @@ footer.page{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(-
     {% if gate2.registered %}<b>Gate 2 registrato: pubblicazione autorizzata dal Direttore</b><p>{% if gate2.when %}Ricevuta del <time datetime="{{ gate2.timestamp }}" data-tz="{{ timezone }}">{{ gate2.when }}</time>. {% endif %}{% if gate2.actions %}Azioni consentite: {{ gate2.actions|map(attribute='label')|join(', ') }}.{% endif %} Se modifichi testo o asset dopo l'approvazione, la ricevuta non è più valida e serve un nuovo Gate 2.</p>
     {% else %}<b>In attesa del Gate 2</b><p>I materiali si possono consultare e preparare, ma non vanno messi online finché il Direttore non conferma la pubblicazione.</p>{% endif %}
   </div></div>
+  {% if redazione_service %}
+  <div class="decision" role="region" data-editorial-slug="{{ post_id }}" data-api="{{ redazione_service.api_base }}/{{ post_id }}" aria-labelledby="decision-title">
+    <div class="panel-head"><div><h2 id="decision-title">Decisione di uscita</h2><p>Scegli quando l'articolo va online. La decisione è del Direttore: il servizio della redazione la applica solo con il Gate 2 registrato e la puoi annullare finché l'articolo non è uscito.</p></div></div>
+    <p class="decision-state" data-decision-state role="status" aria-live="polite">Stato di uscita in caricamento…</p>
+    <form class="decision-form" method="post" action="{{ redazione_service.action_base }}/{{ post_id }}">
+      <label for="decision-publish-at">Data e ora di uscita <span>(fuso {{ redazione_service.timezone_label }})</span></label>
+      <input type="datetime-local" id="decision-publish-at" name="publish_at" step="60">
+      <input type="hidden" name="timezone" value="{{ redazione_service.timezone_label }}">
+      <div class="chips" role="group" aria-label="Scorciatoie per la data di uscita">
+        <button type="button" class="chip" data-shortcut="hour">Tra un'ora</button>
+        <button type="button" class="chip" data-shortcut="tomorrow">Domani alle 9:00</button>
+        <button type="button" class="chip" data-shortcut="monday">Lunedì alle 9:00</button>
+      </div>
+      <div class="decision-actions">
+        <button type="submit" class="btn primary" name="action" value="schedule" {% if not gate2.registered %}disabled{% endif %}>Programma l'uscita</button>
+        <button type="submit" class="btn" name="action" value="publish_now" {% if not gate2.registered %}disabled{% endif %}>Pubblica ora</button>
+        <button type="submit" class="btn" name="action" value="draft">Rimetti in bozza</button>
+        <button type="submit" class="btn" name="action" value="undo">Annulla l'ultima decisione</button>
+      </div>
+      {% if not gate2.registered %}<p class="hint">Programmazione e pubblicazione si attivano dopo il Gate 2 confermato dal Direttore.</p>{% endif %}
+    </form>
+  </div>
+  {% endif %}
   <ol class="steps">
     <li><b>Approvazione</b>Il Direttore conferma il Gate 2 in chat; la ricevuta viene registrata con l'impronta dei file approvati.</li>
     <li><b>Esportazione</b>Scegli la piattaforma qui sotto: copia l'articolo formattato o scarica il Markdown con i metadati.</li>
@@ -665,6 +704,76 @@ footer.page{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(-
       if (Math.abs(delta) > 45) showSlide(index + (delta < 0 ? 1 : -1));
     }, {passive:true});
   }
+
+{% if redazione_service %}
+  // Release decision: same-origin redazione service only (see the page CSP).
+  const decision = document.querySelector('.decision[data-editorial-slug]');
+  if (decision) {
+    const stateEl = decision.querySelector('[data-decision-state]');
+    const form = decision.querySelector('form');
+    const when = form.querySelector('input[name="publish_at"]');
+    const labels = {draft:'In bozza', scheduled:'Uscita programmata', published:'Pubblicato'};
+    const pad = n => String(n).padStart(2, '0');
+    const local = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    function say(text, state) {
+      stateEl.textContent = text;
+      stateEl.dataset.state = state || '';
+    }
+    function render(data) {
+      if (!data || typeof data !== 'object') { say('Stato di uscita non disponibile.', 'error'); return; }
+      const state = String(data.state || '');
+      let text = labels[state] || (state ? state : 'Stato non indicato');
+      if (data.publish_at) {
+        const date = new Date(String(data.publish_at));
+        text += Number.isNaN(date.getTime()) ? ` · ${data.publish_at}` : ` · ${date.toLocaleString('it-IT', {dateStyle:'long', timeStyle:'short'})}`;
+        if (!when.value && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(data.publish_at))) when.value = String(data.publish_at).slice(0, 16);
+      }
+      if (data.message) text += ` — ${data.message}`;
+      say(text, state);
+    }
+    async function refresh() {
+      try {
+        const response = await fetch(decision.dataset.api, {headers:{Accept:'application/json'}, credentials:'same-origin', cache:'no-store'});
+        if (!response.ok) throw new Error(String(response.status));
+        render(await response.json());
+      } catch (error) {
+        say('Stato di uscita non disponibile: servizio della redazione non raggiungibile.', 'error');
+      }
+    }
+    decision.querySelectorAll('[data-shortcut]').forEach(chip => chip.addEventListener('click', () => {
+      const date = new Date();
+      date.setSeconds(0, 0);
+      if (chip.dataset.shortcut === 'hour') {
+        date.setHours(date.getHours() + 1);
+      } else {
+        const days = chip.dataset.shortcut === 'monday' ? ((8 - date.getDay()) % 7 || 7) : 1;
+        date.setDate(date.getDate() + days);
+        date.setHours(9, 0);
+      }
+      when.value = local(date);
+      when.focus();
+    }));
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const action = event.submitter && event.submitter.value ? event.submitter.value : 'schedule';
+      if (action === 'schedule' && !when.value) { say("Indica data e ora dell'uscita prima di programmarla.", 'error'); when.focus(); return; }
+      if (action === 'publish_now' && !window.confirm("Pubblicare subito l'articolo?")) return;
+      const body = new FormData(form);
+      body.set('action', action);
+      say('Invio della decisione…', '');
+      try {
+        const response = await fetch(form.action, {method:'POST', body, credentials:'same-origin', headers:{Accept:'application/json'}});
+        if (!response.ok) throw new Error(String(response.status));
+        const type = response.headers.get('Content-Type') || '';
+        if (type.includes('json')) render(await response.json()); else await refresh();
+      } catch (error) {
+        say('Decisione non registrata: il servizio della redazione ha rifiutato o non ha risposto.', 'error');
+      }
+    });
+    refresh();
+    setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+  }
+{% endif %}
 })();
 </script>
 </body></html>

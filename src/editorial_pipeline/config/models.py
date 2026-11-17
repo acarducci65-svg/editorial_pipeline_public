@@ -15,6 +15,23 @@ def relative_path(value: str) -> str:
 
 RelativePath = Annotated[str, AfterValidator(relative_path)]
 
+_SITE_PATH = re.compile(r"/[A-Za-z0-9._~/-]*")
+
+
+def site_path(value: str) -> str:
+    """Same-origin absolute path (``/...``): no scheme, host, ``..`` or control characters."""
+    parts = value.split("/")
+    if (
+        not _SITE_PATH.fullmatch(value)
+        or value.startswith("//")
+        or any(part in (".", "..") for part in parts)
+    ):
+        raise ValueError("path must be a same-origin path starting with '/'")
+    return value
+
+
+SitePath = Annotated[str, AfterValidator(site_path)]
+
 MACRO_RUNTIME_AMMESSE = {"{{UNIT_ID}}", "{{DIGEST_SHORT}}", "{{PUBLISH_AT_LOCAL}}", "{{SEQ}}"}
 
 
@@ -172,6 +189,22 @@ class RagConfig(Schema):
     timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
 
 
+class RedazioneServiceConfig(Schema):
+    """Optional remote newsroom service hosting the console (``/redazione/``).
+
+    When enabled the console renders the «Decisione di uscita» panel, which
+    reads and changes the release state through same-origin endpoints only.
+    """
+
+    enabled: bool = False
+    api_base: SitePath = "/redazione/api/stato"
+    action_base: SitePath = "/redazione/azioni/stato"
+    blog_url: SitePath | None = None
+    timezone_label: str = Field(
+        default="Europe/Rome", pattern=r"^[A-Za-z0-9_+\-]+(?:/[A-Za-z0-9_+\-]+)*$"
+    )
+
+
 class PublishingConfig(Schema):
     target: Literal["dist_archive", "static_site", "author_website"] = "dist_archive"
     archive_dir: RelativePath | None = None
@@ -179,6 +212,7 @@ class PublishingConfig(Schema):
     static_site_layout: Literal["flat", "hugo_bundle"] = "flat"
     allow_overwrite: bool = False
     author_website_dir: RelativePath | None = None
+    redazione_service: RedazioneServiceConfig | None = None
 
 
 class AudioConfig(Schema):

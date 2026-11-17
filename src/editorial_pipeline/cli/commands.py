@@ -53,7 +53,11 @@ from editorial_pipeline.application.web_hub import (
 )
 from editorial_pipeline.cli.reports import _sanitize, digest, relative_path, serialize
 from editorial_pipeline.config import EditorialConfig, load_config
-from editorial_pipeline.config.models import MACRO_RUNTIME_AMMESSE, AudioConfig
+from editorial_pipeline.config.models import (
+    MACRO_RUNTIME_AMMESSE,
+    AudioConfig,
+    RedazioneServiceConfig,
+)
 from editorial_pipeline.domain.gates import (
     RECEIPT_ADAPTER,
     Gate1Receipt,
@@ -393,6 +397,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             author, register, receipts_dir = "", "", "approvals"
             newsroom, timezone = "", ""
             theme: dict[str, str] | None = None
+            redazione_service: RedazioneServiceConfig | None = None
             if Path(args.config).is_file():
                 view_root, view_config, view_paths = _config(args.config)
                 register = Path(view_config.register_.active).stem
@@ -400,6 +405,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 newsroom = view_config.project.name
                 timezone = view_config.project.timezone
                 theme = view_config.theme.resolved()
+                if view_config.publishing is not None:
+                    redazione_service = view_config.publishing.redazione_service
                 profile = view_paths["author.profile"]
                 try:
                     profile_text = profile.read_text(encoding="utf-8-sig")
@@ -430,6 +437,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "newsroom": newsroom,
                 "theme": theme,
                 "timezone": timezone,
+                "redazione_service": redazione_service,
             }
             if args.all or args.post_id is None:
                 console = generate_index(view_root, view_paths, **view_options)

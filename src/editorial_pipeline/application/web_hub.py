@@ -10,7 +10,7 @@ import json
 import posixpath
 import re
 import webbrowser
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from functools import partial
 from html.parser import HTMLParser
@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import yaml
 
+from editorial_pipeline.config.models import RedazioneServiceConfig
 from editorial_pipeline.domain.gates import RECEIPT_ADAPTER
 
 CHANNELS = {
@@ -177,6 +178,33 @@ STAGES = (
     ("G2", "Gate 2"),
 )
 POST_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+EDITORIAL_PLAN = "editorial_plan.md"
+EDITORIAL_PLAN_PAGE = "piano_editoriale.html"
+RedazioneService = Mapping[str, Any] | RedazioneServiceConfig | None
+
+
+def _redazione(service: RedazioneService) -> dict[str, Any] | None:
+    """Validated remote-service settings, or ``None`` when the service is off.
+
+    Values are re-validated here so library callers cannot place a
+    cross-origin endpoint in a console whose CSP allows ``'self'`` only.
+    """
+    if service is None:
+        return None
+    config = (
+        service
+        if isinstance(service, RedazioneServiceConfig)
+        else RedazioneServiceConfig.model_validate(dict(service))
+    )
+    if not config.enabled:
+        return None
+    return {
+        "enabled": True,
+        "api_base": config.api_base.rstrip("/"),
+        "action_base": config.action_base.rstrip("/"),
+        "blog_url": config.blog_url or "",
+        "timezone_label": config.timezone_label,
+    }
 
 
 def _when(value: str, timezone: str = "") -> str:
@@ -763,6 +791,7 @@ def _build(
                 {"name": f.name, "url": url(f)} for f in social_files if f.suffix.lower() == ".pdf"
             ],
             index_url="index.html" if (output.parent / "index.html").is_file() else "",
+            redazione_service=options.get("redazione_service"),
         )
     )
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -801,13 +830,17 @@ def generate_web_hub(
     newsroom: str = "",
     theme: dict[str, str] | None = None,
     timezone: str = "",
+    redazione_service: RedazioneService = None,
 ) -> Path:
     """Render available assets without modifying sources, receipts or publication.
 
     Jinja2 is provided by the existing ``social`` extra. Missing optional assets
     are displayed explicitly; unknown posts and unsafe paths fail closed.
     ``theme`` takes the values of ``ThemeConfig.resolved()``; invalid values
-    fall back to the default Modern Tech palette.
+    fall back to the default Modern Tech palette. An enabled
+    ``redazione_service`` (``RedazioneServiceConfig``) adds the «Decisione di
+    uscita» panel, which talks to same-origin endpoints only; the page itself
+    never registers a gate.
     """
     options: dict[str, Any] = {
         "author": author,
@@ -816,6 +849,7 @@ def generate_web_hub(
         "newsroom": newsroom,
         "theme": theme,
         "timezone": timezone,
+        "redazione_service": _redazione(redazione_service),
     }
     return _build(root, post_id, paths, options)[0]
 
@@ -834,6 +868,9 @@ def discover_post_ids(content: Path, exclude: Path | None = None) -> list[str]:
     excluded = exclude.resolve() if exclude is not None and exclude.exists() else None
     for entry in content.rglob("*"):
         if excluded is not None and entry.resolve().is_relative_to(excluded):
+            continue
+        if entry.name == EDITORIAL_PLAN and entry.parent == content:
+            # The editorial plan has its own page in the index, it is not a post.
             continue
         if entry.is_dir() and (entry / "draft.md").is_file():
             found.add(entry.name)
@@ -858,12 +895,15 @@ def generate_index(
     newsroom: str = "",
     theme: dict[str, str] | None = None,
     timezone: str = "",
+    redazione_service: RedazioneService = None,
 ) -> Path:
     """Regenerate every post console and the newsroom index ``dist/web/index.html``.
 
     The index lists each post with its lifecycle (F1-F5, Gate 1, Gate 2) and a
     link to its console. Posts whose assets cannot be read are listed with the
-    reason instead of aborting the whole catalogue.
+    reason instead of aborting the whole catalogue. A ``editorial_plan.md`` at
+    the top of the content directory becomes ``piano_editoriale.html``, linked
+    from the index.
     """
     from editorial_pipeline.cli.reports import _sanitize
 
@@ -886,7 +926,25 @@ def generate_index(
         "newsroom": newsroom,
         "theme": theme,
         "timezone": timezone,
+        "redazione_service": _redazione(redazione_service),
     }
+    plan_href = ""
+    plan = _contained(root, content / EDITORIAL_PLAN)
+    if plan.is_file():
+        plan_metadata, plan_body = _markdown(plan)
+        plan_heading = re.search(r"^# (.+)$", plan_body, re.MULTILINE)
+        plan_title = str(
+            plan_metadata.get("title") or (plan_heading[1] if plan_heading else "Piano editoriale")
+        )
+        plan_page = _contained(root, output.parent / EDITORIAL_PLAN_PAGE)
+        plan_html = env.from_string(PLAN_TEMPLATE).render(
+            newsroom=newsroom,
+            theme=_theme(theme),
+            title=plan_title,
+            body_html=render_markdown(plan_body, citations=False, skip_title=False)[0],
+        )
+        plan_page.write_text(str(_sanitize(plan_html)), encoding="utf-8", newline="\n")
+        plan_href = EDITORIAL_PLAN_PAGE
     posts: list[dict[str, Any]] = []
     for post_id in discover_post_ids(content, exclude=(paths or {}).get("paths.pages")):
         try:
@@ -906,9 +964,69 @@ def generate_index(
         theme=_theme(theme),
         posts=posts,
         stages=[{"code": code, "label": label} for code, label in STAGES],
+        editorial_plan_href=plan_href,
+        redazione_service=options["redazione_service"],
     )
     output.write_text(str(_sanitize(html)), encoding="utf-8", newline="\n")
     return output
+
+
+PLAN_TEMPLATE = """<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; \
+img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>{{ newsroom or 'Redazione' }} · {{ title }}</title>
+<style>
+:root{color-scheme:light;--bg:{{ theme.background_color }};--ink:{{ theme.ink_color }};\
+--accent:{{ theme.accent_color }};--surface:#fff;\
+--muted:color-mix(in oklab,var(--ink) 72%,var(--bg));\
+--line:color-mix(in oklab,var(--ink) 11%,var(--bg));\
+--accent-ink:color-mix(in oklab,var(--accent) 82%,var(--ink));\
+--sans:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;\
+--serif:"Source Serif 4",Georgia,"Times New Roman",serif;\
+--mono:"JetBrains Mono","Cascadia Mono","SF Mono",Consolas,ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--sans)}
+a{color:var(--accent-ink);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.wrap{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.topbar{background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;\
+min-height:56px;font-weight:700}
+.brand{display:flex;align-items:center;gap:.6rem}
+.mark{width:12px;height:12px;border-radius:3px;background:var(--accent)}
+.sub{color:var(--muted);font-weight:500}
+a.back{font-size:.875rem;font-weight:600;text-decoration:none;white-space:nowrap}
+.paper{margin:2rem 0 3rem;padding:2.5rem 2.75rem;background:var(--surface);\
+border:1px solid var(--line);border-radius:12px}
+h1{margin:0 0 1.25rem;font-size:1.75rem;letter-spacing:-.02em;line-height:1.2}
+.plan{font:400 1.05rem/1.7 var(--serif);max-width:72ch}
+.plan h2,.plan h3,.plan h4{font-family:var(--sans);line-height:1.3;margin:2rem 0 .6rem}
+.plan code{font:500 .85em var(--mono)}
+.plan pre{overflow:auto;padding:1rem;background:color-mix(in oklab,var(--ink) 4%,var(--bg));\
+border-radius:8px}
+.plan blockquote{margin:1rem 0;padding-left:1rem;border-left:3px solid var(--accent);\
+color:var(--muted)}
+.note{color:var(--muted);font-size:.85rem;margin:0 0 3rem}
+@media (max-width:640px){.wrap{padding:0 1rem}\
+.paper{padding:1.75rem 1.1rem;border-radius:0;border-inline:0;margin-inline:-1rem}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap"><span class="brand"><span class="mark" aria-hidden="true">\
+</span>{{ newsroom or 'Redazione' }}<span class="sub">/ Piano editoriale</span></span>\
+<a class="back" href="index.html">← Tutti gli articoli</a></div></div>
+<main class="wrap">
+<article class="paper"><h1>{{ title }}</h1><div class="plan">{{ body_html|safe }}</div></article>
+<p class="note">Vista locale del piano editoriale: non pubblica nulla e non sostituisce i gate \
+del Direttore.</p>
+</main>
+</body>
+</html>
+"""
 
 
 class _Links(HTMLParser):

@@ -768,3 +768,177 @@ def test_render_markdown_edges() -> None:
     assert "[1]" in render_markdown("see [1]", citations=False)[0]
     assert '<a href="/metodo/">' in render_markdown("[M](/metodo/)")[0]
     assert "href" not in render_markdown("[x](//evil.example/a)")[0]
+
+
+SERVICE = {
+    "enabled": True,
+    "api_base": "/redazione/api/stato",
+    "action_base": "/redazione/azioni/stato/",
+    "blog_url": "/",
+    "timezone_label": "Europe/Rome",
+}
+
+
+@pytest.mark.parametrize("field", ["api_base", "action_base", "blog_url"])
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        "https://example.com/api",
+        "//example.com/api",
+        "javascript:alert(1)",
+        "redazione/api",
+        "/redazione/../api",
+        "/redazione/./api",
+        "/redazione/api\n",
+        "/redazione/api?x=1",
+        "/redazione\\api",
+        "",
+    ],
+)
+def test_redazione_service_rejects_unsafe_paths(field: str, unsafe: str) -> None:
+    from pydantic import ValidationError
+
+    from editorial_pipeline.config.models import RedazioneServiceConfig
+
+    with pytest.raises(ValidationError):
+        RedazioneServiceConfig.model_validate({field: unsafe})
+
+
+def test_redazione_service_config_defaults() -> None:
+    from pydantic import ValidationError
+
+    from editorial_pipeline.config.models import PublishingConfig, RedazioneServiceConfig
+
+    default = RedazioneServiceConfig()
+    assert default.enabled is False
+    assert default.api_base == "/redazione/api/stato"
+    assert default.action_base == "/redazione/azioni/stato"
+    assert default.blog_url is None
+    assert default.timezone_label == "Europe/Rome"
+    assert PublishingConfig().redazione_service is None
+    publishing = PublishingConfig.model_validate({"redazione_service": {"enabled": True}})
+    assert publishing.redazione_service == RedazioneServiceConfig(enabled=True)
+    assert RedazioneServiceConfig(blog_url="/").blog_url == "/"
+    with pytest.raises(ValidationError):
+        RedazioneServiceConfig(timezone_label="Europe/Rome'; x")
+
+
+def test_console_without_redazione_service_stays_offline(tmp_path: Path) -> None:
+    put(tmp_path, "content/posts/demo/draft.md", "# Demo\nBody")
+    for service in (None, {"enabled": False, "blog_url": "/"}):
+        html = generate_web_hub(tmp_path, "demo", redazione_service=service).read_text(
+            encoding="utf-8"
+        )
+        assert "connect-src 'none'" in html and "form-action 'none'" in html
+        assert "connect-src 'self'" not in html and "form-action 'self'" not in html
+        assert "data-editorial-slug" not in html
+        assert "Decisione di uscita" not in html
+        assert "Torna al Blog" not in html
+
+
+def test_console_with_redazione_service_renders_decision_panel(tmp_path: Path) -> None:
+    from editorial_pipeline.config.models import RedazioneServiceConfig
+
+    put(tmp_path, "content/posts/demo/draft.md", "# Demo\nBody")
+    html = generate_web_hub(tmp_path, "demo", redazione_service=SERVICE).read_text(encoding="utf-8")
+    assert "connect-src 'self'" in html and "form-action 'self'" in html
+    assert "connect-src 'none'" not in html
+    panel = html[html.index('id="view-pubblicazione"') :]
+    assert 'class="decision"' in panel and 'data-editorial-slug="demo"' in panel
+    assert 'data-api="/redazione/api/stato/demo"' in panel
+    assert 'method="post" action="/redazione/azioni/stato/demo"' in panel
+    assert 'type="datetime-local"' in panel
+    for action in ("schedule", "publish_now", "draft", "undo"):
+        assert f'value="{action}"' in panel
+    for shortcut in ("hour", "tomorrow", "monday"):
+        assert f'data-shortcut="{shortcut}"' in panel
+    assert "Europe/Rome" in panel
+    # Scheduling stays disabled until the Direttore registers Gate 2.
+    assert 'value="schedule" disabled' in panel and 'value="publish_now" disabled' in panel
+    assert "fetch(decision.dataset.api" in html and "fetch(form.action" in html
+    assert '<a class="back" href="/">← Torna al Blog</a>' in html
+    put(
+        tmp_path,
+        "reports/gates/demo/gate2.json",
+        '{"status":"RECEIPT_VALID","gate":2,"post_id":"demo","allowed_actions":["publish"]}',
+    )
+    model = RedazioneServiceConfig(enabled=True)
+    html = generate_web_hub(tmp_path, "demo", redazione_service=model).read_text(encoding="utf-8")
+    assert 'value="schedule" disabled' not in html
+    assert 'value="publish_now" disabled' not in html
+    assert "Torna al Blog" not in html
+    with pytest.raises(ValueError, match="same-origin"):
+        generate_web_hub(
+            tmp_path,
+            "demo",
+            redazione_service={"enabled": True, "api_base": "https://example.com/x"},
+        )
+
+
+def test_editorial_plan_page_and_index_link(tmp_path: Path) -> None:
+    from editorial_pipeline.application.web_hub import discover_post_ids, generate_index
+
+    put(tmp_path, "content/posts/alpha/draft.md", "# Alpha\nBody")
+    index = generate_index(tmp_path).read_text(encoding="utf-8")
+    assert "Piano editoriale" not in index
+    assert not (tmp_path / "dist/web/piano_editoriale.html").exists()
+    put(
+        tmp_path,
+        "content/posts/editorial_plan.md",
+        "# Piano di novembre\n\n## Settimana 1\n- Alpha <script>x</script>\n"
+        "- [Fonte](javascript:alert(1))\n",
+    )
+    assert discover_post_ids(tmp_path / "content/posts") == ["alpha"]
+    index = generate_index(tmp_path, newsroom="Redazione Demo").read_text(encoding="utf-8")
+    assert '<a class="plan" href="piano_editoriale.html">Piano editoriale</a>' in index
+    assert "editorial_plan" not in index
+    assert "Torna al Blog" not in index
+    plan = (tmp_path / "dist/web/piano_editoriale.html").read_text(encoding="utf-8")
+    assert "default-src 'none'" in plan and "form-action 'none'" in plan
+    assert "<script" not in plan and "javascript:" not in plan
+    assert "&lt;script&gt;" in plan
+    assert '<a class="back" href="index.html">← Tutti gli articoli</a>' in plan
+    assert "<h1>Piano di novembre</h1>" in plan and 'id="settimana-1"' in plan
+    assert "Redazione Demo" in plan
+    put(tmp_path, "content/posts/editorial_plan.md", "---\ntitle: Piano Q4\n---\nSenza titolo")
+    generate_index(tmp_path)
+    plan = (tmp_path / "dist/web/piano_editoriale.html").read_text(encoding="utf-8")
+    assert "<h1>Piano Q4</h1>" in plan
+    put(tmp_path, "content/posts/editorial_plan.md", "Solo testo")
+    generate_index(tmp_path)
+    plan = (tmp_path / "dist/web/piano_editoriale.html").read_text(encoding="utf-8")
+    assert "<h1>Piano editoriale</h1>" in plan
+
+
+def test_index_blog_link_and_service_consoles(tmp_path: Path) -> None:
+    from editorial_pipeline.application.web_hub import _Links, generate_index
+
+    put(tmp_path, "content/posts/alpha/draft.md", "# Alpha\nBody")
+    put(tmp_path, "content/posts/editorial_plan.md", "# Piano")
+    index = generate_index(tmp_path, redazione_service=SERVICE)
+    text = index.read_text(encoding="utf-8")
+    assert '<a href="/">← Torna al Blog</a>' in text
+    console = (tmp_path / "dist/web/alpha.html").read_text(encoding="utf-8")
+    assert 'data-editorial-slug="alpha"' in console and "connect-src 'self'" in console
+    # The loopback preview follows the index link to the plan page.
+    links = _Links(tmp_path, index)
+    links.feed(text)
+    assert (tmp_path / "dist/web/piano_editoriale.html").resolve() in links.allowed
+
+
+def test_cli_view_passes_redazione_service(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    shutil.copytree("examples/sample_blog", tmp_path, dirs_exist_ok=True)
+    config = tmp_path / "editorial.toml"
+    text = config.read_text(encoding="utf-8")
+    service = '[publishing.redazione_service]\nenabled = true\nblog_url = "/"\n'
+    if "[publishing]" not in text:
+        service = "[publishing]\n" + service
+    config.write_text(text + "\n" + service, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    assert main(["view", "post_01", "--no-browser"]) == 0
+    html = (tmp_path / "dist/web/post_01.html").read_text(encoding="utf-8")
+    assert 'data-editorial-slug="post_01"' in html
+    assert "form-action 'self'" in html and "← Torna al Blog" in html
+    assert main(["view", "--no-browser"]) == 0
+    index = (tmp_path / "dist/web/index.html").read_text(encoding="utf-8")
+    assert "← Torna al Blog" in index
