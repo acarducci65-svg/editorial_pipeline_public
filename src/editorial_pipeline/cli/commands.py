@@ -47,6 +47,7 @@ from editorial_pipeline.application.evidence_verifier import (
 )
 from editorial_pipeline.application.style_checker import StyleChecker, aggregate_state
 from editorial_pipeline.application.web_hub import (
+    EDITORIAL_PLAN,
     generate_index,
     generate_web_hub,
     serve_console,
@@ -128,6 +129,9 @@ def _discover_posts(posts: Path) -> dict[str, Path]:
     discovered: dict[str, Path] = {}
     for post in sorted(posts.rglob("*.md")):
         if not post.is_file():
+            continue
+        if post.parent == posts and post.name == EDITORIAL_PLAN:
+            # The editorial plan is a planning document, not an article.
             continue
         post_id = _post_id(post)
         if post_id in discovered:

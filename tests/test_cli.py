@@ -246,6 +246,22 @@ def test_status_and_all(capsys: pytest.CaptureFixture[str]) -> None:
     assert len(json.loads(capsys.readouterr().out)["posts"]) == 2
 
 
+def test_status_ignores_editorial_plan_markdown(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "blog"
+    shutil.copytree(ROOT, project)
+    posts = project / "content/posts"
+    (posts / "post_02_with_cliches.md").unlink()
+    (posts / "editorial_plan.md").write_text(
+        "# Piano editoriale\n\n- Prossima uscita: post_03\n", encoding="utf-8"
+    )
+    assert main(["status", "--config", str(project / "editorial.toml")]) == 0
+    listed = json.loads(capsys.readouterr().out)["posts"]
+    assert [post["rel_path"] for post in listed] == ["content/posts/post_01_valid.md"]
+    assert all("editorial_plan" not in json.dumps(post) for post in listed)
+
+
 def _without_receipts(tmp_path: Path) -> str:
     project = tmp_path / "blog"
     shutil.copytree(ROOT, project)
