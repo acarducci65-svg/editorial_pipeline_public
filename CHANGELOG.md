@@ -4,6 +4,51 @@ Tutte le modifiche rilevanti di Editorial Pipeline sono documentate qui.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.3.0] - 2026-11-18
+
+### Added
+
+- Nuova sezione opzionale `[publishing.redazione_service]` (`RedazioneServiceConfig`:
+  `enabled`, `api_base`, `action_base`, `blog_url`, `timezone_label`). I percorsi
+  passano un validatore che accetta solo path assoluti same-origin e rifiuta schemi,
+  `//`, segmenti `.`/`..`, query string, backslash e caratteri di controllo (T-102).
+- Console redazionale: con il servizio attivo, la vista Pubblicazione mostra il
+  pannello «Decisione di uscita» (programma l'uscita, pubblica ora, torna a bozza,
+  annulla; scorciatoie «fra un'ora», «domani 9:00», «lunedì 9:00»), che interroga
+  `api_base/<post_id>` ogni 30 secondi e invia le azioni a `action_base/<post_id>`.
+  «Programma l'uscita» e «Pubblica ora» restano disattivati finché non è registrato
+  il Gate 2. Con `blog_url` impostato, console e indice mostrano il link
+  «← Torna al Blog». Senza servizio attivo la CSP resta `connect-src 'none'` /
+  `form-action 'none'` e la console non contiene codice di rete (T-102).
+- `view --all` trasforma `[paths].content/editorial_plan.md` in
+  `dist/web/piano_editoriale.html` (pagina offline, sanificata, titolo dal front
+  matter, poi dall'H1, poi «Piano editoriale») e mostra il badge «Piano editoriale»
+  nell'indice quando il file esiste (T-102).
+
+### Fixed
+
+- `status`, `validate-all` e gli altri comandi che scoprono le unità ignorano
+  `editorial_plan.md` alla radice di `[paths].content`, con la stessa regola del
+  web hub: il piano editoriale non compare più come pseudo-unità (T-105).
+
+### Documentation
+
+- Skill `editorial-pipeline` v1.3.0, Hugo Scaffolding: copia di `dist/` in
+  `site/static/redazione/` (esclusa `dist/packages/`), configurazione di
+  `[publishing.redazione_service]`, contratto GET/POST del servizio di redazione
+  esterno (che gli agenti non devono mai chiamare) e location Nginx protette da
+  `auth_basic` con `X-Robots-Tag: noindex`, `.htpasswd` fuori dal repository e
+  verifica del 401 con `curl` (T-103).
+- Skill: rubriche Hugo lette da `.Params.rubriche` in `single.html` e `index.html`;
+  `method-box` generico, senza numeri di claim, fonti o `post_id` cablati, con link
+  alla sezione `## Fonti` e a `/metodo/` (T-103).
+- Skill: pagina del piano editoriale documentata in F0, nella tabella CLI e in
+  `publishing-and-audio.md` §5.1-bis (T-103).
+- Skill: prima del Gate 2 `dist/` va elencata e non deve contenere script
+  temporanei, log, screenshot di debug o file `.bak`; un file estraneo già coperto
+  da ricevuta va segnalato, non rimosso in silenzio (T-103).
+- README e manuale utente allineati alla versione 1.3.0.
+
 ## [1.2.5] - 2026-11-16
 
 ### Added

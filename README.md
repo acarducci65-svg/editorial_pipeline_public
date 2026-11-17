@@ -1,7 +1,7 @@
 # Editorial Pipeline
 
 [![CI](https://github.com/acarducci65-svg/editorial_pipeline_public/actions/workflows/ci.yml/badge.svg)](https://github.com/acarducci65-svg/editorial_pipeline_public/actions/workflows/ci.yml)
-[![Status: Production/Stable v1.2.5](https://img.shields.io/badge/status-Production%2FStable%20v1.2.5-brightgreen)](pyproject.toml)
+[![Status: Production/Stable v1.3.0](https://img.shields.io/badge/status-Production%2FStable%20v1.3.0-brightgreen)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10–3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](pyproject.toml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -18,7 +18,7 @@ style registers that flag clichés, offline consistency checks on registered evi
 promotional carousels with integrity manifests, and two **binding human gates** that no
 agent can cross on its own.
 
-> **Status: Production/Stable (`v1.2.5`).** The core, CLI and local adapters are tested.
+> **Status: Production/Stable (`v1.3.0`).** The core, CLI and local adapters are tested.
 > The `notebooklm` RAG adapter is **optional**: it needs the external `nlm` CLI from
 > `notebooklm-mcp-cli` and a Google NotebookLM notebook (see [RAG adapters](#rag-adapters)).
 
@@ -423,7 +423,7 @@ registri di stile che segnalano i cliché, controllo offline della coerenza dell
 registrate, caroselli promozionali con manifest di integrità e due **gate umani
 vincolanti** che nessun agente può attraversare da solo.
 
-> **Stato: stabile (`v1.2.5`).** Nucleo, CLI e adapter locali sono testati.
+> **Stato: stabile (`v1.3.0`).** Nucleo, CLI e adapter locali sono testati.
 > L'adapter RAG `notebooklm` è **opzionale**: richiede la CLI esterna `nlm`
 > (`notebooklm-mcp-cli`) e un taccuino Google NotebookLM.
 
