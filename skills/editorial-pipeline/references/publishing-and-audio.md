@@ -346,6 +346,7 @@ La struttura del sito Hugo che riceve l'export (configurazione, pagine di traspa
 - [ ] Pacchetto Gate 2 con percorso dell'audio, esito dell'ascolto, eventuali finding P1 e note P3, copione se presente, azioni proposte (`archive`, `export_markdown`) e destinazione.
 - [ ] Frase del Direttore con le azioni; ricevuta scritta dopo; `check-gate 2` → `RECEIPT_VALID`.
 - [ ] `publish --dry-run` mostrato; `publish` eseguito solo per i target autorizzati.
+- [ ] Prima del pacchetto Gate 2, `dist/` elencato e ripulito: nessuno script temporaneo (`.py`, `.ps1`, `.sh`, `.js`), file di debug o screenshot di controllo, solo l'output dei comandi della CLI (SKILL.md §4, regola «`dist/` contiene solo artefatti della pipeline»).
 - [ ] Esito riferito con `bundle_digest`; nessun file aggiunto a `dist/` dopo la ricevuta, salvo l'output di `publish` e la console finale.
 - [ ] Console rigenerata come ultimo passo (`editorial-pipeline view <post_id> --no-browser` o `--all --no-browser`) dopo l'ultimo `publish`, o dopo `check-gate 2` se non c'erano azioni CLI: Gate 2 verde e file pubblicati visibili in `dist/web/<post_id>.html` e `dist/web/index.html` (§5.2).
 
@@ -368,7 +369,11 @@ Gli stati dei gate derivano dai report o dalle ricevute disponibili: **non sono 
 
 ### 5.1-bis Indice della redazione
 
-`editorial view` senza `<post_id>`, oppure `editorial view --all`, rigenera le console di tutte le unità e scrive `[paths].dist/web/index.html`: un catalogo con titolo, data, autore, fasi completate (F1 Fonti, F2 Bozza, F3 Verifica, G1, F4 Visual e social, F5 Audio, G2), stato sintetico («In lavorazione», «In produzione», «Pronto per la pubblicazione», «Pubblicato») e il link alla console di ciascun articolo. Ogni console rimanda all'indice con «← Tutti gli articoli». Un'unità illeggibile compare con il motivo, senza bloccare le altre. Anche l'indice è in `dist/`: rigenerarlo dopo la ricevuta Gate 2 la rende `stale`, perciò dopo il Gate 2 lo si rigenera solo come ultimo passo (§5.2, «Aggiornamento dopo Gate 2 e `publish`»).
+`editorial view` senza `<post_id>`, oppure `editorial view --all`, rigenera le console di tutte le unità e scrive `[paths].dist/web/index.html`: un catalogo con titolo, data, autore, fasi completate (F1 Fonti, F2 Bozza, F3 Verifica, G1, F4 Visual e social, F5 Audio, G2), stato sintetico («In lavorazione», «In produzione», «Pronto per la pubblicazione», «Pubblicato») e il link alla console di ciascun articolo. Ogni console rimanda all'indice con «← Tutti gli articoli». Un'unità illeggibile compare con il motivo, senza bloccare le altre.
+
+**Piano editoriale.** Se esiste `[paths].content/editorial_plan.md` (con `content = "content"`: `content/editorial_plan.md`), lo stesso comando lo rende in `[paths].dist/web/piano_editoriale.html` e aggiunge all'indice il link «Piano editoriale»; la pagina rimanda all'indice con «← Tutti gli articoli». Il titolo è il `title:` del front matter, altrimenti il primo `# …`, altrimenti «Piano editoriale». La pagina è offline e senza script: HTML e collegamenti `javascript:` del Markdown vengono neutralizzati. Il file non è un'unità: l'indice non lo elenca come articolo (`status` invece può mostrarlo come `editorial_plan`, riga da ignorare) e contiene solo decisioni di calendario confermate dal Direttore in F0.
+
+Anche l'indice è in `dist/`: rigenerarlo dopo la ricevuta Gate 2 la rende `stale`, perciò dopo il Gate 2 lo si rigenera solo come ultimo passo (§5.2, «Aggiornamento dopo Gate 2 e `publish`»).
 
 ### 5.2 Modalità standard: file locale
 
@@ -421,3 +426,22 @@ font_family = "sans"           # sans | serif (corpo dell'articolo e delle slide
 ```
 
 La tabella è facoltativa: senza `[theme]` vale `cobalt_tech`. I colori sono accettati solo come `#rrggbb`. Lo stesso tema si applica a console, indice e slide generate da `build-visual`. Le slide già presenti in `dist/social/` mantengono l'aspetto con cui sono state generate finché non vengono ricostruite, e la ricostruzione richiede un nuovo Gate 2.
+
+### 5.5 Console remota protetta (`/redazione/`)
+
+La console può essere consultata anche dal sito di produzione, sotto `/redazione/`, protetta da Basic Auth e con `X-Robots-Tag: noindex`. La procedura completa (copia di `dist/` in `site/static/redazione/` senza `dist/packages/`, configurazione Nginx, `.htpasswd` fuori dal repository, `robots.txt`) è in `SKILL.md`, §4 «Hugo Scaffolding», punto f.
+
+```toml
+[publishing.redazione_service]
+enabled = true
+api_base = "/redazione/api/stato"
+action_base = "/redazione/azioni/stato"
+blog_url = "/"
+timezone_label = "Europe/Rome"
+```
+
+- Con `enabled = true` la scheda «Pubblicazione» mostra il pannello «Decisione di uscita»: legge lo stato con `GET <api_base>/<post_id>` (JSON con `state` fra `draft`, `scheduled`, `published`, più `publish_at` e `message` facoltativi) e invia `POST <action_base>/<post_id>` con i campi `publish_at`, `timezone` e `action` (`schedule`, `publish_now`, `draft`, `undo`). «Programma l'uscita» e «Pubblica ora» restano disattivati finché il Gate 2 non è registrato.
+- I percorsi devono iniziare con `/` e restare sullo stesso sito: niente schema, host, `//`, `..` o query. La CSP della console limita `connect-src` e `form-action` a `'self'`; senza servizio abilitato restano `'none'`.
+- Il servizio che risponde agli endpoint non fa parte del framework: lo gestisce la redazione e deve rifiutare programmazione e pubblicazione senza ricevuta Gate 2 valida.
+- Il pannello è riservato al Direttore. L'agente non invia richieste agli endpoint, non programma uscite e non modifica a mano gli HTML di `dist/web/` per aggiungere pulsanti o script: si configura `[publishing.redazione_service]` e si rigenera con `view`.
+- Abilitare o modificare la tabella cambia la console generata: dopo il Gate 2 vale la stessa regola di ogni `view` (rigenerazione una sola volta e come ultimo passo, §5.2).

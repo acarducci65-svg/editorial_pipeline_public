@@ -107,7 +107,7 @@ Convenzioni:
 | `editorial build-audio <post_id> [--provider notebooklm] [--new] [--length {short,default,long}] [--overview-format {deep_dive,brief,critique,debate}] [--format {m4a,mp3}] [--language it] [--dry-run] [--json]` | F5 | Con `[phases.optional].F5 = true` e evidenze senza `BLOCK`, genera dai soli claim di `factcheck.json` (con fonte e locator) il podcast conversazionale a due voci di **Google NotebookLM Studio** (`podcast.m4a` o `podcast.mp3`, via `nlm`) in `[paths].dist/audio/<post_id>/`. Con `--provider script_only` scrive invece il solo copione `podcast_script.md` (offline). `--length` (default `short`) e `--overview-format` (default `deep_dive`) prevalgono su `[audio].length` / `[audio].overview_format`; il `--focus` inviato a NotebookLM aggiunge ai claim le regole anti-enfasi e le voci di `[register].extra_forbidden`. `--dry-run` restituisce il percorso senza scrivere né chiamare `nlm`; `--new` (solo `notebooklm`, solo su autorizzazione del Direttore) ignora le puntate già presenti nello Studio e avvia una nuova generazione | Con `F5 = false` si rifiuta (exit 1), anche in `--dry-run`; non ascolta né revisiona l'audio, non garantisce che NotebookLM rispetti il `--focus`, non approva nulla. Il provider `tts` è deprecato e **vietato** per la pubblicazione (§4, F5) |
 | `editorial-pipeline check-gate <1\|2> <post>` | Gate | Riesegue linter e verifica delle evidenze (ogni `BLOCK` ferma il gate), poi valida `approvals/gate1.json` (e `gate2.json` per il Gate 2): schema v1, ruolo `[gates].approver_role`, frase di approvazione senza condizioni, bundle di digest uguale ai file correnti. Esito `"status": "RECEIPT_VALID"` | Non autentica chi ha scritto in chat; non sostituisce il messaggio del Direttore |
 | `editorial-pipeline publish <post> [--target dist_archive\|static_site\|author_website] [--dry-run] [--json]` | Dopo il Gate 2 | Ripete la verifica di `check-gate 2` (exit 2 con `GhostApprovalForbiddenError` se fallisce, nessuna scrittura), poi esegue solo le azioni della ricevuta pertinenti al target: `archive` → `tar.gz` in `dist/packages/`; `export_markdown` → Markdown, immagini, PDF e audio approvato (mai `.html`/`.css`) in `dist/published/<post_id>/` o in `[publishing].static_site_dir`, come page bundle Hugo con `static_site_layout = "hugo_bundle"`; `author_website` → pagina long-form `index.html` con asset in `dist/author_site/<post_id>/`, pronta per il sito personale dell'autore. Rilegge e riconfronta i digest prima di scrivere; `--dry-run` restituisce il piano a zero scritture | Non esegue azioni generiche (`publish`, `schedule`, `sync`: esito `SKIPPED`), non carica nulla in rete, non sovrascrive (unica eccezione: `static_site` con `[publishing].allow_overwrite = true`) |
-| `editorial view [<post_id>] [--all] [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 1 (bozza, fonti e claim) e del Gate 2; **aggiornamento obbligatorio dopo Gate 2 e `publish`**; consultazione a fine flusso | Con `<post_id>` genera `[paths].dist/web/<post_id>.html`, la console webredazionale a schede (Articolo, Social, Podcast, Carosello, Fonti e trasparenza, Pubblicazione) nei colori di `[theme]`. Senza `<post_id>` o con `--all` rigenera le console di tutte le unità e l'indice della redazione `[paths].dist/web/index.html`, con lo stato F1–F5, Gate 1 e Gate 2 di ciascuna. `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`, che è nel bundle del Gate 2: eseguito dopo il Gate 2 rende la ricevuta `stale`, perciò va lanciato solo come ultimo passo, quando tutte le azioni CLI della ricevuta sono già state eseguite |
+| `editorial view [<post_id>] [--all] [--serve] [--port PORT] [--no-browser]` | Preparazione prima del Gate 1 (bozza, fonti e claim) e del Gate 2; **aggiornamento obbligatorio dopo Gate 2 e `publish`**; consultazione a fine flusso | Con `<post_id>` genera `[paths].dist/web/<post_id>.html`, la console webredazionale a schede (Articolo, Social, Podcast, Carosello, Fonti e trasparenza, Pubblicazione) nei colori di `[theme]`. Senza `<post_id>` o con `--all` rigenera le console di tutte le unità e l'indice della redazione `[paths].dist/web/index.html`, con lo stato F1–F5, Gate 1 e Gate 2 di ciascuna; se esiste `[paths].content/editorial_plan.md` lo rende anche in `[paths].dist/web/piano_editoriale.html`, collegato dall'indice («Piano editoriale»). Con `[publishing.redazione_service].enabled = true` la scheda «Pubblicazione» mostra il pannello «Decisione di uscita» per la console remota `/redazione/` (§4, Hugo Scaffolding, punto f). `--serve` avvia un server su `127.0.0.1` (porta predefinita `8000`, `0` per una libera); `--no-browser` evita l'apertura automatica | Non genera gli asset mancanti, non rivalida né approva gate, non pubblica. Riscrive la console in `dist/`, che è nel bundle del Gate 2: eseguito dopo il Gate 2 rende la ricevuta `stale`, perciò va lanciato solo come ultimo passo, quando tutte le azioni CLI della ricevuta sono già state eseguite |
 
 Stati dei controlli: `OK`, `WARN` (va motivato nel pacchetto), `BLOCK` (impedisce il gate).
 
@@ -168,6 +168,7 @@ All'inizio di ogni sessione: eseguite `editorial-pipeline status`, individuate l
    - **stile visivo e palette** → tabella `[theme]`: `palette` (`cobalt_tech` blu cobalto su slate, predefinita; `emerald` verde petrolio; `nordic_minimal` grafite su bianco; `custom`), eventuali colori `accent_color`, `background_color`, `ink_color` in esadecimale `#rrggbb` (prevalgono sul preset) e `font_family` (`sans` o `serif`). Se il Direttore indica i colori del proprio marchio, verificate il contrasto (testo e accento almeno 4,5:1 sullo sfondo) e segnalate i valori insufficienti invece di adottarli in silenzio.
 
    Lo stesso tema colora console web, indice della redazione e slide del carosello. Cambiare `[theme]` dopo il Gate 2 richiede di rigenerare gli asset e quindi un nuovo Gate 2.
+6. **Piano editoriale.** Se il Direttore tiene un calendario delle uscite, lo si registra in `[paths].content/editorial_plan.md` (con `content = "content"`: `content/editorial_plan.md`), in Markdown semplice: titolo `# …` oppure `title:` nel front matter, poi settimane o uscite con tema, `post_id` previsto e data. Non è un'unità: `view` e l'indice lo escludono dagli articoli, mentre `editorial-pipeline status` può ancora elencarlo come `editorial_plan`; ignorate quella riga e non avviate fasi né gate su di esso. `editorial-pipeline view --all` lo rende in `[paths].dist/web/piano_editoriale.html` (pagina offline, senza script, nei colori di `[theme]`) e aggiunge il link «Piano editoriale» all'indice. Aggiornatelo solo con le decisioni confermate dal Direttore in F0; il file non approva nulla e non sostituisce i gate.
 
 **Uscita:** scaletta, angolo, registro e identità della testata (nome, firma, tema) **confermati dal Direttore** in chat. La conferma di F0 non è un gate e non produce ricevuta, ma senza di essa non si passa a F1.
 
@@ -315,6 +316,8 @@ Le due fasi partono dallo stesso digest approvato al Gate 1 e non modificano il 
 
 A kit ultimato, generate la console con `editorial view <post_id>` (oppure `--no-browser` in una sessione non interattiva) **prima** di calcolare il bundle del Gate 2. Verificate scheda per scheda: articolo impaginato, copy social entro i limiti dei canali, podcast, slide, fonti con i link ai documenti e scheda «Pubblicazione». Con più unità generate anche l'indice (`editorial view --all`). Dettagli e modalità server: `references/publishing-and-audio.md` §5.
 
+> **`dist/` contiene solo artefatti della pipeline (regola vincolante).** Non lasciate in `[paths].dist/` script temporanei (`.py`, `.ps1`, `.sh`, `.js`), file di debug o di log, screenshot di controllo (per esempio le catture fatte per verificare slide o console), copie di prova o file `*.bak`. `dist/` entra nel bundle del Gate 2 e, se la redazione usa la console remota, viene copiata in `site/static/redazione/`: un file estraneo finirebbe nell'impronta approvata dal Direttore e sul server. Gli script di servizio si scrivono fuori dal progetto o in una cartella esclusa (per esempio `tmp/` nel `.gitignore`), le catture di verifica restano fuori da `dist/`. Prima del pacchetto Gate 2 elencate il contenuto (`find dist -type f | sort`, PowerShell: `Get-ChildItem dist -Recurse -File | Select-Object -ExpandProperty FullName`) e rimuovete ciò che non è stato prodotto dai comandi della CLI (`build-visual`, `build-audio`, `view`, `publish`). Se un file estraneo è già dentro una ricevuta Gate 2, non toglietelo in silenzio: riferitelo al Direttore, perché la rimozione rende la ricevuta `stale`.
+
 ### ══ GATE 2 — Pubblicazione ══
 
 1. **Controlli finali.** Rieseguite `validate-draft --json` e `verify-facts --json`: senza `BLOCK` e con lo stesso digest approvato al Gate 1. Per `investigative`: richieste di replica documentate nel testo.
@@ -374,6 +377,7 @@ site/
 │   ├── correzioni/_index.md           # da templates/pages/correzioni.template.md
 │   └── per-chi-scrive/_index.md       # da templates/pages/per-chi-scrive.template.md
 ├── data/corrections.json              # copia di [paths].corrections (facoltativa)
+├── static/redazione/                  # console remota protetta (facoltativa, punto f)
 └── layouts/
     ├── _default/baseof.html
     ├── _default/single.html
@@ -424,9 +428,39 @@ ignoreFiles = ['\.html$']                # nessun .html in content/ diventa pagi
 **c) Layout editoriale minimo in `site/layouts/`.** Niente temi esterni, CDN, font remoti o tracker; colori coerenti con `[theme]`.
 
 - `_default/baseof.html`: struttura HTML, `<header>` con **testata** (`.Site.Title`) e **monogramma** (`.Site.Params.monogram`, in testo o SVG inline), `<nav>` che itera `.Site.Menus.main` (le tre pagine di trasparenza sempre raggiungibili), `{{ block "main" . }}{{ end }}`, `<footer>` con link a `/metodo/` e `/correzioni/`.
-- `_default/single.html`: titolo, data, contenuto dell'articolo e **box metodologico** in fondo: «Scritto con l'ausilio di modelli AI sotto direzione umana; ogni fatto verificato su fonte; errori e rettifiche in /correzioni/», con link a `.Site.Params.method_url`. Il box è testo di trasparenza: si fa approvare con le pagine al punto b).
+- `_default/single.html`: titolo, data, rubriche, contenuto dell'articolo e **box metodologico** (`method-box`) in fondo: «Scritto con l'ausilio di modelli AI sotto direzione umana; ogni fatto verificato su fonte; errori e rettifiche in /correzioni/», con link a `.Site.Params.method_url`. Il box è testo di trasparenza: si fa approvare con le pagine al punto b).
 - `_default/list.html`: elenco delle pagine della sezione (`.Pages`) con titolo, data e sommario; per `metodo`, `correzioni` e `per-chi-scrive` mostra anche `.Content` dell'`_index.md`.
-- `index.html`: home con testata, ultimi articoli di `posts` (`where .Site.RegularPages "Section" "posts"`) e richiamo al metodo.
+- `index.html`: home con testata, ultimi articoli di `posts` (`where .Site.RegularPages "Section" "posts"`), con rubriche, e richiamo al metodo.
+
+**Rubriche.** La rubrica di un articolo è il campo `rubriche` del front matter della bozza (lista, es. `rubriche: ["Lavoro", "Dati"]`), che `publish` esporta così com'è. I layout la leggono con `{{ with .Params.rubriche }}`, che non stampa nulla se il campo manca: un articolo senza rubrica non mostra etichette vuote. La rubrica è una scelta del Direttore in F0, non dell'agente.
+
+```html
+<!-- _default/single.html -->
+{{ define "main" }}
+<article>
+  <h1>{{ .Title }}</h1>
+  <p class="meta"><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date | time.Format ":date_long" }}</time>
+  {{ with .Params.rubriche }}· <span class="rubriche">{{ delimit . ", " }}</span>{{ end }}</p>
+  {{ .Content }}
+  <aside class="method-box">
+    <p>Scritto con l'ausilio di modelli AI sotto direzione umana; ogni fatto è verificato su fonte.
+    Le fonti di questo articolo sono nella sezione «Fonti» qui sopra; il metodo è descritto in
+    <a href="{{ .Site.Params.method_url }}">/metodo/</a>, errori e rettifiche in <a href="/correzioni/">/correzioni/</a>.</p>
+  </aside>
+</article>
+{{ end }}
+```
+
+```html
+<!-- index.html: un elemento dell'elenco -->
+{{ range first 10 (where .Site.RegularPages "Section" "posts") }}
+<li><a href="{{ .RelPermalink }}">{{ .Title }}</a>
+  <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date | time.Format ":date_long" }}</time>
+  {{ with .Params.rubriche }}<span class="rubriche">{{ delimit . ", " }}</span>{{ end }}</li>
+{{ end }}
+```
+
+> **Il `method-box` è generico (regola vincolante).** `single.html` è lo stesso layout per tutti gli articoli: il box metodologico deve valere per qualsiasi unità. Non scrivete nel layout numeri di claim, nomi di fonti, titoli di report, `post_id` o esiti di fact-check di un articolo specifico, nemmeno come esempio provvisorio: comparirebbero su ogni pagina del sito come se riguardassero tutti gli articoli. Il box rimanda alla sezione `## Fonti` dell'articolo (generata da `publish --target static_site`, `references/publishing-and-audio.md` §3.6) e a `/metodo/`. Le informazioni proprie di un articolo stanno nel suo Markdown, approvato al Gate 2.
 
 **Date in italiano.** In `single.html`, `list.html` e `index.html` la data si scrive `{{ .Date | time.Format ":date_long" }}` (es. «15 novembre 2026»), che Hugo localizza secondo `defaultContentLanguage = "it"`. Non usate `.Date.Format "02 Gennaio 2006"`: il layout di Go riconosce solo i token inglesi (`January`, `Jan`), quindi «Gennaio» resta testo fisso e ogni articolo mostrerebbe lo stesso mese. Per l'attributo `datetime` di `<time>` usate `{{ .Date.Format "2006-01-02" }}`.
 
@@ -509,6 +543,45 @@ Con Base Directory `/site` il contesto di build è solo il sito: `evidence/`, `d
 
 - Su Windows PowerShell 5.1 **non** usate `Set-Content -Encoding utf8` né `Out-File -Encoding utf8`: entrambi scrivono il BOM. Usate lo strumento di scrittura file dell'harness, Python (`Path(p).write_text(testo, encoding="utf-8")`) oppure `[System.IO.File]::WriteAllText($p, $testo, [System.Text.UTF8Encoding]::new($false))`.
 - Controllo prima del commit: `head -c 3 site/deploy/nginx.conf | od -An -tx1` (POSIX) o `Format-Hex site/deploy/nginx.conf | Select-Object -First 1` (PowerShell). Se i primi byte sono `ef bb bf`, riscrivete il file senza BOM.
+
+**f) Console remota protetta sotto `/redazione/` (facoltativa).** È il pattern ufficiale per consultare la console webredazionale dal sito di produzione, per esempio dal telefono del Direttore, senza renderla pubblica. Si prepara una volta e il Direttore la approva come il resto dello scaffolding.
+
+1. **Contenuto.** `site/static/redazione/` riceve una copia di `[paths].dist/` con la stessa struttura (`web/`, `social/`, `audio/`, …), così i collegamenti relativi della console restano validi: l'indice è `/redazione/web/index.html`, il piano editoriale `/redazione/web/piano_editoriale.html`. Non copiate `dist/packages/` (gli archivi contengono le evidenze di redazione) e non mettete in `static/redazione/` file che non vengano da `dist/` (regola «`dist/` contiene solo artefatti della pipeline», prima del Gate 2). La copia si fa dopo l'aggiornamento finale della console (passo 8 di «Pubblicazione — dopo il Gate 2») ed è un'operazione umana o eseguita su istruzione esplicita del Direttore.
+2. **Pannello «Decisione di uscita» nativo.** Si abilita in `editorial.toml`, non con script iniettati a mano nell'HTML generato:
+
+   ```toml
+   [publishing.redazione_service]
+   enabled = true
+   api_base = "/redazione/api/stato"        # GET  <api_base>/<post_id>    → JSON {state, publish_at, message}
+   action_base = "/redazione/azioni/stato"  # POST <action_base>/<post_id> → publish_at, timezone, action
+   blog_url = "/"                           # facoltativo: link «← Torna al Blog»
+   timezone_label = "Europe/Rome"
+   ```
+
+   Con `enabled = true`, `editorial-pipeline view` aggiunge alla scheda «Pubblicazione» il pannello con data e ora di uscita e i pulsanti «Programma l'uscita», «Pubblica ora» (attivi solo con Gate 2 registrato), «Rimetti in bozza» e «Annulla l'ultima decisione». I percorsi devono essere dello stesso sito (iniziano con `/`, senza host né `..`): la CSP della console permette `connect-src` e `form-action` solo verso `'self'`, e la configurazione rifiuta valori diversi. Senza la tabella, o con `enabled = false`, la console resta interamente offline. Non correggete `dist/web/*.html` con `sed`, script Python o JavaScript aggiunti dopo `view`: le modifiche si perdono alla rigenerazione successiva e alterano file già coperti dal Gate 2.
+3. **Servizio della redazione.** Gli endpoint `api_base` e `action_base` sono serviti da un servizio della redazione **esterno al framework**, che Nginx inoltra sotto `/redazione/`. Il servizio applica programmazione e pubblicazione solo per unità con ricevuta Gate 2 valida (`check-gate 2` → `RECEIPT_VALID`). Il pannello è uno strumento del Direttore: l'agente non lo usa, non invia richieste a quegli endpoint e non programma uscite al posto del Direttore.
+4. **Nginx: Basic Auth e `noindex`.** In `site/deploy/nginx.conf`, dentro il blocco `server`:
+
+   ```nginx
+   location /redazione/ {
+       auth_basic "Redazione";
+       auth_basic_user_file /etc/nginx/.htpasswd;
+       add_header X-Robots-Tag "noindex, nofollow" always;
+       add_header X-Content-Type-Options "nosniff" always;
+       add_header Cache-Control "no-store" always;
+       try_files $uri $uri/ =404;
+   }
+
+   location /redazione/api/ {
+       auth_basic "Redazione";
+       auth_basic_user_file /etc/nginx/.htpasswd;
+       add_header X-Robots-Tag "noindex, nofollow" always;
+       proxy_pass http://redazione-service:8080;   # nome e porta del servizio della redazione
+   }
+   # stesso blocco per /redazione/azioni/
+   ```
+
+   Come al punto d), un `add_header` nella `location` annulla quelli del `server`: ripetete gli header di sicurezza. `.htpasswd` **non** entra nel repository né nell'immagine: si monta come file o secret dall'host (su Coolify: *Storages* o variabile segreta) e lo crea il Direttore. Aggiungete anche `Disallow: /redazione/` a `site/static/robots.txt`, come terza difesa dopo Basic Auth e `X-Robots-Tag`. Verifica dopo il deploy: `curl -sI https://<sito>/redazione/web/index.html` deve rispondere `401` senza credenziali.
 
 ### Console webredazionale — consultazione a fine flusso
 
