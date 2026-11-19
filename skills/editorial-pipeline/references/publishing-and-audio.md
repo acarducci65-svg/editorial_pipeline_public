@@ -386,9 +386,9 @@ editorial view post_07 --no-browser
 
 Il comando genera `[paths].dist/web/post_07.html` (default `dist/web/post_07.html`) e, senza `--no-browser`, lo apre nel browser come file locale. `--no-browser` genera comunque l'HTML e stampa il percorso relativo. Serve Jinja2, incluso nell'extra `editorial-pipeline[social]`. CSS e JavaScript sono incorporati; audio e download usano collegamenti relativi: mantenete la struttura delle cartelle quando spostate la console.
 
-**Preparazione e Gate 1.** Prima di porre la domanda del Gate 1 eseguite `editorial-pipeline view <post_id> --no-browser` e indicate al Direttore `dist/web/<post_id>.html` e `dist/web/index.html`: la console mostra bozza, fonti primarie e claim verificati. I file di `dist/` non fanno parte del bundle Gate 1, quindi `view` non invalida alcun digest di quel gate e non approva nulla.
+**Preparazione e Gate 1.** Prima di porre la domanda del Gate 1 eseguite `editorial-pipeline view <post_id> --no-browser` e indicate al Direttore `dist/web/<post_id>.html` e `dist/web/index.html`: la console mostra bozza, fonti primarie e claim verificati. I file di `dist/` non fanno parte del bundle Gate 1, quindi `view` non invalida alcun digest di quel gate e non approva nulla. Con `[publishing.redazione_service].enabled = true`, subito dopo `view` sincronizzate `site/static/redazione/` con `dist/` (script o procedura del progetto, per esempio `sync-redazione`; §5.5), così il Direttore legge la bozza verificata anche sulla console online protetta: senza `dist/packages/`, senza toccare `site/content/posts/`, dietro Basic Auth + `noindex`. Il `git push` verso il server si esegue solo su conferma esplicita del Direttore.
 
-**Preparazione e Gate 2.** Generate la console prima di calcolare il bundle del Gate 2, dopo aver ultimato kit e audio. `view` riscrive il file anche se esiste già; generarlo o rigenerarlo fra la ricevuta e l'ultima azione CLI la rende `stale` e blocca i `publish` successivi. Se serve aggiornarla con nuovi asset, riferite il cambiamento e presentate un nuovo pacchetto Gate 2 prima di ulteriori azioni soggette al gate. Non correggete la ricevuta per adattarla alla console.
+**Preparazione e Gate 2.** Generate la console prima di calcolare il bundle del Gate 2, dopo aver ultimato kit e audio. `view` riscrive il file anche se esiste già; generarlo o rigenerarlo fra la ricevuta e l'ultima azione CLI la rende `stale` e blocca i `publish` successivi. Se serve aggiornarla con nuovi asset, riferite il cambiamento e presentate un nuovo pacchetto Gate 2 prima di ulteriori azioni soggette al gate. Non correggete la ricevuta per adattarla alla console. Con `redazione_service.enabled = true`, dopo `view` e prima della domanda del Gate 2 risincronizzate `site/static/redazione/` (stesse regole del Gate 1) perché il Direttore possa controllare social, carosello e audio anche online: la copia legge `dist/` senza modificarlo e non cambia il bundle; il `git push` resta autorizzato dal Direttore.
 
 **Aggiornamento dopo Gate 2 e `publish`.** La console preparata prima del Gate 2 è un'istantanea pre-approvazione: senza aggiornamento continua a mostrare «Gate 2 · Pubblicazione — Non disponibile» e non elenca i file appena pubblicati. Rigeneratela quindi **obbligatoriamente**, una volta e come ultimo passo:
 
@@ -400,7 +400,7 @@ editorial-pipeline view <post_id> --no-browser
 editorial-pipeline view --all --no-browser   # con più unità: anche l'indice
 ```
 
-Il comando riscrive `dist/web/<post_id>.html` e `dist/web/index.html` con il badge verde del Gate 2 (letto dal rapporto `reports/gates/<post_id>/gate2.json` scritto da `check-gate 2`), le azioni autorizzate, i file pubblicati e l'archivio `dist/packages/<post_id>.tar.gz` se esiste. Non tocca unità, evidenze né ricevute e non approva nulla. Poiché `dist/web/` fa parte del bundle, un nuovo `check-gate 2` darà poi ricevuta `stale`: è atteso, perché le azioni CLI della ricevuta sono già state consumate (con le cartelle predefinite la ricevuta è `stale` già dopo il primo `publish`, §3.4). Per lo stesso motivo non lanciatelo mai prima di un `publish` ancora da eseguire. A valle non resta nulla da invalidare: F6 e ogni ripubblicazione richiedono comunque un nuovo Gate 2. Indicate al Direttore i due percorsi da aprire nel browser; se il comando fallisce, riferitelo invece di saltarlo. Da qui in poi, per consultare la console senza scritture, aprite direttamente l'HTML.
+Il comando riscrive `dist/web/<post_id>.html` e `dist/web/index.html` con il badge verde del Gate 2 (letto dal rapporto `reports/gates/<post_id>/gate2.json` scritto da `check-gate 2`), le azioni autorizzate, i file pubblicati e l'archivio `dist/packages/<post_id>.tar.gz` se esiste. Non tocca unità, evidenze né ricevute e non approva nulla. Poiché `dist/web/` fa parte del bundle, un nuovo `check-gate 2` darà poi ricevuta `stale`: è atteso, perché le azioni CLI della ricevuta sono già state consumate (con le cartelle predefinite la ricevuta è `stale` già dopo il primo `publish`, §3.4). Per lo stesso motivo non lanciatelo mai prima di un `publish` ancora da eseguire. A valle non resta nulla da invalidare: F6 e ogni ripubblicazione richiedono comunque un nuovo Gate 2. Indicate al Direttore i due percorsi da aprire nel browser; se il comando fallisce, riferitelo invece di saltarlo. Con `redazione_service.enabled = true` sincronizzate poi di nuovo `site/static/redazione/` (§5.5) perché anche la console online mostri il Gate 2 verde e i file pubblicati; il `git push` resta autorizzato dal Direttore. Da qui in poi, per consultare la console senza scritture, aprite direttamente l'HTML.
 
 ### 5.3 Modalità di rete: server HTTP locale
 
@@ -430,6 +430,14 @@ La tabella è facoltativa: senza `[theme]` vale `cobalt_tech`. I colori sono acc
 ### 5.5 Console remota protetta (`/redazione/`)
 
 La console può essere consultata anche dal sito di produzione, sotto `/redazione/`, protetta da Basic Auth e con `X-Robots-Tag: noindex`. La procedura completa (copia di `dist/` in `site/static/redazione/` senza `dist/packages/`, configurazione Nginx, `.htpasswd` fuori dal repository, `robots.txt`) è in `SKILL.md`, §4 «Hugo Scaffolding», punto f.
+
+**Quando sincronizzare.** Con `enabled = true`, `site/static/redazione/` si aggiorna (per esempio con lo script `sync-redazione` del progetto) dopo **ogni** `view` dei tre momenti del ciclo:
+
+1. **prima del Gate 1** (§5.2, «Preparazione e Gate 1»): bozza, fonti e claim verificati;
+2. **prima del Gate 2** (§5.2, «Preparazione e Gate 2»): kit social, carosello e audio;
+3. **dopo il Gate 2/`publish`** (§5.2, «Aggiornamento dopo Gate 2 e `publish`»): Gate 2 verde e file pubblicati.
+
+In tutti e tre i casi la copia esclude `dist/packages/`, non tocca `site/content/posts/` (le bozze non entrano nel blog prima del Gate 2) e resta protetta da Basic Auth + `X-Robots-Tag: noindex`. `site/static/redazione/` è fuori dai bundle dei gate: sincronizzarla non invalida digest e non approva nulla. Commit e `git push` che aggiornano il server restano sempre subordinati alla conferma esplicita del Direttore.
 
 ```toml
 [publishing.redazione_service]
