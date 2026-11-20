@@ -86,7 +86,9 @@ def validate_excerpt(
     excerpt: str, approval_phrase: str, post_id: str, forbidden_excerpts: list[str]
 ) -> None:
     text = _normalized(excerpt)
-    phrase = approval_phrase.replace("{unit_id}", post_id)
+    # Accept both the canonical "{unit_id}" placeholder and the legacy "{{UNIT_ID}}"
+    # form shipped by older editorial.example.toml scaffolds.
+    phrase = approval_phrase.replace("{{UNIT_ID}}", post_id).replace("{unit_id}", post_id)
     # Fail closed on negation or conditions anywhere in the supplied declaration.
     ambiguous = re.search(
         r"\b(non|not|never|unless|if|provided|pending|conditional|"

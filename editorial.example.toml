@@ -106,17 +106,17 @@ forbidden_excerpts = [
 name = "Gate 1 — Approvazione bozza"
 required = true                           # Non modificabile
 after = "F3"
-approval_phrase = "Approvo Gate 1 #{{UNIT_ID}}"
+approval_phrase = "Approvo Gate 1 #{unit_id}"
 question = "Approvi questa bozza (digest {{DIGEST_SHORT}}) per passare alla promozione? Rispondi \"Approvo Gate 1 #{{UNIT_ID}}\" oppure indica le correzioni."
 
 [gates.gate2]
 name = "Gate 2 — Approvazione pubblicazione"
 required = true                           # Non modificabile
 after = "F6"
-approval_phrase = "Approvo Gate 2 #{{UNIT_ID}}"
+approval_phrase = "Approvo Gate 2 #{unit_id}"
 question = "Approvi la pubblicazione di #{{UNIT_ID}} il {{PUBLISH_AT_LOCAL}} con le azioni elencate? Rispondi \"Approvo Gate 2 #{{UNIT_ID}}\"."
 # Azioni che una ricevuta Gate 2 può autorizzare. Nessuna è implicita.
-allowed_actions = ["publish", "schedule", "sync"]
+allowed_actions = ["publish", "schedule", "sync", "export_markdown", "archive"]
 
 # -----------------------------------------------------------------------------
 # Provider (adapter pluggabili)
