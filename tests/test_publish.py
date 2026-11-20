@@ -69,6 +69,17 @@ def run(root: Path, *args: str) -> int:
     return main(["publish", "post_01", "--config", str(root / "editorial.toml"), "--json", *args])
 
 
+TITLE_LINE = b"# Misurare il tempo di import di uno script Python"
+
+
+def _without_title(source: bytes) -> bytes:
+    """Expected static-site export of the sample draft: the leading H1 is dropped."""
+    nl = b"\r\n" if b"\r\n" in source else b"\n"
+    title_block = TITLE_LINE + nl + nl
+    assert source.count(title_block) == 1
+    return source.replace(title_block, b"", 1)
+
+
 def test_publish_snapshot_keeps_binary_crlf(project: Path) -> None:
     asset = project / "dist/social/post_01/slide.png"
     asset.write_bytes(b"binary\r\nbytes")
@@ -182,8 +193,8 @@ def test_publish_targets(
                 assert checksum == hashlib.sha256(member.read()).hexdigest()
     else:
         assert (project / "dist/published/post_01/post_01_valid.md").read_bytes() == (
-            project / "content/posts/post_01_valid.md"
-        ).read_bytes()
+            _without_title((project / "content/posts/post_01_valid.md").read_bytes())
+        )
         assert (
             project / "dist/published/post_01/dist/social/post_01/slide.png"
         ).read_bytes() == b"visual"
@@ -229,7 +240,7 @@ def test_static_site_hugo_bundle_layout(project: Path) -> None:
     approve(project, ["export_markdown"])
     assert run(project, "--target", "static_site") == 0
     output = project / "dist/published/post_01"
-    assert (output / "index.md").read_bytes() == draft.read_bytes()
+    assert (output / "index.md").read_bytes() == _without_title(draft.read_bytes())
     assert not (output / draft.name).exists()
 
 
@@ -286,9 +297,9 @@ def test_static_site_allow_overwrite(project: Path, dry: bool) -> None:
     if dry:
         assert snapshot(project) == before
     else:
-        assert (
-            project / "dist/published/post_01/post_01_valid.md"
-        ).read_bytes() == draft.read_bytes()
+        assert (project / "dist/published/post_01/post_01_valid.md").read_bytes() == _without_title(
+            draft.read_bytes()
+        )
 
 
 def test_static_site_overwrite_disabled(project: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -507,5 +518,61 @@ def test_static_site_skips_duplicate_sources_heading(project: Path) -> None:
     assert "## Fonti" in draft.read_text(encoding="utf-8")
     assert run(project, "--target", "static_site") == 0
     output = (project / "dist/published/post_01/post_01_valid.md").read_bytes()
-    assert output == draft.read_bytes()
+    assert output == _without_title(draft.read_bytes())
     assert output.count(b"## Fonti") == 1
+
+
+def _write_draft(project: Path, body: str, newline: str = "\n") -> Path:
+    draft = project / "content/posts/post_01_valid.md"
+    text = draft.read_text(encoding="utf-8")
+    frontmatter = text[: text.index("\n---\n", 3) + 5]
+    draft.write_bytes((frontmatter + body).replace("\n", newline).encode("utf-8"))
+    _refresh_evidence(project)
+    _write_gate_receipt(project, 1)
+    approve(project, ["export_markdown"])
+    return draft
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_static_site_strips_leading_h1(project: Path, newline: str) -> None:
+    body = (
+        "\n\n# Titolo duplicato\n\n\n"
+        "Primo paragrafo.\n\n"
+        "## Sottotitolo\n\n"
+        "Testo con # non intestazione.\n\n"
+        "# Un H1 interno resta\n\n"
+        "## Fonti\n\n"
+        "- Fonte di prova\n"
+    )
+    draft = _write_draft(project, body, newline)
+    original = draft.read_bytes()
+    assert run(project, "--target", "static_site") == 0
+    output = (project / "dist/published/post_01/post_01_valid.md").read_bytes().decode("utf-8")
+    frontmatter, exported = output.split(newline + "---" + newline, 1)
+    assert 'title: "Misurare il tempo di import di uno script Python"' in frontmatter
+    assert "# Titolo duplicato" not in output
+    assert exported == newline + body.split("\n\n\n", 1)[1].replace("\n", newline)
+    assert exported.startswith(newline + "Primo paragrafo.")
+    for kept in ("## Sottotitolo", "# Un H1 interno resta", "## Fonti", "- Fonte di prova"):
+        assert kept in exported
+    assert exported.count("## Fonti") == 1
+    assert draft.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("---\ntitle: T\n---\n# T\n", "---\ntitle: T\n---\n"),
+        ("---\ntitle: T\n---\n\n# T\n## Sezione\n", "---\ntitle: T\n---\n\n## Sezione\n"),
+        ("---\ntitle: T\n---\n\n## Sezione\n# Dopo\n", None),
+        ("---\ntitle: T\n---\n\n#Hashtag\n", None),
+        ("---\nauthor: A\n---\n\n# T\n\nTesto\n", None),
+        ("# T\n\nTesto senza frontmatter\n", None),
+    ],
+)
+def test_strip_leading_h1_helper(text: str, expected: str | None) -> None:
+    from editorial_pipeline.adapters.publish.static_site import strip_leading_h1
+
+    data = text.encode("utf-8")
+    assert strip_leading_h1(data) == (data if expected is None else expected.encode("utf-8"))
+    assert strip_leading_h1(b"\xff\xfe# T") == b"\xff\xfe# T"

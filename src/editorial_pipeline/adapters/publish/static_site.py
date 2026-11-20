@@ -12,6 +12,9 @@ from .base import PublishAdapter, PublishResult, selected_actions, skipped
 
 SOURCES_HEADING = re.compile(r"(?im)^#{2,3}\s+Fonti\b")
 YEAR = re.compile(r"\b(\d{4})\b")
+FRONTMATTER = re.compile(r"(?sm)\A---[ \t]*\r?\n.*?^---[ \t]*(?:\r?\n|\Z)")
+FRONTMATTER_TITLE = re.compile(r"(?m)^title[ \t]*:[ \t]*\S")
+LEADING_H1 = re.compile(r"\A(?:[ \t]*\r?\n)*#[ \t]+[^\r\n]*(?:\r?\n|\Z)(?:[ \t]*\r?\n)*")
 
 
 def _public_url(value: Any) -> str | None:
@@ -55,6 +58,37 @@ def _source_line(source: dict[str, Any]) -> str | None:
     if year:
         line += f" ({year})" if credit else f" — {year}"
     return line
+
+
+def _strip_leading_h1(body: str) -> str:
+    """Drop the leading '# Title' of the body when the frontmatter already sets a title.
+
+    Static site generators render ``title`` as the page ``<h1>``: keeping the Markdown
+    H1 would duplicate it. Only a leading H1 (optionally surrounded by blank lines)
+    is removed; frontmatter, ``##`` headings and the rest of the body are untouched.
+    """
+    frontmatter = FRONTMATTER.match(body)
+    if frontmatter is None or not FRONTMATTER_TITLE.search(frontmatter[0]):
+        return body
+    head, rest = body[: frontmatter.end()], body[frontmatter.end() :]
+    heading = LEADING_H1.match(rest)
+    if heading is None:
+        return body
+    remainder = rest[heading.end() :]
+    if not remainder:
+        return head
+    newline = "\r\n" if head.endswith("\r\n") else "\n"
+    return head + newline + remainder
+
+
+def strip_leading_h1(data: bytes) -> bytes:
+    """Bytes wrapper of :func:`_strip_leading_h1`; non UTF-8 input is returned as is."""
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data
+    stripped = _strip_leading_h1(text)
+    return data if stripped == text else stripped.encode("utf-8")
 
 
 def append_sources(data: bytes, sources_file: Path) -> bytes:
@@ -108,7 +142,7 @@ class StaticSitePublisher(PublishAdapter):
         )
         evidence = config.resolve_paths(self.root)["paths.evidence"] / post_id / "sources.json"
         sources_file = self.safe_path(evidence.relative_to(self.root).as_posix())
-        markdown = files[draft_name]
+        markdown = strip_leading_h1(files[draft_name])
         if sources_file.is_file():
             markdown = append_sources(markdown, sources_file)
         exports = {markdown_name: markdown}
