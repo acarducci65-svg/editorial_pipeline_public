@@ -855,7 +855,8 @@ def test_console_with_redazione_service_renders_decision_panel(tmp_path: Path) -
     assert "Europe/Rome" in panel
     # Scheduling stays disabled until the Direttore registers Gate 2.
     assert 'value="schedule" disabled' in panel and 'value="publish_now" disabled' in panel
-    assert "fetch(decision.dataset.api" in html and "fetch(form.action" in html
+    assert "fetch(decision.dataset.api" in html and "fetch(form.getAttribute('action')" in html
+    assert "fetch(form.action" not in html
     assert '<a class="back" href="/">← Torna al Blog</a>' in html
     put(
         tmp_path,
