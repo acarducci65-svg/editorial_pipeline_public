@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+{% set live = redazione_service and redazione_service.enabled %}
+{% if live %}<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'">{% else %}<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">{% endif %}
 <title>{{ newsroom or 'Redazione' }} · Indice degli articoli</title>
 <style>
 :root{
@@ -57,7 +58,11 @@ td.title code{font:500 .75rem var(--mono)}
 .state.live{color:#fff;background:var(--accent);border-color:var(--accent)}
 .state.progress{color:var(--accent-ink);background:var(--accent-soft);border-color:color-mix(in oklab,var(--accent) 30%,#fff)}
 .state.error{color:var(--warn);background:var(--warn-soft);border-color:var(--warn-line)}
-td.open a{font-weight:600;white-space:nowrap}
+{% if live %}.state.live-published{color:#fff;background:var(--ok);border-color:var(--ok)}
+.state.live-scheduled{color:var(--accent-ink);background:var(--accent-soft);border-color:color-mix(in oklab,var(--accent) 30%,#fff)}
+.state.live-draft{color:var(--muted);background:var(--surface-2);border-color:var(--line-strong)}
+.state-sub{display:block;margin-top:.25rem;color:var(--muted);font-size:.75rem;white-space:nowrap}
+{% endif %}td.open a{font-weight:600;white-space:nowrap}
 .empty{padding:2rem;color:var(--muted)}
 .note{max-width:80ch;color:var(--muted);font-size:.85rem;margin:0 0 3rem}
 .note code{font:500 .8rem var(--mono);color:var(--ink)}
@@ -98,5 +103,62 @@ td.open a{font-weight:600;white-space:nowrap}
   </div>
   <p class="note">Questo indice è una vista locale e non pubblica nulla. Un articolo va online solo dopo il Gate 2 confermato dal Direttore, con <code>editorial publish &lt;post_id&gt;</code> o copiando i materiali nel CMS della redazione dalla scheda «Pubblicazione» della sua console.</p>
 </main>
-</body>
+{% if live %}<script>
+(function () {
+  'use strict';
+  if (!/^https?:$/.test(location.protocol)) return;
+  var endpoint = {{ redazione_service.api_base|tojson }};
+  var KINDS = {published: 'published', scheduled: 'scheduled', draft: 'draft'};
+  function lookup(data, slug) {
+    if (!data || typeof data !== 'object') return null;
+    var items = Array.isArray(data) ? data : (Array.isArray(data.items) ? data.items : null);
+    if (items) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i] && items[i].slug === slug) return items[i];
+      }
+      return null;
+    }
+    var source = data.posts && typeof data.posts === 'object' ? data.posts
+      : (data.articles && typeof data.articles === 'object' ? data.articles : data);
+    return Object.prototype.hasOwnProperty.call(source, slug) ? source[slug] : null;
+  }
+  function apply(data) {
+    var rows = document.querySelectorAll('.table:not(.plan-table) tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var code = row.querySelector('td.title code');
+      var badge = row.querySelector('.state');
+      if (!code || !badge) continue;
+      var info = lookup(data, code.textContent.trim());
+      if (!info || typeof info !== 'object') continue;
+      var kind = KINDS[String(info.display_status)];
+      if (kind && typeof info.badge_label === 'string' && info.badge_label) {
+        badge.textContent = info.badge_label;
+        badge.className = 'state live-' + kind;
+      }
+      var cell = badge.parentNode;
+      var sub = cell.querySelector('small.state-sub');
+      if (typeof info.countdown === 'string' && info.countdown) {
+        if (!sub) {
+          sub = document.createElement('small');
+          sub.className = 'state-sub';
+          cell.appendChild(sub);
+        }
+        sub.textContent = info.countdown;
+      } else if (sub) {
+        sub.parentNode.removeChild(sub);
+      }
+    }
+  }
+  function poll() {
+    fetch(endpoint, {cache: 'no-store', credentials: 'same-origin', headers: {Accept: 'application/json'}})
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) { if (data) apply(data); })
+      .catch(function () {});
+  }
+  poll();
+  setInterval(poll, 30000);
+})();
+</script>
+{% endif %}</body>
 </html>

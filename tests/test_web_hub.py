@@ -942,3 +942,52 @@ def test_cli_view_passes_redazione_service(tmp_path: Path, monkeypatch: pytest.M
     assert main(["view", "--no-browser"]) == 0
     index = (tmp_path / "dist/web/index.html").read_text(encoding="utf-8")
     assert "← Torna al Blog" in index
+
+
+def test_index_without_redazione_service_has_no_live_status(tmp_path: Path) -> None:
+    from editorial_pipeline.application.web_hub import generate_index
+
+    put(tmp_path, "content/posts/alpha/draft.md", "# Alpha\nBody")
+    for service in (None, {"enabled": False, "api_base": "/redazione/api"}):
+        html = generate_index(tmp_path, redazione_service=service).read_text(encoding="utf-8")
+        assert (
+            "content=\"default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; "
+            "base-uri 'none'; form-action 'none'\""
+        ) in html
+        assert "script-src" not in html and "connect-src" not in html
+        assert "<script" not in html and "fetch(" not in html
+        assert "live-published" not in html and "state-sub" not in html
+
+
+def test_index_with_redazione_service_polls_live_status(tmp_path: Path) -> None:
+    from editorial_pipeline.application.web_hub import generate_index
+    from editorial_pipeline.config.models import RedazioneServiceConfig
+
+    put(tmp_path, "content/posts/alpha/draft.md", "# Alpha\nBody")
+    service = RedazioneServiceConfig(enabled=True).model_dump()
+    assert service["api_base"] == "/redazione/api/stato"
+    html = generate_index(tmp_path, redazione_service=service).read_text(encoding="utf-8")
+    assert '"/redazione/api/stato"' in html
+    assert "/redazione/api/stato/stato" not in html
+    assert (
+        "content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+        "img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'\""
+    ) in html
+    assert "form-action 'none'" not in html
+    for rule in (".state.live-published{", ".state.live-scheduled{", ".state.live-draft{"):
+        assert rule in html
+    assert ".state-sub{" in html
+    script = html[html.index("<script>") : html.index("</script>")]
+    assert html.index("</script>") < html.index("</body>")
+    assert 'var endpoint = "/redazione/api/stato";' in script
+    assert "fetch(endpoint, {cache: 'no-store'" in script
+    assert "setInterval(poll, 30000)" in script
+    assert "/^https?:$/.test(location.protocol)" in script
+    assert "'.table:not(.plan-table) tbody tr'" in script and "td.title code" in script
+    assert "badge.textContent = info.badge_label" in script
+    assert "'state live-' + kind" in script and "info.countdown" in script
+    assert "data.posts" in script and "data.articles" in script
+    assert "createElement('small')" in script and "state-sub" in script
+    assert "innerHTML" not in html
+    # The row the script targets carries the slug inside td.title code.
+    assert '<td class="title"><a href="alpha.html">' in html and "<code>alpha</code>" in html
