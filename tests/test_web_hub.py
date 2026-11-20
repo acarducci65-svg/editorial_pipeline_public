@@ -992,3 +992,78 @@ def test_index_with_redazione_service_polls_live_status(tmp_path: Path) -> None:
     assert "innerHTML" not in html
     # The row the script targets carries the slug inside td.title code.
     assert '<td class="title"><a href="alpha.html">' in html and "<code>alpha</code>" in html
+
+
+def test_templates_disable_automatic_hyphenation(tmp_path: Path) -> None:
+    put(tmp_path, "content/posts/demo/draft.md", "# Article\n\nBody text.")
+    html = generate_web_hub(tmp_path, "demo").read_text(encoding="utf-8")
+    assert "hyphens:none" in html
+    assert "hyphens:auto" not in html
+    templates = Path(__file__).resolve().parents[1] / "templates"
+    for template in templates.rglob("*.jinja2"):
+        text = template.read_text(encoding="utf-8").replace(" ", "")
+        assert "hyphens:auto" not in text, template
+
+
+def test_console_cover_from_frontmatter(tmp_path: Path) -> None:
+    put(
+        tmp_path,
+        "content/posts/demo/draft.md",
+        "---\ntitle: Cover article\ncover: images/tavola 1.webp\n"
+        "cover_caption: Tavola d'apertura\ncover_alt: Mappa del regno\n---\n# Cover article\n\nBody.",
+    )
+    put(tmp_path, "content/posts/demo/images/tavola 1.webp", "image")
+    html = generate_web_hub(tmp_path, "demo").read_text(encoding="utf-8")
+    copied = tmp_path / "dist/web/assets/demo/tavola 1.webp"
+    assert copied.read_text(encoding="utf-8") == "image"
+    assert '<figure class="article-cover">' in html
+    assert 'src="assets/demo/tavola%201.webp"' in html
+    assert 'alt="Mappa del regno"' in html
+    assert "<figcaption>Tavola d&#39;apertura</figcaption>" in html
+    head, body = html.index('<header class="article-head">'), html.index('id="article-body"')
+    assert head < html.index('<figure class="article-cover">') < body
+
+
+def test_console_cover_discovered_in_bundle(tmp_path: Path) -> None:
+    put(tmp_path, "content/posts/demo/draft.md", "---\ntitle: Bundle\n---\n# Bundle\n\nBody.")
+    put(tmp_path, "content/posts/demo/cover.jpg", "jpeg")
+    html = generate_web_hub(tmp_path, "demo").read_text(encoding="utf-8")
+    assert (tmp_path / "dist/web/assets/demo/cover.jpg").is_file()
+    assert 'src="assets/demo/cover.jpg"' in html
+    assert 'alt="Bundle"' in html
+    assert "<figcaption>" not in html
+
+
+def test_console_cover_in_site_bundle(tmp_path: Path) -> None:
+    put(tmp_path, "content/posts/post_01.md", "# Flat\n\nBody.")
+    put(tmp_path, "site/content/posts/post_01/tavola.png", "png")
+    html = generate_web_hub(tmp_path, "post_01").read_text(encoding="utf-8")
+    assert (tmp_path / "dist/web/assets/post_01/tavola.png").is_file()
+    assert 'src="assets/post_01/tavola.png"' in html
+
+
+@pytest.mark.parametrize(
+    "cover",
+    ["", "../../../outside.jpg", "/etc/cover.jpg", "https://example.org/cover.jpg", "notes.txt"],
+)
+def test_console_without_usable_cover(tmp_path: Path, cover: str) -> None:
+    front = f"---\ntitle: Plain\ncover: {cover}\n---\n" if cover else ""
+    put(tmp_path / "project", "content/posts/demo/draft.md", f"{front}# Plain\n\nBody.")
+    put(tmp_path / "project", "content/posts/demo/notes.txt", "text")
+    put(tmp_path, "outside.jpg", "outside")
+    html = generate_web_hub(tmp_path / "project", "demo").read_text(encoding="utf-8")
+    assert '<figure class="article-cover">' not in html
+    assert not (tmp_path / "project/dist/web/assets").exists()
+
+
+def test_console_cover_symlink_is_ignored(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    put(project, "content/posts/demo/draft.md", "# Linked\n\nBody.")
+    outside = put(tmp_path, "secret.jpg", "secret")
+    try:
+        (project / "content/posts/demo/cover.jpg").symlink_to(outside)
+    except OSError:
+        pytest.skip("Symlink creation is unavailable")
+    html = generate_web_hub(project, "demo").read_text(encoding="utf-8")
+    assert '<figure class="article-cover">' not in html
+    assert not (project / "dist/web/assets").exists()

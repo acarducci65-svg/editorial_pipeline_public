@@ -9,6 +9,7 @@ import importlib
 import json
 import posixpath
 import re
+import shutil
 import webbrowser
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
@@ -512,6 +513,55 @@ def _template_dir(name: str) -> Path | None:
     return next((p for p in DEFAULT_TEMPLATE_DIRS if (p / name).is_file()), None)
 
 
+COVER_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".avif")
+COVER_STEMS = ("cover", "tavola")
+
+
+def _cover(
+    root: Path,
+    metadata: dict[str, Any],
+    folders: list[Path],
+    assets: Path,
+    title: str,
+) -> dict[str, str] | None:
+    """Copy an optional article cover next to the console; never follow links out."""
+
+    def usable(path: Path) -> Path | None:
+        try:
+            resolved = _contained(root, path)
+        except (OSError, ValueError):
+            return None
+        return resolved if resolved.is_file() and path.suffix.lower() in COVER_SUFFIXES else None
+
+    candidates: list[Path] = []
+    declared = metadata.get("cover")
+    if isinstance(declared, str) and declared.strip():
+        relative = declared.strip().replace("\\", "/")
+        # Remote URLs, absolute and drive paths are never treated as local covers.
+        if not relative.startswith("/") and ":" not in relative:
+            candidates += [base / relative for base in (*folders, root)]
+    candidates += [
+        folder / f"{stem}{suffix}"
+        for folder in folders
+        for stem in COVER_STEMS
+        for suffix in COVER_SUFFIXES
+    ]
+    found = next((f for f in map(usable, candidates) if f is not None), None)
+    if found is None:
+        return None
+    target = _contained(root, assets / found.name)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    _contained(root, target)
+    shutil.copyfile(found, target)
+    alt = metadata.get("cover_alt")
+    caption = metadata.get("cover_caption")
+    return {
+        "src": quote(f"assets/{assets.name}/{found.name}", safe="/.-_"),
+        "alt": str(alt) if alt else title,
+        "caption": str(caption) if caption else "",
+    }
+
+
 def _build(
     root: Path,
     post_id: str,
@@ -603,6 +653,16 @@ def _build(
         if article.suffix.lower() == ".html":
             # Published HTML is shown as text: markup read from disk is never trusted.
             article_text = re.sub(r"<[^>]+>", " ", article_text)
+    cover_folders = [post_dir, root / "site/content/posts" / post_id]
+    if draft.parent.name == post_id:
+        cover_folders.insert(0, draft.parent)
+    cover = _cover(
+        root,
+        metadata,
+        list(dict.fromkeys(cover_folders)),
+        dist / "web" / "assets" / post_id,
+        title,
+    )
     for package in (dist / "packages" / f"{post_id}.tar.gz", dist / "packages" / f"{post_id}.zip"):
         existing(package)
 
@@ -769,6 +829,7 @@ def _build(
             social=_social(kit_text, social_files),
             article_html=article_html,
             draft_html=draft_html,
+            cover=cover,
             article_version="Versione pubblicata" if article_text else "Bozza di lavoro",
             toc=toc,
             reading_minutes=max(1, round(words / 200)) if words else 0,
@@ -1060,6 +1121,7 @@ class _Links(HTMLParser):
                 ".jpg",
                 ".jpeg",
                 ".webp",
+                ".avif",
                 ".gif",
                 ".zip",
                 ".gz",

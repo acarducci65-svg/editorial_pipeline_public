@@ -118,7 +118,10 @@ main{padding:2rem 0 4rem}
 .standfirst{margin:1rem 0 0;font-family:var(--reading);font-size:1.25rem;line-height:1.55;color:var(--muted);text-wrap:pretty}
 .byline{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin-top:1.25rem;font-size:.875rem;color:var(--muted)}
 .byline strong{color:var(--ink)}
-.article p{margin:0 0 1.35em;text-wrap:pretty;hyphens:auto}
+.article-cover{max-width:40rem;margin:0 auto 2.25rem}
+.article-cover img{display:block;width:100%;height:auto;border-radius:var(--radius-sm);background:var(--surface-2)}
+.article-cover figcaption{margin-top:.6rem;font-size:.85rem;line-height:1.5;color:var(--muted);text-wrap:pretty}
+.article p{margin:0 0 1.35em;text-wrap:pretty;hyphens:none}
 .article h2{font:700 1.5rem/1.25 var(--sans);letter-spacing:-.015em;color:var(--ink);margin:2.4em 0 .7em;text-wrap:balance;scroll-margin-top:5rem}
 .article h3{font:700 1.2rem/1.3 var(--sans);color:var(--ink);margin:2em 0 .5em;scroll-margin-top:5rem}
 .article h4,.article h5,.article h6{font:700 1.05rem/1.35 var(--sans);color:var(--ink);margin:1.6em 0 .4em}
@@ -333,6 +336,7 @@ footer.page{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(-
       {% if subtitle %}<p class="standfirst">{{ subtitle }}</p>{% endif %}
       <div class="byline"><span>di <strong>{{ author or 'Autore non disponibile' }}</strong></span>{% if date_label %}<span>{{ date_label }}</span>{% endif %}{% if reading_minutes %}<span>{{ reading_minutes }} min di lettura</span>{% endif %}</div>
     </header>
+    {% if cover %}<figure class="article-cover"><img src="{{ cover.src }}" alt="{{ cover.alt }}" loading="eager">{% if cover.caption %}<figcaption>{{ cover.caption }}</figcaption>{% endif %}</figure>{% endif %}
     <article class="article" id="article-body">{{ article_html|safe }}</article>
     {% if draft_html %}<details class="compare"><summary>Confronta con la bozza di lavoro</summary><div class="article">{{ draft_html|safe }}</div></details>{% endif %}
   </div>
